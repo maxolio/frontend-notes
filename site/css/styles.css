@@ -1099,6 +1099,10 @@ pre {
 
 /* === >= 64rem (1024px): альбомные планшеты и небольшие ноутбуки === */
 @media (width >= 64rem) {
+  .main-content {
+    max-width: 60rem;
+  }
+
   .search-box input {
     width: 17rem;
   }
@@ -1130,7 +1134,7 @@ pre {
   }
 
   .main-content {
-    max-width: 55rem;
+    max-width: 64rem;
   }
 
   .search-box input {
