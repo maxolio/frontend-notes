@@ -13,7 +13,7 @@ import {
   saveTheme,
   setLessonStatus,
 } from './state.js';
-import { copyToClipboard, renderMarkdownLesson, renderSidebar } from './render.js';
+import { copyToClipboard, renderHomePage, renderMarkdownLesson, renderSidebar } from './render.js';
 import {
   buildHighlightedFragment,
   getLessonMarkdown,
@@ -46,9 +46,11 @@ const dom = {
   sidebarBackdrop: document.getElementById('sidebar-backdrop'),
 
   lessonNav: document.getElementById('lesson-nav'),
+  homeLink: document.getElementById('home-link'),
   bundleLink: document.getElementById('bundle-link'),
   progressBadge: document.getElementById('progress-badge'),
   mainContent: document.getElementById('main-content'),
+  articleToolbar: document.getElementById('article-toolbar'),
   lessonModule: document.getElementById('lesson-module'),
   lessonArticle: document.getElementById('lesson-article'),
   statusDoneBtn: document.getElementById('status-done-btn'),
@@ -327,11 +329,37 @@ function scrollToMatchedHeading(headingText) {
   return true;
 }
 
+function openHomePage() {
+  if (!activeSubject) return;
+  activeLessonId = null;
+  if (window.location.hash !== '#home') {
+    window.history.replaceState(null, '', '#home');
+  }
+
+  dom.articleToolbar.hidden = true;
+  dom.lessonArticle.classList.add('is-home');
+  dom.homeLink.classList.add('active');
+  updateProgressAndStatusUI();
+
+  renderHomePage(dom.lessonArticle, {
+    activeSubject,
+    lessons: allLessons,
+    subjects: allSubjects,
+    statuses: getStatuses(),
+  });
+  document.title = 'Frontend Notes — Как пользоваться сайтом';
+  window.scrollTo({ top: 0, behavior: 'instant' });
+}
+
 async function openLesson(lessonId, scrollToHeading = '') {
   const lesson = allLessons.find((l) => l.id === lessonId) || allLessons[0];
   if (!lesson || !activeSubject) return;
 
   activeLessonId = lesson.id;
+  dom.articleToolbar.hidden = false;
+  dom.lessonArticle.classList.remove('is-home');
+  dom.homeLink.classList.remove('active');
+
   const targetHash = `#${activeSubject.id}/${lesson.id}`;
   if (window.location.hash !== targetHash) {
     window.history.replaceState(null, '', targetHash);
@@ -367,7 +395,7 @@ async function openLesson(lessonId, scrollToHeading = '') {
   }
 }
 
-async function selectSubject(subjectId, targetLessonId = '') {
+async function selectSubject(subjectId, targetLessonId = '', { showHome = false } = {}) {
   const subject = allSubjects.find((s) => s.id === subjectId) || allSubjects[0];
   if (!subject) return;
 
@@ -405,8 +433,12 @@ async function selectSubject(subjectId, targetLessonId = '') {
       lessonsIndexCache.set(subject.id, allLessons);
     }
 
-    const nextLessonId = targetLessonId || allLessons[0]?.id;
-    await openLesson(nextLessonId);
+    if (showHome) {
+      openHomePage();
+    } else {
+      const nextLessonId = targetLessonId || allLessons[0]?.id;
+      await openLesson(nextLessonId);
+    }
     setTimeout(() => preloadAllLessons(subject, allLessons), 300);
   } catch (error) {
     dom.lessonArticle.innerHTML = `
@@ -420,12 +452,12 @@ async function selectSubject(subjectId, targetLessonId = '') {
 
 function parseLocationHash() {
   const raw = window.location.hash.slice(1);
-  if (!raw) return { subjectId: null, lessonId: null };
+  if (!raw || raw === 'home') return { isHome: true, subjectId: null, lessonId: null };
   if (raw.includes('/')) {
     const [subjectId, lessonId] = raw.split('/');
-    return { subjectId, lessonId };
+    return { isHome: false, subjectId, lessonId };
   }
-  return { subjectId: null, lessonId: raw };
+  return { isHome: false, subjectId: null, lessonId: raw };
 }
 
 function bindEvents() {
@@ -600,9 +632,30 @@ function bindEvents() {
     setSidebarOpen(false);
   });
 
+  dom.homeLink.addEventListener('click', (event) => {
+    event.preventDefault();
+    setSidebarOpen(false);
+    openHomePage();
+  });
+
+  dom.lessonArticle.addEventListener('click', (event) => {
+    const lessonBtn = event.target.closest('[data-home-lesson]');
+    if (lessonBtn) {
+      openLesson(lessonBtn.dataset.homeLesson);
+      return;
+    }
+
+    const subjectBtn = event.target.closest('[data-home-subject]');
+    if (subjectBtn) {
+      selectSubject(subjectBtn.dataset.homeSubject);
+    }
+  });
+
   window.addEventListener('hashchange', () => {
-    const { subjectId, lessonId } = parseLocationHash();
-    if (subjectId && subjectId !== activeSubject?.id) {
+    const { isHome, subjectId, lessonId } = parseLocationHash();
+    if (isHome) {
+      openHomePage();
+    } else if (subjectId && subjectId !== activeSubject?.id) {
       selectSubject(subjectId, lessonId || '');
     } else if (lessonId && lessonId !== activeLessonId) {
       openLesson(lessonId);
@@ -623,12 +676,12 @@ async function init() {
     allSubjects = await response.json();
     renderSubjectOptions();
 
-    const { subjectId, lessonId } = parseLocationHash();
+    const { isHome, subjectId, lessonId } = parseLocationHash();
     const initialSubjectId =
       subjectId && allSubjects.some((s) => s.id === subjectId)
         ? subjectId
         : getSavedSubject(allSubjects);
-    await selectSubject(initialSubjectId, lessonId || '');
+    await selectSubject(initialSubjectId, lessonId || '', { showHome: isHome });
   } catch (error) {
     dom.lessonArticle.innerHTML = `
       <div class="callout callout-warn">

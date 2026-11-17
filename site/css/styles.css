@@ -551,6 +551,29 @@ svg {
   color: var(--text-muted);
 }
 
+.home-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 2.375rem;
+  padding: 0.45rem 0.625rem;
+  margin-bottom: 0.875rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-link.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .module-group {
   margin-bottom: 1.125rem;
 }
@@ -999,12 +1022,84 @@ pre {
   line-height: 1.55;
 }
 
-/* === Режим «Шпаргалка» === */
-.cheat-mode .lesson-article > :not(h1):not(h2):not(.callout):not(.traps-section):not(.lesson-accordion) {
+/* === Главная страница-инструкция === */
+.article-toolbar[hidden] {
   display: none;
 }
 
-.cheat-mode .lesson-article > h2 {
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.625rem;
+  margin: 1rem 0 1.75rem;
+}
+
+.home-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 2.625rem;
+  padding: 0.5rem 1.125rem;
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-md);
+  background: var(--accent);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+[data-theme="onedark"] .home-btn-primary,
+[data-theme="nord"] .home-btn-primary {
+  color: #111418;
+}
+
+.home-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  margin: 0.875rem 0 1.75rem;
+}
+
+.home-card {
+  padding: 0.95rem 1rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.home-card-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.98rem;
+  font-weight: 700;
+}
+
+.home-card p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.home-steps {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.home-steps li {
+  margin-bottom: 0.55rem;
+}
+
+/* === Режим «Шпаргалка» === */
+.cheat-mode .lesson-article:not(.is-home) > :not(h1):not(h2):not(.callout):not(.traps-section):not(.lesson-accordion) {
+  display: none;
+}
+
+.cheat-mode .lesson-article:not(.is-home) > h2 {
   font-size: 1.05rem;
   margin: 1.375rem 0 0.625rem;
   color: var(--text-muted);
@@ -1019,7 +1114,8 @@ pre {
   .appearance-option:hover,
   .subject-option:hover,
   .ai-option:hover,
-  .bundle-link:hover {
+  .bundle-link:hover,
+  .home-link:hover {
     border-color: var(--accent);
   }
 
@@ -1082,6 +1178,10 @@ pre {
 
   .callout {
     padding: 0.9375rem 1.125rem;
+  }
+
+  .home-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .ai-wrap {

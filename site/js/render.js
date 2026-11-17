@@ -250,3 +250,92 @@ export function renderSidebar(navElement, subjectId, lessons, activeId, statuses
     navElement.append(group);
   }
 }
+
+export function renderHomePage(container, { activeSubject, lessons, subjects, statuses }) {
+  const firstLesson = lessons[0];
+  const reviewLesson = lessons.find((l) => statuses[`${activeSubject.id}:${l.id}`] === 'review');
+  const nextUnreadLesson =
+    lessons.find((l) => statuses[`${activeSubject.id}:${l.id}`] !== 'done') || firstLesson;
+  const doneCount = lessons.filter((l) => statuses[`${activeSubject.id}:${l.id}`] === 'done').length;
+
+  const subjectButtons = subjects
+    .map(
+      (s) => `
+      <button type="button" class="pill-btn" data-home-subject="${s.id}">
+        ${s.title}
+      </button>`
+    )
+    .join('');
+
+  container.innerHTML = `
+    <h1>Frontend Notes — как пользоваться сайтом</h1>
+
+    <div class="callout callout-tldr">
+      <span class="callout-badge">Суть</span>
+      <p>Это не просто читалка конспектов, а тренажёр памяти: <strong>до урока</strong> пробегаешь выжимку, <strong>после</strong> проверяешь себя вопросами и задачами, а сложные темы отмечаешь на повтор.</p>
+    </div>
+
+    <div class="home-actions">
+      ${
+        nextUnreadLesson
+          ? `<button type="button" class="home-btn-primary" data-home-lesson="${nextUnreadLesson.id}">
+              ${doneCount > 0 ? `▶ Продолжить: Урок ${nextUnreadLesson.number}` : `▶ Начать с Урока ${nextUnreadLesson.number}`}
+            </button>`
+          : ''
+      }
+      ${
+        reviewLesson
+          ? `<button type="button" class="pill-btn" data-home-lesson="${reviewLesson.id}">
+              ↻ Повторить: Урок ${reviewLesson.number}
+            </button>`
+          : ''
+      }
+    </div>
+
+    <h2>Основные кнопки и фишки</h2>
+
+    <div class="home-grid">
+      <div class="home-card">
+        <h3 class="home-card-title">🎨 Тема и шрифт</h3>
+        <p>В шапке слева выбирай одну из 4 тем (Бумага, Сепия, One Dark, Nord) и один из 4 шрифтов для комфортного чтения.</p>
+      </div>
+
+      <div class="home-card">
+        <h3 class="home-card-title">⚡ Режим «Шпаргалка»</h3>
+        <p>Справа в шапке скрывает длинный код и оставляет только <strong>Суть урока</strong>, карточки <strong>Важно</strong> и <strong>3 главные ловушки</strong>.</p>
+      </div>
+
+      <div class="home-card">
+        <h3 class="home-card-title">❓ Вопросы и 🧩 Задачи</h3>
+        <p>Внизу каждого урока лежат свёрнутые блоки практики. Сначала отвечай по памяти и пиши код сам, потом открывай спойлер.</p>
+      </div>
+
+      <div class="home-card">
+        <h3 class="home-card-title">✓ Статусы прогресса</h3>
+        <p>Отмечай уроки как <strong>Изучено</strong> (зелёная точка) или <strong>Повторить</strong> (жёлтая) — всё сохраняется в браузере.</p>
+      </div>
+
+      <div class="home-card">
+        <h3 class="home-card-title">🔍 Поиск по всему коду</h3>
+        <p>Ищет по названиям, методам и примерам кода внутри всех уроков сразу и прыгает прямо к нужному разделу (горячая клавиша <code>Ctrl+K</code>).</p>
+      </div>
+
+      <div class="home-card">
+        <h3 class="home-card-title">🤖 Меню «Для ИИ»</h3>
+        <p>В 1 тап копирует конспект с готовым промптом или прямую ссылку на <code>.md</code> (или весь курс одним файлом внизу меню) для Gemini.</p>
+      </div>
+    </div>
+
+    <h2>Ритм учёбы за 3 шага</h2>
+    <ol class="home-steps">
+      <li><strong>До видео (2 мин):</strong> открой урок в режиме <strong>⚡</strong> — посмотри «Суть» и 3 ловушки.</li>
+      <li><strong>После видео (10–15 мин):</strong> выключи <strong>⚡</strong>, разбери примеры кода и реши задачи руками.</li>
+      <li><strong>На следующий день (5 мин):</strong> открой с телефона <strong>❓ Вопросы для закрепления</strong> и проверь, что осталось в памяти.</li>
+    </ol>
+
+    <h2>Разделы конспектов</h2>
+    <div class="home-actions">
+      ${subjectButtons}
+    </div>
+  `;
+}
