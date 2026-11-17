@@ -656,7 +656,7 @@ svg {
 .main-content {
   min-width: 0;
   width: 100%;
-  max-width: 52.5rem;
+  max-width: 60.5rem;
   margin: 0 auto;
   padding: var(--content-pad-y) var(--content-pad-x) 4rem;
 }
@@ -1200,7 +1200,7 @@ pre {
 /* === >= 64rem (1024px): альбомные планшеты и небольшие ноутбуки === */
 @media (width >= 64rem) {
   .main-content {
-    max-width: 60rem;
+    max-width: 69rem;
   }
 
   .search-box input {
@@ -1234,7 +1234,7 @@ pre {
   }
 
   .main-content {
-    max-width: 64rem;
+    max-width: 73.5rem;
   }
 
   .search-box input {
