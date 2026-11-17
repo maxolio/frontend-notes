@@ -1,0 +1,24 @@
+[
+  {
+    "id": "js",
+    "badge": "JS",
+    "title": "JS Конспекты",
+    "indexFile": "data/js/lessons.json",
+    "basePath": "data/js",
+    "bundleFile": "data/js/all-lessons.md"
+  },
+  {
+    "id": "html",
+    "badge": "HTML",
+    "title": "HTML Конспекты",
+    "indexFile": "data/html/lessons.json",
+    "basePath": "data/html"
+  },
+  {
+    "id": "css",
+    "badge": "CSS",
+    "title": "CSS Конспекты",
+    "indexFile": "data/css/lessons.json",
+    "basePath": "data/css"
+  }
+]

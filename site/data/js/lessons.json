@@ -1,0 +1,590 @@
+[
+  {
+    "id": "lesson-01",
+    "number": 1,
+    "title": "Урок 01. Введение: подключение JS, console.log, синтаксис и ошибки",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-01.md",
+    "sourceDocx": "../conspects/lesson-01-intro-console-syntax-errors.docx",
+    "tldr": "Скрипт подключают через <script src=\"script.js\"></script> перед </body> (или в <head> с defer), вывод смотрят в DevTools -> Console, ; ставят перед [ и ( из-за ASI, а любая ошибка останавливает выполнение дальнейшего кода файла.",
+    "traps": [
+      "1. Подключить <script src=\"...\"> в <head> без defer (не найдёт HTML-элементы) или написать JS внутрь тега, у которого уже есть атрибут src (внутренний код проигнорируется).",
+      "2. Отказаться от ; и начать следующую строку с [ или ( — механизм ASI не поставит точку с запятой, и код упадёт.",
+      "3. Вложить многострочный комментарий /* /* */ */ внутрь другого (SyntaxError) или ждать, что код после ошибки в консоли продолжит выполняться."
+    ]
+  },
+  {
+    "id": "lesson-02",
+    "number": 2,
+    "title": "Урок 02. Переменные (var, let, const), строгий режим use strict и именование",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-02.md",
+    "sourceDocx": "../conspects/lesson-02-variables-use-strict-naming.docx",
+    "tldr": "В JS динамическая типизация (тип заранее не указывают); по умолчанию берут const (нельзя переназначить), для меняемых значений — let, var устарел, директива \"use strict\" запрещает ошибки вроде записи без объявления, имена — в camelCase.",
+    "traps": [
+      "1. Обратиться к let/const до строки их объявления (Cannot access before initialization) или забыть \"use strict\" и случайно создать переменную без ключевого слова.",
+      "2. Попытаться перезаписать const (Assignment to constant variable) или повторно объявить переменную с тем же именем (Identifier has already been declared).",
+      "3. Начать имя переменной с цифры (2user) или взять зарезервированное слово (class, let)."
+    ]
+  },
+  {
+    "id": "lesson-03",
+    "number": 3,
+    "title": "Урок 03. Типы данных, typeof, интерполяция строк и преобразование типов",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-03.md",
+    "sourceDocx": "../conspects/lesson-03-data-types-typeof-conversion.docx",
+    "tldr": "В JS 8 типов данных (string, number, bigint, boolean, symbol, null, undefined и object); для подстановки в строки используют бэктики ${...}, тип узнают через typeof (typeof null === \"object\" — баг языка), а типы приводят через String(), Number(), Boolean().",
+    "traps": [
+      "1. Думать, что typeof null вернёт \"null\" — всегда возвращает \"object\" (официальный баг JS); и не забывать скобки, проверяя выражение: typeof (1 + \"2\").",
+      "2. Ждать от Boolean(\"0\") или Boolean(\" \") значения false — любая строка даже с одним пробелом даёт true (false даёт только пустая строка \"\").",
+      "3. Путать Number(null) (даёт 0) и Number(undefined) (даёт NaN), а также складывать BigInt (10n) с обычным числом (5) без суффикса n."
+    ]
+  },
+  {
+    "id": "lesson-04",
+    "number": 4,
+    "title": "Урок 04. Арифметика, приоритет операторов, инкремент и сравнение",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-04.md",
+    "sourceDocx": "../conspects/lesson-04-math-operators-increment-comparison.docx",
+    "tldr": "Унарный + превращает строку в число и срабатывает раньше бинарного +; разница между ++x (вернёт новое) и x++ (вернёт старое) видна при присваивании; строки сравниваются посимвольно по Unicode, а для равенства используют строгое === вместо ==.",
+    "traps": [
+      "1. Сложить две строки из полей ввода через \"3\" + \"5\" без унарного + или Number() — получите склейку \"35\" вместо математической суммы 8.",
+      "2. Написать const next = count++ и ждать уже увеличенного числа — постфиксный ++ сначала отдаёт старое значение (10), а увеличивает count потом.",
+      "3. Сравнивать значения через == вместо === (получая скрытое приведение типов) или сравнивать числа как строки (в строках \"20\" > \"100\" даст true, т.к. \"2\" > \"1\")."
+    ]
+  },
+  {
+    "id": "lesson-05",
+    "number": 5,
+    "title": "Урок 05. Условия if/else, тернарный оператор, логические операторы и ??",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-05.md",
+    "sourceDocx": "../conspects/lesson-05-conditions-ternary-logical-nullish.docx",
+    "tldr": "if/else выбирает ветку кода, тернарный ? : записывает выбор в const; операторы || и && не превращают результат в true/false, а возвращают сам операнд (у && приоритет выше ||), а ?? реагирует только на null и undefined (сохраняя 0 и \"\").",
+    "traps": [
+      "1. Думать, что || и && возвращают true/false — они всегда возвращают исходное значение одного из операндов (например, 0 || 100 вернёт 100, а \"a\" && null вернёт null).",
+      "2. Ставить || вместо ?? для значений по умолчанию, когда 0, \"\" или false допустимы (например, количество товара или скидка 0 исчезнет при ||).",
+      "3. Забывать, что && срабатывает раньше || (лучше ставить явные круглые скобки), и писать if (cond) ... без фигурных скобок или длинные вложенные тернарники."
+    ]
+  },
+  {
+    "id": "lesson-06",
+    "number": 6,
+    "title": "Урок 06. Функции alert, prompt, confirm и конструкция switch / case",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-06.md",
+    "sourceDocx": "../conspects/lesson-06-alert-prompt-confirm-switch.docx",
+    "tldr": "Модалки alert(), prompt() и confirm() ставят код на паузу (prompt отдаёт строку или null при отмене, confirm — true/false); в switch/case без break после совпадения выполняются все следующие ветки подряд.",
+    "traps": [
+      "1. Забыть, что prompt() возвращает строку (введённый \"0\" не равен числу 0 без + или Number), а нажатие Cancel / Esc возвращает null (и +null превратится в 0!).",
+      "2. Пропустить break внутри case в switch — после первого совпадения выполнятся все нижестоящие case и даже блок default.",
+      "3. Передать в alert(a, b) несколько аргументов как в console.log — alert покажет только первый и заморозит весь JS-код до нажатия ОК."
+    ]
+  },
+  {
+    "id": "lesson-07",
+    "number": 7,
+    "title": "Урок 07. Циклы while, do..while и for, break, continue и область видимости",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-07.md",
+    "sourceDocx": "../conspects/lesson-07-loops-while-for-break-continue.docx",
+    "tldr": "while проверяет условие ДО тела (0+ раз), do..while — ПОСЛЕ тела (минимум 1 раз), а for собирает старт, условие и шаг в скобках; переменные внутри цикла видны только внутри него, break завершает весь цикл, а continue пропускает только текущий шаг.",
+    "traps": [
+      "1. Забыть шаг изменения счётчика в while (или написать условие всегда true) — получите бесконечный цикл и зависание браузера.",
+      "2. Пытаться прочитать счётчик let i или переменную из тела цикла после } — будет ReferenceError (они живут только внутри блока цикла).",
+      "3. Перепутать break (обрывает весь цикл) и continue (пропускает лишь 1 шаг) или не учесть, что while без единого выполнения пропустит тело при false, а do..while — нет."
+    ]
+  },
+  {
+    "id": "lesson-08",
+    "number": 8,
+    "title": "Урок 08. Функции: объявление, область видимости, параметры и return",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-08.md",
+    "sourceDocx": "../conspects/lesson-08-functions-scope-params-return.docx",
+    "tldr": "Функция (Function Declaration) выполняется только в момент вызова name(), имеет локальную область видимости {}, принимает аргументы по порядку (дефолтные параметры ставят последними) и всегда возвращает результат (или undefined без return).",
+    "traps": [
+      "1. Указать параметры по умолчанию в начале списка (придётся передавать undefined для пропуска) или забыть передать нужный аргумент (параметр станет undefined).",
+      "2. Забыть return (функция вернёт undefined) или написать инструкции после return (после возврата функция останавливается, и нижний код мёртв).",
+      "3. Пытаться прочитать переменную, объявленную внутри {}, снаружи функции, либо перезаписывать входной параметр напрямую вместо новой локальной переменной."
+    ]
+  },
+  {
+    "id": "lesson-09",
+    "number": 9,
+    "title": "Урок 09. Виды функций, стрелочные функции, колбэки и именование",
+    "module": "Блок 1. Фундамент языка",
+    "file": "lesson-09.md",
+    "sourceDocx": "../conspects/lesson-09-function-types-arrows-callbacks.docx",
+    "tldr": "В JS 3 вида функций — Function Declaration (всплывает и перезаписывается), Function Expression (в переменной) и Arrow Function (короткая, без arguments и своего this); функции передают без () как колбэки, возвращают из функций и называют с глагола.",
+    "traps": [
+      "1. Вызывать Function Expression или стрелочную функцию до строки объявления — они не поднимаются готовыми как Function Declaration (будет ошибка TDZ).",
+      "2. Передать колбэк со скобками () внутри аргументов — функция сработает мгновенно, а вместо колбэка внутрь попадёт undefined (ошибка is not a function).",
+      "3. Ждать объект arguments внутри стрелочной функции (у стрелок его нет) или смешивать несколько несвязанных действий внутри одной функции."
+    ]
+  },
+  {
+    "id": "lesson-10",
+    "number": 10,
+    "title": "Урок 10. Объекты (Часть 1): свойства, методы, delete, in и for..in",
+    "module": "Блок 2. Объекты и примитивы",
+    "file": "lesson-10.md",
+    "sourceDocx": "../conspects/lesson-10-objects-properties-in-for-in.docx",
+    "tldr": "Объект { key: value } хранит данные под строковыми ключами; читают свойства через точку или [...], содержимое const-объекта можно менять и удалять через delete, наличие проверяют оператором in, а ключи перебирают циклом for..in.",
+    "traps": [
+      "1. В цикле for (const key in obj) писать obj.key вместо obj[key] — JS будет искать свойство с буквальным именем \"key\" и вернёт undefined.",
+      "2. Забыть квадратные скобки при вычисляемом ключе { [propName]: val } или проверять наличие свойства через !== undefined вместо оператора in.",
+      "3. Ждать исходного порядка для числовых ключей (ключи 2, 1, 3 всегда отсортируются по возрастанию \"1\", \"2\", \"3\" впереди всех строковых ключей)."
+    ]
+  },
+  {
+    "id": "lesson-11",
+    "number": 11,
+    "title": "Урок 11. Объекты (Часть 2): ссылки, копирование, ?. и деструктуризация",
+    "module": "Блок 2. Объекты и примитивы",
+    "file": "lesson-11.md",
+    "sourceDocx": "../conspects/lesson-11-objects-copy-merge-destructuring-rest.docx",
+    "tldr": "Объекты хранятся по ссылке (даже {} === {} даёт false); поверхностно их копируют и объединяют через { ...obj } или Object.assign, от падения на вложенных свойствах спасает ?. + ??, а поля извлекают деструктуризацией с ...rest в конце.",
+    "traps": [
+      "1. Написать const copy = obj и менять свойства в copy — так вы скопировали ссылку, и исходный obj тоже изменится.",
+      "2. Ждать от { ...obj } или Object.assign({}, obj) глубокого копирования — вложенные объекты и массивы остаются общими ссылками.",
+      "3. Перепутать порядок в { city: userCity = \"Нет\" } (сначала двоеточие, затем =) или поставить ...rest не в самый конец (ошибка Rest element must be last element)."
+    ]
+  },
+  {
+    "id": "lesson-12",
+    "number": 12,
+    "title": "Урок 12. Ключевое слово this в объектах и функциях, чейнинг методов",
+    "module": "Блок 2. Объекты и примитивы",
+    "file": "lesson-12.md",
+    "sourceDocx": "../conspects/lesson-12-this-methods-chaining.docx",
+    "tldr": "Значение this зависит от способа вызова (объект слева от точки); обычный и сокращённый методы берут контекст этого объекта, стрелочная функция своего this не имеет (берёт внешний), а return this в методах открывает цепочку вызовов (chaining).",
+    "traps": [
+      "1. Писать метод объекта через стрелку () => this.name — у стрелки нет своего this, и она уйдёт наружу в window (правильно: method() {} или function() {}).",
+      "2. Ждать во вложенном методе user.address.log() доступ к user через this — контекст всегда равен объекту непосредственно перед точкой (address).",
+      "3. Вызывать методы цепочкой ladder.up().down() без return this; — по умолчанию метод вернёт undefined, и следующий вызов через точку упадёт с TypeError."
+    ]
+  },
+  {
+    "id": "lesson-13",
+    "number": 13,
+    "title": "Урок 13. Методы примитивов, числа, Math, округление и парсинг строк",
+    "module": "Блок 2. Объекты и примитивы",
+    "file": "lesson-13.md",
+    "sourceDocx": "../conspects/lesson-13-primitives-numbers-math-parse.docx",
+    "tldr": "Примитивы получают методы через временный объект-обёртку; toFixed() и toPrecision() возвращают строку, объект Math даёт random, min/max (...arr) и 4 способа округления (round, floor, ceil, trunc), а \"100.5px\" парсят через parseInt / parseFloat.",
+    "traps": [
+      "1. Ждать от price.toFixed(2) число для дальнейшей математики — метод возвращает строку (при сложении \"10.00\" + 5 выйдет строка \"10.005\").",
+      "2. Передать массив в Math.max(nums) без спреда ...nums (вернёт NaN) или путать Math.floor(-3.1) (-4) с Math.trunc(-3.1) (-3).",
+      "3. Ждать число от parseInt(\"$100\") или parseFloat(\"px100\") — если нецифровой символ идёт перед цифрами, парсинг сразу вернёт NaN."
+    ]
+  },
+  {
+    "id": "lesson-14",
+    "number": 14,
+    "title": "Урок 14. Строки и методы работы со строками",
+    "module": "Блок 2. Объекты и примитивы",
+    "file": "lesson-14.md",
+    "sourceDocx": "../conspects/lesson-14-strings.docx",
+    "tldr": "строки в JS неизменяемы (иммутабельны) — ни один метод не меняет исходную строку, а всегда возвращает новую строку (или число / boolean / массив).",
+    "traps": [
+      "1. Строки иммутабельны — вызов str.trim() или str.toLowerCase() без присвоения результата в переменную пропадёт впустую.",
+      "2. indexOf возвращает 0 как нормальный индекс — проверка if (str.indexOf(\"П\")) даст false, если слово в самом начале! Сравнивай !== -1 или бери includes().",
+      "3. Замена/поиск зависят от регистра и ломаются на \"ё\" — приводи к toLowerCase(), используй флаги /.../gi и localeCompare() для сортировки."
+    ]
+  },
+  {
+    "id": "lesson-15",
+    "number": 15,
+    "title": "Урок 15. Массивы в JavaScript",
+    "module": "Блок 3. Структуры данных и ООП",
+    "file": "lesson-15.md",
+    "sourceDocx": "../conspects/lesson-15-arrays.docx",
+    "tldr": "массив ([...]) — упорядоченный список, который под капотом является объектом, хранится по ссылке и изменяем (мутабелен).",
+    "traps": [
+      "1. unshift / shift тормозят — на больших списках сдвигают все индексы (быстрее работать с хвостом: push / pop).",
+      "2. Запись по огромному индексу и [...arr] — arr[100] создаёт пустые дыры (undefined), а [...arr] копирует только 1-й уровень (для вложенных нужен structuredClone).",
+      "3. typeof [] === \"object\" и toString для объектов — проверяй массив через Array.isArray(arr), перебирай через for..of, а объекты внутри .join() дадут \"[object Object]\"."
+    ]
+  },
+  {
+    "id": "lesson-16",
+    "number": 16,
+    "title": "Урок 16. Деструктуризация и продвинутые методы массивов",
+    "module": "Блок 3. Структуры данных и ООП",
+    "file": "lesson-16.md",
+    "sourceDocx": "../conspects/lesson-16-array-methods.docx",
+    "tldr": "вместо ручных циклов for массивы перебирают, ищут, фильтруют и преобразуют через методы с колбэками; почти все методы НЕ меняют исходный массив — кроме sort и reverse.",
+    "traps": [
+      "1. Забыть сохранить результат map/filter или забыть 0 в reduce — map/filter без присвоения работают впустую, а reduce без начального значения ломается на объектах и падает на [].",
+      "2. Искать объекты через indexOf / includes — они сравнивают ссылки и вернут -1/false; для объектов используй find / findIndex / some.",
+      "3. Вызывать sort() без (a, b) => a - b и забывать про мутацию — числа отсортируются как строки (500 перед 8), а sort/reverse испортят исходный массив без [...arr]."
+    ]
+  },
+  {
+    "id": "lesson-17",
+    "number": 17,
+    "title": "Урок 17. Перебор объектов (keys/values/entries) и коллекции Map, Set",
+    "module": "Блок 3. Структуры данных и ООП",
+    "file": "lesson-17.md",
+    "sourceDocx": "../conspects/lesson-17-map-set-objects.docx",
+    "tldr": "Object.keys/values/entries превращают объект в массив для удобной обработки методами массивов; Map — продвинутый словарь с ключами любого типа; Set — коллекция только уникальных значений.",
+    "traps": [
+      "1. Порядок параметров в map.forEach — первым аргументом идёт value, вторым key (не перепутай с [key, value] из entries!).",
+      "2. map.size — свойство, а не метод, и Map не читается через [] — пиши map.size без скобок (), а значения бери строго через map.get(key).",
+      "3. Object.fromEntries(map) теряет нестроковые ключи — если в Map были и число 1, и строка \"1\", в объекте останется только последний из них."
+    ]
+  },
+  {
+    "id": "lesson-18",
+    "number": 18,
+    "title": "Урок 18. Формат данных JSON: stringify, parse и ограничения",
+    "module": "Блок 3. Структуры данных и ООП",
+    "file": "lesson-18.md",
+    "sourceDocx": "../conspects/lesson-18-json.docx",
+    "tldr": "JSON — это текстовый формат для передачи данных между JS и сервером; JSON.stringify() превращает объект в строку, а JSON.parse() собирает строку обратно в объект.",
+    "traps": [
+      "1. Нарушение синтаксиса внутри JSON-строки — одинарные кавычки, ключи без кавычек или запятая после последнего элемента сразу роняют JSON.parse() с SyntaxError.",
+      "2. Тихая потеря методов и undefined — JSON.stringify() молча выбрасывает функции и свойства с undefined; после обратного JSON.parse() они не восстановятся.",
+      "3. Не путать JSON и JS-объект — JSON.stringify() даёт обычную строку (нельзя прочитать userJson.name без предварительного JSON.parse())."
+    ]
+  },
+  {
+    "id": "lesson-19",
+    "number": 19,
+    "title": "Урок 19. Классы в JavaScript: constructor, get/set, #, static, extends и super",
+    "module": "Блок 3. Структуры данных и ООП",
+    "file": "lesson-19.md",
+    "sourceDocx": "../conspects/lesson-19-classes.docx",
+    "tldr": "класс — это шаблон (чертёж) для создания однотипных объектов (экземпляров) через new и удобной организации кода (слайдеры, модалки, валидаторы).",
+    "traps": [
+      "1. Забыть super(...) в constructor наследника — в классе с extends нельзя писать this.field до вызова super(...), сразу упадёт ошибка.",
+      "2. Путать static с методами экземпляра и забывать # в теле — static вызывают только на ИмяКласса.метод(), а #поле нужно обязательно объявить в классе заранее.",
+      "3. Бесконечная рекурсия в сеттере и отсутствие this. — если в set city(v) написать this.city = v вместо this.#city = v, сеттер зациклится; а без this внутри метода свойства не видны."
+    ]
+  },
+  {
+    "id": "lesson-20",
+    "number": 20,
+    "title": "Урок 20. Таймеры в JavaScript: setTimeout, setInterval, clear и вложенный вызов",
+    "module": "Блок 4. Асинхронность и модули",
+    "file": "lesson-20.md",
+    "sourceDocx": "../conspects/lesson-20-timers.docx",
+    "tldr": "setTimeout запускает функцию один раз с задержкой в миллисекундах, setInterval повторяет её регулярно; для точной паузы после выполнения используют вложенный setTimeout.",
+    "traps": [
+      "1. Круглые скобки в первом аргументе: setTimeout(fn(), 1000) — функция вызовется мгновенно без ожидания, а в таймер передастся undefined.",
+      "2. Ожидание, что setTimeout(..., 0) выполнится «тут же» — колбэк всё равно выполнится только ПОСЛЕ всех обычных строк кода ниже.",
+      "3. Наложение вызовов в setInterval — если операция внутри занимает больше времени, чем интервал (например, запрос на сервер), используй вложенный setTimeout."
+    ]
+  },
+  {
+    "id": "lesson-21",
+    "number": 21,
+    "title": "Урок 21. Обработка ошибок в JS: try, catch, finally и throw",
+    "module": "Блок 4. Асинхронность и модули",
+    "file": "lesson-21.md",
+    "sourceDocx": "../conspects/lesson-21-errors-try-catch.docx",
+    "tldr": "try...catch ловит ошибки времени выполнения и не даёт скрипту упасть целиком; throw new Error() создаёт свою ошибку вручную, а finally выполняется всегда.",
+    "traps": [
+      "1. Оборачивать в try...catch сам setTimeout снаружи — ошибка внутри таймера возникнет позже, когда try...catch уже закончил работу (ставь try...catch внутри колбэка).",
+      "2. Ожидание, что try продолжится после ошибки или спасёт от опечатки — после ошибки внутри try строки ниже не выполнятся, а синтаксический брак не даст файлу даже запуститься.",
+      "3. Бросать строку throw \"текст\" вместо throw new Error(\"текст\") — без new Error(...) в catch не будет свойств name, message и стека вызовов stack."
+    ]
+  },
+  {
+    "id": "lesson-22",
+    "number": 22,
+    "title": "Урок 22. Асинхронный JS: Event Loop, колбэки, Promise, async / await",
+    "module": "Блок 4. Асинхронность и модули",
+    "file": "lesson-22.md",
+    "sourceDocx": "../conspects/lesson-22-async-promises-event-loop.docx",
+    "tldr": "Асинхронность позволяет запускать долгие задачи (таймеры, запросы на сервер) без заморозки остального кода; вместо вложенных колбэков (Callback Hell) используют Promise и синтаксис async / await.",
+    "traps": [
+      "1. Забыть await перед асинхронной функцией: в переменную запишется объект Promise {<pending>}, а не сами данные.",
+      "2. Использовать await в обычном <script> вне async-функции: движок выдаст SyntaxError (верхнеуровневый await работает только в <script type=\"module\">).",
+      "3. Поставить await без try / catch или вызвать async-функцию без скобок (): отклонённый промис выбросит необработанное исключение, а без () у функции нет .then."
+    ]
+  },
+  {
+    "id": "lesson-23",
+    "number": 23,
+    "title": "Урок 23. Модули в JavaScript: декомпозиция, import и export",
+    "module": "Блок 4. Асинхронность и модули",
+    "file": "lesson-23.md",
+    "sourceDocx": "../conspects/lesson-23-modules-import-export.docx",
+    "tldr": "Модуль — это отдельный JS-файл со своей изолированной областью видимости; связи между такими файлами строят явно через export и import, а в HTML подключают один главный файл с атрибутом type=\"module\".",
+    "traps": [
+      "1. Забыть \"./\" или расширение \".js\" в пути import, либо забыть атрибут type=\"module\" у корневого <script> (ошибка Cannot use import statement outside a module).",
+      "2. Написать \"export default const fn = () => {}\" (SyntaxError) или пытаться пробросить default-экспорт через реэкспорт \"export * from ...\" (звёздочка переносит только именованные экспорты).",
+      "3. Ожидать повторного выполнения файла при втором import или смешивать порядок с обычными <script>: модуль всегда вычисляется 1 раз и запускается после всех обычных не-модульных скриптов."
+    ]
+  },
+  {
+    "id": "lesson-24",
+    "number": 24,
+    "title": "Урок 24. JavaScript в браузере: окружение, DOM и BOM",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-24.md",
+    "sourceDocx": "../conspects/lesson-24-dom-bom-window.docx",
+    "tldr": "В браузере весь JS работает через главный глобальный объект window, который делится на сам язык JS, BOM (данные о браузере) и DOM (HTML-страница в виде дерева объектов).",
+    "traps": [
+      "1. Путать children и childNodes: в childNodes попадают текстовые узлы — в том числе невидимые переносы строк и пробелы между тегами в HTML.",
+      "2. Объявлять на глобальном уровне переменные с именами из window (location, innerWidth, document) — в обычном скрипте это приводит к ошибке или перекрытию.",
+      "3. Создав внутри функции/модуля свою переменную (например, location), обращаться к браузеру без \"window.\" — JS возьмёт твою локальную переменную и вернёт undefined."
+    ]
+  },
+  {
+    "id": "lesson-25",
+    "number": 25,
+    "title": "Урок 25. Навигация по DOM-дереву, атрибуты async и defer",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-25.md",
+    "sourceDocx": "../conspects/lesson-25-dom-navigation-async-defer.docx",
+    "tldr": "От любого DOM-элемента можно шагать к родителю, соседям и детям через свойства вроде parentElement и children, а чтобы при запуске скрипта в <head> элементы страницы уже существовали, используют атрибут defer.",
+    "traps": [
+      "1. Подключить обычный <script> в <head> без defer (или поставить async вместо defer): на момент запуска <body> ещё не прочитан, и document.body вернёт null.",
+      "2. Пытаться вызвать .forEach() прямо на elem.children: у HTMLCollection нет методов массива — сперва оберни в [...elem.children] или Array.from(...).",
+      "3. Использовать firstChild / nextSibling вместо firstElementChild / nextElementSibling и вместо кнопки или блока получить текстовый узел #text с пробелами разметки."
+    ]
+  },
+  {
+    "id": "lesson-26",
+    "number": 26,
+    "title": "Урок 26. Поиск элементов в DOM: getElement* и querySelector*",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-26.md",
+    "sourceDocx": "../conspects/lesson-26-dom-search-queryselector.docx",
+    "tldr": "В 99% задач элементы ищут по любому CSS-селектору через querySelector (один элемент) и querySelectorAll (все элементы), вверх к предку шагают через closest, а в реальной разметке JS-элементы лучше помечать атрибутами data-js-*.",
+    "traps": [
+      "1. Перепутать querySelector (один элемент или null) и querySelectorAll (всегда возвращает список NodeList — даже пустой список правдив в условии if!).",
+      "2. Ждать, что переменная от querySelectorAll сама обновится после добавления тегов в DOM (она статическая), либо вызывать .forEach() прямо на живой HTMLCollection от getElementsBy* без [...coll].",
+      "3. Искать элементы напрямую по глобальной переменной от id или привязывать JS к CSS-классам стилей вместо отдельных data-js-* атрибутов."
+    ]
+  },
+  {
+    "id": "lesson-27",
+    "number": 27,
+    "title": "Урок 27. Свойства и атрибуты DOM-элементов, value, data-*",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-27.md",
+    "sourceDocx": "../conspects/lesson-27-dom-properties-attributes-dataset.docx",
+    "tldr": "Стандартные HTML-атрибуты читают и меняют через свойства DOM-объекта (например, input.value), нестандартные — через методы *Attribute(), а data-* атрибуты доступны через dataset и умеют передавать готовый JSON-конфиг из HTML.",
+    "traps": [
+      "1. Читать текст поля через input.getAttribute(\"value\") вместо input.value — получите старое значение из разметки (или null), а не то, что ввели.",
+      "2. Пытаться удалить атрибут через setAttribute(\"attr\", \"\") вместо removeAttribute(\"attr\") или менять кастомный атрибут через elem.customAttr = ...",
+      "3. Забыть, что getAttribute и dataset всегда отдают строки: объект из HTML нужно распарсить через JSON.parse(...), а в HTML обернуть атрибут в одинарные кавычки."
+    ]
+  },
+  {
+    "id": "lesson-28",
+    "number": 28,
+    "title": "Урок 28. Стили и CSS-классы в DOM: style, getComputedStyle, classList",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-28.md",
+    "sourceDocx": "../conspects/lesson-28-dom-styles-classlist-css-vars.docx",
+    "tldr": "Оптимальнее управлять внешним видом через CSS-классы с помощью elem.classList; инлайновые стили задают через elem.style (и CSS-переменные через setProperty), а реальные стили из CSS-файлов читают через getComputedStyle(elem).",
+    "traps": [
+      "1. Искать стили из CSS-файла в elem.style.width — там лежат только инлайновые стили; реальные вычисленные значения даёт только getComputedStyle(elem).",
+      "2. Менять классы через elem.className = \"new\" (или стили через style.cssText = \"...\") — это стирает все прежние классы и инлайн-стили; для классов нужен classList.",
+      "3. Дописывать \"!important\" в строку значения внутри setProperty(\"--var\", \"blue !important\") — инструкция просто проигнорируется (important — 3-й аргумент)."
+    ]
+  },
+  {
+    "id": "lesson-29",
+    "number": 29,
+    "title": "Урок 29. Размеры и координаты DOM-элементов",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-29.md",
+    "sourceDocx": "../conspects/lesson-29-dom-sizes-coordinates.docx",
+    "tldr": "Размеры элемента в JS читают готовыми числовыми свойствами (offset*, client*, scroll*) вместо getComputedStyle, а точные координаты получают через getBoundingClientRect() (+ window.scrollX/scrollY для всей страницы).",
+    "traps": [
+      "1. Пытаться менять offsetWidth или clientHeight напрямую — почти все метрики только для чтения; записывать числа можно только в scrollLeft и scrollTop.",
+      "2. Путать координаты getBoundingClientRect() (от окна, меняются при скролле) с координатами на странице (к ним нужно прибавить window.scrollX и window.scrollY).",
+      "3. Ждать, что второй вызов box.scroll(10, 50) докрутит ещё 50px — scroll() задаёт абсолютную точку от (0, 0), а не относительный сдвиг."
+    ]
+  },
+  {
+    "id": "lesson-30",
+    "number": 30,
+    "title": "Урок 30. Размеры окна и страницы, скролл: scroll, scrollBy, scrollIntoView",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-30.md",
+    "sourceDocx": "../conspects/lesson-30-window-sizes-scroll-methods.docx",
+    "tldr": "Размеры доступного окна берут из documentElement.clientWidth/Height, точную высоту всей страницы — через Math.max, а прокручивают страницу к точке (scroll), на сдвиг (scrollBy) или прямо к элементу (scrollIntoView).",
+    "traps": [
+      "1. Брать ширину окна из window.innerWidth вместо documentElement.clientWidth — лишние пиксели полосы прокрутки испортят расчёты.",
+      "2. Ждать от window.scroll({ top: 100 }) сдвига «ещё на 100px вниз» — scroll() и scrollTo() работают от (0, 0); для сдвига «от текущего места» нужен scrollBy().",
+      "3. Брать высоту всей страницы одним documentElement.scrollHeight (надёжнее Math.max из 6 метрик body/html) или забыть block: \"center\" / \"nearest\" у scrollIntoView."
+    ]
+  },
+  {
+    "id": "lesson-31",
+    "number": 31,
+    "title": "Урок 31. Манипуляции с DOM: создание, вставка, удаление, клонирование",
+    "module": "Блок 5. DOM, размеры и элементы",
+    "file": "lesson-31.md",
+    "sourceDocx": "../conspects/lesson-31-dom-manipulation-create-insert-remove.docx",
+    "tldr": "Текст меняют через textContent, HTML-разметку — через innerHTML или insertAdjacentHTML, а новые теги создают через createElement() и вставляют в DOM методами append / prepend / before / after / replaceWith.",
+    "traps": [
+      "1. Вызвать elem.cloneNode() без аргумента true — получится пустая оболочка элемента без внутреннего текста и дочерних тегов.",
+      "2. Пытаться вставить одну и ту же переменную в 2 места сразу (она просто переедет в последнее место) или передавать HTML-строку \"<p>...</p>\" в append / textContent.",
+      "3. Дописывать множество новых элементов в цикле через box.innerHTML += ... (тормозит браузер полной перестройкой внутренностей) вместо append() / insertAdjacentHTML."
+    ]
+  },
+  {
+    "id": "lesson-32",
+    "number": 32,
+    "title": "Урок 32. Браузерные события: обработчики, всплытие и погружение",
+    "module": "Блок 6. События браузера",
+    "file": "lesson-32.md",
+    "sourceDocx": "../conspects/lesson-32-browser-events-bubbling-capturing.docx",
+    "tldr": "События вешают через addEventListener (и снимают по ссылке на ту же функцию через removeEventListener), а проходят они 3 фазы: погружение сверху вниз, целевой элемент (event.target) и всплытие вверх к document.",
+    "traps": [
+      "1. Написать btn.onclick = fn() со скобками — функция вызовется мгновенно при старте страницы, а при клике работать перестанет.",
+      "2. Передать в addEventListener анонимную функцию () => ... и потом пытаться снять её через removeEventListener — без сохранённой в переменную ссылки не удалится.",
+      "3. Путать event.target (где кликнули) и event.currentTarget (чей обработчик сработал), или stopPropagation (только вверх) и stopImmediatePropagation (и на этом же элементе тоже)."
+    ]
+  },
+  {
+    "id": "lesson-33",
+    "number": 33,
+    "title": "Урок 33. Делегирование событий, preventDefault и свои события",
+    "module": "Блок 6. События браузера",
+    "file": "lesson-33.md",
+    "sourceDocx": "../conspects/lesson-33-event-delegation-preventdefault-custom.docx",
+    "tldr": "Делегирование позволяет ловить события сразу от всех (и даже будущих!) элементов одним слушателем на родителе + closest(), стандартные действия браузера отменяет preventDefault(), а модули общаются через CustomEvent и dispatchEvent().",
+    "traps": [
+      "1. Проверять делегирование через event.target.classList.contains(...) вместо event.target.closest(...) — любой вложенный <span> или иконка внутри сломают клик.",
+      "2. Вешать клик на форму вместо события submit — отправка по клавише Enter проскочит мимо, и preventDefault() на кнопке не сработает.",
+      "3. Забыть bubbles: true при отправке new CustomEvent(...) на дочернем элементе — слушатель на document или родителе такое событие просто не поймает."
+    ]
+  },
+  {
+    "id": "lesson-34",
+    "number": 34,
+    "title": "Урок 34. События мыши и указателя (Pointer Events), Drag and Drop",
+    "module": "Блок 6. События браузера",
+    "file": "lesson-34.md",
+    "sourceDocx": "../conspects/lesson-34-mouse-pointer-events-drag-and-drop.docx",
+    "tldr": "Для наведения чаще берут mouseenter/mouseleave (без лишних срабатываний на детях), клик состоит из mousedown + mouseup, а для поддержки и мыши, и тачскрина используют Pointer Events (pointerdown, pointermove, pointerup).",
+    "traps": [
+      "1. Вешать mouseover / mouseout на карточку с детьми внутри и получать ложные срабатывания (для блока целиком бери mouseenter / mouseleave), или считать, что relatedTarget никогда не равен null.",
+      "2. Забыть touch-action: none в CSS для Drag and Drop на телефоне или не учесть смещение offsetX/offsetY от левого верхнего угла элемента (тогда карточка прыгнет углом под палец).",
+      "3. Передать в addEventListener метод класса напрямую без стрелки или bind (this.onPointerDown вместо (e) => this.onPointerDown(e)) — this внутри превратится в document и state сломается."
+    ]
+  },
+  {
+    "id": "lesson-35",
+    "number": 35,
+    "title": "Урок 35. События клавиатуры, ввода и буфера обмена",
+    "module": "Блок 6. События браузера",
+    "file": "lesson-35.md",
+    "sourceDocx": "../conspects/lesson-35-keyboard-input-clipboard-events.docx",
+    "tldr": "Клавиатурные keydown/keyup служат для горячих клавиш (по event.code, независимому от раскладки), живой ввод в поля отслеживают через input, финальную проверку после потери фокуса — через change, а буфер обмена — через cut/copy/paste.",
+    "traps": [
+      "1. Проверять хоткеи через event.key === \"s\" вместо event.code === \"KeyS\" — на русской раскладке горячая клавиша перестанет работать.",
+      "2. Читать input.value в keydown (получите старое значение) или в keyup (пропустит вставку текста мышкой) вместо события input.",
+      "3. Вешать тяжёлую проверку/валидацию на input вместо change (будет бить ошибкой с первой буквы) или читать event.clipboardData в copy (вернёт пустую строку)."
+    ]
+  },
+  {
+    "id": "lesson-36",
+    "number": 36,
+    "title": "Урок 36. События фокуса: focus/blur, focusin/focusout, tabindex, activeElement",
+    "module": "Блок 6. События браузера",
+    "file": "lesson-36.md",
+    "sourceDocx": "../conspects/lesson-36-focus-blur-activeelement-tabindex.docx",
+    "tldr": "focus и blur ловят вход/выход фокуса на конкретном элементе (не всплывают!), focusin и focusout позволяют делегировать фокус на родителе, tabindex делает доступным любой тег, а document.activeElement показывает кто в фокусе.",
+    "traps": [
+      "1. Вешать focus или blur на document / родительскую форму для делегирования — они не всплывают; бери focusin и focusout.",
+      "2. Проверять пустое обязательное поле через change вместо blur — если зайти в поле и уйти ничего не введя, change не сработает.",
+      "3. Прятать модалку или дропдаун через transform: scale(0) / opacity: 0 — их кнопки остаются в очереди Tab и незаметно крадут фокус (прячьте display: none / visibility: hidden)."
+    ]
+  },
+  {
+    "id": "lesson-37",
+    "number": 37,
+    "title": "Урок 37. Формы в JS: доступ к полям, чтение/запись и атрибут form",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-37.md",
+    "sourceDocx": "../conspects/lesson-37-forms-access-fields-attributes.docx",
+    "tldr": "Доступ к формам и полям берут через document.forms и form.elements (по name), внешние поля привязывают к форме атрибутом form=\"id\", а значения читают через .value (input, textarea, select, radio), .checked (checkbox) и .selectedOptions.",
+    "traps": [
+      "1. Проверять галочку чекбокса через checkbox.value (вернёт \"on\" даже если снята!) вместо checkbox.checked, или не задать value радиокнопкам в HTML.",
+      "2. Читать значение <textarea> через .textContent / .innerHTML вместо .value — получите исходный текст разметки вместо введённого.",
+      "3. В <select multiple> пытаться прочитать все пункты через select.value (покажет только первый) вместо [...select.selectedOptions], либо записать туда несуществующий вариант (сбросит выбор в пустоту)."
+    ]
+  },
+  {
+    "id": "lesson-38",
+    "number": 38,
+    "title": "Урок 38. Формы в JS: событие submit и сбор данных через FormData",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-38.md",
+    "sourceDocx": "../conspects/lesson-38-forms-submit-formdata.docx",
+    "tldr": "Отправку формы перехватывают через событие submit и event.preventDefault(), а данные со всех полей собирают одной строкой через new FormData(formElement) — эта коллекция устроена как Map и читается через forEach или Object.fromEntries(formData).",
+    "traps": [
+      "1. Забыть event.preventDefault() внутри обработчика submit — браузер перезагрузит страницу по атрибуту action, и JS не успеет обработать или отправить данные.",
+      "2. Увидеть пустой объект {} в console.log(formData) и решить, что поля не собрались: проверять содержимое нужно через Object.fromEntries(formData) или formData.forEach.",
+      "3. Перепутать порядок аргументов в formData.forEach((value, name) => ...) — как и в Map, первым параметром всегда приходит значение (value), а вторым имя поля (name)."
+    ]
+  },
+  {
+    "id": "lesson-39",
+    "number": 39,
+    "title": "Урок 39. Валидация форм: свойство validity и компонент FormsValidation",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-39.md",
+    "sourceDocx": "../conspects/lesson-39-forms-validation-validity.docx",
+    "tldr": "Нативные правила задают в HTML (required, minlength, maxlength, pattern, title), стандартные тултипы отключают атрибутом novalidate и проверяют поля в JS через field.validity (объект ValidityState) на событиях blur (с capture: true), change и submit.",
+    "traps": [
+      "1. Повесить document.addEventListener(\"blur\", ...) без { capture: true } — событие blur не всплывает, поэтому обработчик вообще не сработает при уходе фокуса.",
+      "2. Перепутать HTML-атрибуты minlength/maxlength с DOM-свойствами minLength/maxLength (в JS camelCase!) или забыть обновлять ariaInvalid при включённом novalidate.",
+      "3. Забыть событие change для radio и checkbox — после клика фокус остаётся на элементе, поэтому blur не сработает и ошибка не исчезнет до ухода с поля."
+    ]
+  },
+  {
+    "id": "lesson-40",
+    "number": 40,
+    "title": "Урок 40. Запросы fetch: клиент-сервер, статусы, GET/POST, JSON Server и Network",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-40.md",
+    "sourceDocx": "../conspects/lesson-40-fetch-client-server-network.docx",
+    "tldr": "Функция fetch(url, options) отправляет сетевой запрос и возвращает Promise; статус проверяют через response.ok / response.status, тело читают через return response.json(), а для POST, заголовков и кук передают method, body, headers и credentials.",
+    "traps": [
+      "1. Ждать, что .catch() поймает статус 404 или 500 — fetch считает их успешным ответом, поэтому в первом .then обязательно проверять if (!response.ok) throw new Error(...).",
+      "2. Забыть return перед response.json() (следующий .then получит undefined) или передать в body обычный объект вместо JSON.stringify(...) при отправке JSON.",
+      "3. Считать, что fetch отправляет cookies на чужой домен/порт — по умолчанию стоит credentials: \"same-origin\", поэтому для кросс-доменных кук нужен credentials: \"include\"."
+    ]
+  },
+  {
+    "id": "lesson-41",
+    "number": 41,
+    "title": "Урок 41. Браузерные хранилища: cookie, localStorage, sessionStorage и IndexedDB",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-41.md",
+    "sourceDocx": "../conspects/lesson-41-browser-storage-theme-switcher.docx",
+    "tldr": "Все браузерные хранилища привязаны к домену и переживают перезагрузку страницы: cookies (~4 КБ) нужны для работы с сервером, sessionStorage живёт до закрытия вкладки, localStorage хранится вечно (5+ МБ), а IndexedDB — сложная БД для оффлайн-PWA.",
+    "traps": [
+      "1. Хранить в localStorage числа, булевы или объекты напрямую без JSON.stringify / JSON.parse — при чтении получите строку (например, \"false\" вместо false или \"[object]\").",
+      "2. Писать в document.cookie пробелы/спецсимволы без encodeURIComponent или пытаться засунуть туда большие данные (лимит 4 КБ отрежет значение и сломает парсинг).",
+      "3. Сохранить долгоживущие настройки (например, тему сайта) в sessionStorage вместо localStorage — после закрытия вкладки все данные исчезнут."
+    ]
+  },
+  {
+    "id": "lesson-42",
+    "number": 42,
+    "title": "Урок 42. Location API, History API и работа с URLSearchParams",
+    "module": "Блок 7. Формы, сеть и хранилище",
+    "file": "lesson-42.md",
+    "sourceDocx": "../conspects/lesson-42-location-history-urlsearchparams.docx",
+    "tldr": "window.location читает части URL и управляет переходами (reload, assign, replace), window.history листает историю вкладки и меняет URL без перезагрузки страницы (pushState, replaceState), а класс URLSearchParams удобно собирает и парсит GET-параметры.",
+    "traps": [
+      "1. Вызвать location.replace(url) (или авто-редирект через location.href при загрузке) и удивляться, почему кнопка «Назад» перепрыгивает текущую страницу.",
+      "2. Ждать, что history.pushState(..., \"/page\") загрузит и покажет новый HTML — метод меняет только URL и историю; контент страницы при этом нужно обновлять в JS.",
+      "3. Перепутать порядок аргументов в searchParams.forEach((value, name) => ...) — как и в Map / FormData, первым параметром всегда идёт значение (value), а вторым имя (name)."
+    ]
+  }
+]
