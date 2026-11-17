@@ -121,3 +121,178 @@ for (const char of 'JS') { console.log(char); } // 'J', затем 'S'
 2. indexOf возвращает 0 как нормальный индекс — проверка if (str.indexOf("П")) даст false, если слово в самом начале! Сравнивай !== -1 или бери includes().
 
 3. Замена/поиск зависят от регистра и ломаются на "ё" — приводи к toLowerCase(), используй флаги /.../gi и localeCompare() для сортировки.
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль и почему исходная строка `msg` не изменилась?**
+
+```js
+'use strict';
+
+const msg = '  привет';
+msg.trim().toUpperCase();
+console.log(msg[-1], msg.at(-1), msg);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется `undefined`, `'т'`, `'  привет'`.
+1. Строки в JS **неизменяемы (иммутабельны)**: вызов `msg.trim().toUpperCase()` создал новую строку, но без сохранения результата в переменную она потерялась (а попытка `msg[0] = 'П'` в `'use strict'` вообще вызовет `TypeError`).
+2. Квадратные скобки `msg[-1]` не поддерживают отрицательные индексы и дают `undefined`, тогда как современный `.at(-1)` возвращает последний символ `'т'`.
+
+</details>
+
+**2. Почему `if (text.indexOf('JS'))` не сработает на строке `'JS — лучший'` и что вернёт `'дом и дом'.replace('дом', 'лес')`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Когда подстрока стоит в самом начале, `indexOf('JS')` возвращает индекс **`0`**. Внутри `if (0)` ноль приводится к `false`, и блок не выполняется! Поэтому проверяют `indexOf(...) !== -1` или используют `.includes()`.
+2. Метод `.replace('дом', 'лес')` без регулярки с флагом `g` заменяет **только первое** совпадение — получится `'лес и дом'`. Для замены всех вхождений используют `.replaceAll()` или флаг `/.../g`.
+
+</details>
+
+**3. Почему `'😀'.length` равно `2`, а сравнение `'ёлка' > 'яблоко'` в JS даёт `true`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Смайлы в кодировке UTF-16 занимают **две** кодовые единицы, поэтому `length` считает `2` (реальное число символов получают через `[...'😀'].length`). А `'ёлка' > 'яблоко'` даёт `true`, потому что операторы `>` и `<` сравнивают числовые коды Unicode, где буква `'ё'` стоит после `'я'`. Для правильного алфавитного порядка используют `'ёлка'.localeCompare('яблоко')` (`-1`).
+
+</details>
+
+## Задачи
+
+**Задача 1. Заглавная первая буква `ucFirst(str)` с обрезкой пробелов**
+
+Напиши функцию `ucFirst(str)`: сначала обрежь пробелы по краям через `.trim()`, если осталась пустая строка — верни `''` (чтобы не упасть при обращении к первому символу), иначе — верни строку с заглавной первой буквой и остальной частью в нижнем регистре.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(ucFirst('  аЛЕКС  ')); /* 'Алекс' */
+console.log(ucFirst('   '));       /* '' */
+console.log(ucFirst(''));          /* '' */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function ucFirst(str) {
+  /* Убираем лишние пробелы по краям; исходная строка str не меняется */
+  const clean = str.trim();
+
+  /* Ранний выход: у пустой строки clean[0] даст undefined, а .toUpperCase() — TypeError */
+  if (!clean) return '';
+
+  /* Собираем новую строку: первая буква вверх + срез с индекса 1 вниз */
+  return clean[0].toUpperCase() + clean.slice(1).toLowerCase();
+}
+
+console.log(ucFirst('  аЛЕКС  ')); /* 'Алекс' */
+console.log(ucFirst('   '));       /* '' */
+console.log(ucFirst(''));          /* '' */
+```
+
+</details>
+
+**Задача 2. Фильтр спама `checkSpam` и обрезка текста `truncate`**
+
+Напиши две функции:
+1) `checkSpam(str)` возвращает `true`, если в строке в любом регистре есть слово `'viagra'` или `'xxx'` (иначе `false`).
+2) `truncate(str, maxLength)` проверяет длину `str`: если она больше `maxLength`, обрезает строку через `.slice` и добавляет `'…'` так, чтобы общая длина вместе с `'…'` стала равна `maxLength` (иначе возвращает `str` как есть).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(checkSpam('Купить ViAgRA сейчас'));           /* true */
+console.log(checkSpam('Обычное сообщение'));              /* false */
+console.log(truncate('Длинный заголовок новости', 10));   /* 'Длинный з…' */
+console.log(truncate('Коротко', 10));                     /* 'Коротко' */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function checkSpam(str) {
+  /* Приводим к нижнему регистру, так как includes чувствителен к регистру */
+  const lowerStr = str.toLowerCase();
+  return lowerStr.includes('viagra') || lowerStr.includes('xxx');
+}
+
+function truncate(str, maxLength) {
+  /* Если текст и так помещается в лимит — возвращаем без изменений */
+  if (str.length <= maxLength) return str;
+
+  /* Вырезаем maxLength - 1 символов и доклеиваем 1 символ '…' -> итого ровно maxLength */
+  return str.slice(0, maxLength - 1) + '…';
+}
+
+console.log(checkSpam('Купить ViAgRA сейчас'));         /* true */
+console.log(checkSpam('Обычное сообщение'));            /* false */
+console.log(truncate('Длинный заголовок новости', 10)); /* 'Длинный з…' (длина 10) */
+console.log(truncate('Коротко', 10));                   /* 'Коротко' */
+```
+
+</details>
+
+**Задача 3. Подсчёт всех вхождений подстроки через `indexOf` в цикле**
+
+Напиши функцию `countMatches(text, target)`, которая возвращает количество всех вхождений `target` в `text` без учёта регистра. Используй цикл `while` и второй аргумент `.indexOf(substr, pos)`. Не забудь защиту от пустой строки `target` (иначе `indexOf('')` зациклится навсегда).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(countMatches('JS и js учат даже в Js-клубе', 'js')); /* 3 */
+console.log(countMatches('Привет, мир!', 'код'));                /* 0 */
+console.log(countMatches('Тест', ''));                           /* 0 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function countMatches(text, target) {
+  /* Пустая строка '' находится на каждом индексе — без выхода while станет бесконечным */
+  if (!target) return 0;
+
+  const lowerText = text.toLowerCase();
+  const lowerTarget = target.toLowerCase();
+
+  let pos = 0;
+  let count = 0;
+
+  while (true) {
+    /* Ищем очередное совпадение, начиная со сдвинутой позиции pos */
+    const found = lowerText.indexOf(lowerTarget, pos);
+    if (found === -1) break;
+
+    count++;
+    /* Сдвигаем старт следующего поиска дальше, чтобы не находить тот же индекс */
+    pos = found + 1;
+  }
+
+  return count;
+}
+
+console.log(countMatches('JS и js учат даже в Js-клубе', 'js')); /* 3 */
+console.log(countMatches('Привет, мир!', 'код'));                /* 0 */
+console.log(countMatches('Тест', ''));                           /* 0 */
+```
+
+</details>

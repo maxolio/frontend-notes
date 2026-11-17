@@ -153,3 +153,184 @@ async function openModal() {
 2. Написать "export default const fn = () => {}" (SyntaxError) или пытаться пробросить default-экспорт через реэкспорт "export * from ..." (звёздочка переносит только именованные экспорты).
 
 3. Ожидать повторного выполнения файла при втором import или смешивать порядок с обычными `<script>`: модуль всегда вычисляется 1 раз и запускается после всех обычных не-модульных скриптов.
+
+## Вопросы для закрепления
+
+**1. Почему строка `export default const sum = (a, b) => a + b;` вызовет `SyntaxError`, и попадёт ли `default` при реэкспорте `export * from './math.js'`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. После `export default` ожидается **значение** (выражение, `function` или `class`), а не объявление переменной `const`/`let`. Стрелочную функцию нужно либо сначала сохранить и затем написать `export default sum;`, либо экспортировать анонимно: `export default (a, b) => a + b;`.
+2. **Не попадёт**: `export * from ...` переносит только именованные экспорты. Чтобы пробросить наружу и `default`, его дописывают отдельно: `export { default } from './math.js';` (или `export { default as initMath }`).
+
+</details>
+
+**2. Что произойдёт, если модуль `counter.js` импортируют 3 разных файла, и почему `count = 10` в получателе вызовет ошибку, а `items.push('Товар')` — нет?**
+
+```js
+/* counter.js */
+export let count = 0;
+export const items = [];
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Код модуля `counter.js` выполнится **ровно 1 раз**, а все три файла получат ссылки на одни и те же общие сущности в памяти.
+2. Импорт в JS — это **«живая ссылка» (live binding) только для чтения**. Переназначить сам импорт `count = 10` снаружи запрещено (`TypeError`), а вот мутировать содержимое импортированного массива или объекта (`items.push(...)`) можно — это изменение сразу увидят все остальные модули.
+
+</details>
+
+**3. Какой файл запустится первым в этом HTML и почему при открытии HTML с диска (`file://`) модули перестают работать?**
+
+```html
+<script src="first.js" type="module"></script>
+<script src="second.js"></script>
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Первым выполнится **`second.js`**, а **`first.js`** запустится уже после него. Скрипт с `type="module"` работает по правилам `defer`: грузится параллельно и всегда ждёт завершения разбора HTML и выполнения всех обычных не-модульных `<script>`. При открытии двойным кликом с диска (`file://`) браузер блокирует загрузку `import` политикой безопасности **CORS**, поэтому модули запускают через локальный сервер (например, Live Server или Vite).
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини `export default`, пути и конфликт имён через `as`**
+
+В коде двух модулей допущены 4 ошибки: неверный `export default const`, забытый экспорт `CURRENCY`, неполный браузерный путь в `import` и конфликт локального имени `CURRENCY`. Исправь оба файла так, чтобы они работали в браузере, а `console.log` вывел `500 ₽`, `'USD'` и `'RUB'`.
+
+```js
+/* --- Файл utils.js --- */
+/* Твоё решение: */
+export default const formatPrice = (val) => `${val} ₽`;
+const CURRENCY = 'RUB';
+
+/* --- Файл script.js --- */
+/* Твоё решение: */
+import { formatPrice, CURRENCY } from 'utils';
+
+const CURRENCY = 'USD';
+console.log(formatPrice(500), CURRENCY, mainCurrency);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+/* --- Файл utils.js --- */
+/*
+  Выносим объявление стрелочной функции отдельно: писать export default const
+  запрещено синтаксисом; для CURRENCY добавляем именованный export
+*/
+const formatPrice = (val) => `${val} ₽`;
+export default formatPrice;
+export const CURRENCY = 'RUB';
+
+/* --- Файл script.js --- */
+/*
+  1. default-экспорт импортируем БЕЗ фигурных скобок
+  2. Именованный CURRENCY переименовываем через as в mainCurrency против конфликта
+  3. Для браузера обязательно пишем './' в начале пути и '.js' в конце
+*/
+import formatPrice, { CURRENCY as mainCurrency } from './utils.js';
+
+const CURRENCY = 'USD';
+console.log(formatPrice(500), CURRENCY, mainCurrency); /* 500 ₽ 'USD' 'RUB' */
+```
+
+</details>
+
+**Задача 2. Сборщик реэкспортов `index.js` и импорт в объект `import * as`**
+
+Сделай файл-агрегатор `ui/index.js`: реэкспортируй из `./modals.js` все именованные экспорты через `export *` и отдельно пробрось его `default`-экспорт под именем `initModals`. Затем в `script.js` импортируй весь `ui/index.js` в один объект `ui` через `import * as` и вызови оба метода.
+
+```js
+/* --- Файл ui/modals.js (менять не нужно) --- */
+export const modalSelector = '.modal';
+export function openModal() { console.log('Модалка открыта'); }
+export default function () { console.log('Модалки инициализированы'); }
+
+/* --- Файл ui/index.js --- */
+/* Твоё решение: */
+
+/* --- Файл script.js --- */
+/* Твоё решение: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+/* --- Файл ui/index.js --- */
+/* Звёздочка * реэкспортирует ТОЛЬКО именованные сущности (modalSelector, openModal) */
+export * from './modals.js';
+/* default-экспорт пробрасываем отдельно с явным именем initModals */
+export { default as initModals } from './modals.js';
+
+/* --- Файл script.js --- */
+/*
+  Собираем все экспорты из ui/index.js под единым пространством имён ui;
+  в браузере без сборщика указываем полный путь './ui/index.js'
+*/
+import * as ui from './ui/index.js';
+
+ui.initModals(); /* 'Модалки инициализированы' */
+ui.openModal();  /* 'Модалка открыта' */
+console.log(ui.modalSelector); /* '.modal' */
+```
+
+</details>
+
+**Задача 3. Единая точка входа в HTML и ленивый динамический `import()`**
+
+1) В HTML оставь подключение только главного файла `./script.js` с правильным атрибутом `type="module"` (зависимости браузер догрузит сам).
+2) В `script.js` напиши асинхронную функцию `handleOpenGallery(shouldLoad)`: если `shouldLoad` истинно, динамически подгрузи модуль `'./gallery.js'` через `await import(...)` внутри `try...catch` и вызови его экспорт по умолчанию (`.default()`).
+
+```html
+<!-- 1) Внутри <head> HTML: -->
+<!-- Твоё решение: -->
+<script src="gallery.js"></script>
+<script src="script.js"></script>
+```
+
+```js
+/* 2) Файл script.js: */
+/* Твоё решение: */
+
+handleOpenGallery(false); /* ./gallery.js НЕ должен грузиться */
+handleOpenGallery(true);  /* подгрузит модуль и вызовет его default() */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```html
+<!-- Подключаем только точку входа с type="module" — зависимости загрузятся по import -->
+<script src="./script.js" type="module"></script>
+```
+
+```js
+/* 2) Файл script.js: */
+async function handleOpenGallery(shouldLoad) {
+  if (!shouldLoad) return;
+
+  try {
+    /*
+      Динамический import() возвращает Promise и грузит файл только в момент вызова —
+      так тяжёлые модули не замедляют первый запуск страницы
+    */
+    const galleryModule = await import('./gallery.js');
+    galleryModule.default();
+  } catch (err) {
+    console.log('Не удалось загрузить галерею:', err.message);
+  }
+}
+
+handleOpenGallery(false);
+handleOpenGallery(true);
+```
+
+</details>

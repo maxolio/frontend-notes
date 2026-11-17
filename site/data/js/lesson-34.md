@@ -114,3 +114,225 @@ new DragAndDrop();
 2. Забыть touch-action: none в CSS для Drag and Drop на телефоне или не учесть смещение offsetX/offsetY от левого верхнего угла элемента (тогда карточка прыгнет углом под палец).
 
 3. Передать в addEventListener метод класса напрямую без стрелки или bind (this.onPointerDown вместо (e) => this.onPointerDown(e)) — this внутри превратится в document и state сломается.
+
+## Вопросы для закрепления
+
+**1. Почему `mouseover` на карточке с текстом срабатывает по нескольку раз, почему `mouseenter` нельзя делегировать на `document`, и когда `relatedTarget` равен `null`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. События `mouseover` и `mouseout` **всплывают** и срабатывают каждый раз при переходе курсора между родителем и его дочерними тегами (`<h3>`, `<span>`). События `mouseenter` / `mouseleave` игнорируют детей и реагируют только на границы блока целиком.
+2. `mouseenter` и `mouseleave` **не всплывают**, поэтому повесить их делегированием на `document` не получится (для делегирования используют `mouseover`/`mouseout` с проверкой `relatedTarget`).
+3. `event.relatedTarget` равен `null`, когда курсор только что залетел в окно браузера снаружи или резко вылетел за его пределы.
+
+</details>
+
+**2. Зачем в Drag and Drop сохраняют `offsetX` / `offsetY`, и какую роль играют `touch-action: none` и отмена `dragstart`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `offsetX` и `offsetY` хранят сдвиг от левого верхнего угла карточки до точки, за которую её ухватили (`x - left`, `y - top`). Без них при первом сдвиге карточка резко «прыгнет» своим углом под курсор.
+2. Без `touch-action: none` в CSS мобильный браузер перехватит движение пальца под прокрутку страницы и оборвёт `pointermove`.
+3. У картинок `<img>` есть встроенное перетаскивание полупрозрачной копии — без `event.preventDefault()` на `dragstart` оно перебьёт самописное перетаскивание.
+
+</details>
+
+**3. Что сломается при передаче `this.onPointerDown` без обёртки в `addEventListener`, и зачем прятать элемент (`el.hidden = true`) перед `document.elementFromPoint`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Без стрелочной обёртки `(e) => this.onPointerDown(e)` или `.bind(this)` браузер подменит `this` внутри метода на объект **`document`**, и обращение к `this.state` сразу сломается.
+2. Перетаскиваемый элемент лежит прямо под курсором, поэтому `document.elementFromPoint(x, y)` вернёт сам этот элемент, а не зону сброса (`dropzone`) под ним. Его прячут через `hidden = true`, определяют элемент ниже и тут же включают `hidden = false` — браузер даже не успевает перерисовать кадр.
+
+</details>
+
+## Задачи
+
+**Задача 1. Защита галереи от контекстного меню, перетаскивания и `Shift + ЛКМ`**
+
+Напиши функцию `initMediaControls(galleryElement)` с делегированием событий на контейнер `galleryElement`:
+1) При `contextmenu` и `dragstart` на картинках `<img>` внутри галереи отменяй стандартное действие браузера (`preventDefault`) и выводи в консоль `'Действие запрещено'`.
+2) При `mousedown` на `<img>`: если нажата **левая** кнопка мыши (`event.button === 0`) **и** зажата клавиша `Shift` (`event.shiftKey`), выведи в консоль путь `imgElement.getAttribute('src')`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+function initMediaControls(galleryElement) {
+  /* ... */
+}
+
+const galleryElement = document.querySelector('[data-js-gallery]');
+initMediaControls(galleryElement);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initMediaControls(galleryElement) {
+  if (!galleryElement) return;
+
+  const blockDefaultForImg = (event) => {
+    const imgElement = event.target.closest('img');
+    if (!imgElement || !galleryElement.contains(imgElement)) return;
+
+    event.preventDefault();
+    console.log('Действие запрещено');
+  };
+
+  /* Отменяем правое меню и встроенный drag-n-drop картинок одной функцией */
+  galleryElement.addEventListener('contextmenu', blockDefaultForImg);
+  galleryElement.addEventListener('dragstart', blockDefaultForImg);
+
+  galleryElement.addEventListener('mousedown', (event) => {
+    const imgElement = event.target.closest('img');
+    if (!imgElement || !galleryElement.contains(imgElement)) return;
+
+    /* event.button === 0 — левая кнопка (1 — колесо, 2 — правая) */
+    if (event.button === 0 && event.shiftKey) {
+      console.log('Выбрано фото:', imgElement.getAttribute('src'));
+    }
+  });
+}
+
+const galleryElement = document.querySelector('[data-js-gallery]');
+initMediaControls(galleryElement);
+```
+
+</details>
+
+**Задача 2. Делегируемая подсказка (`mouseover` / `mouseout` + `relatedTarget`)**
+
+Напиши функцию `initTooltips()` с делегированием на `document` для любых элементов с атрибутом `[data-tooltip]` (даже если внутри лежит `<span>`):
+1) В обработчике `mouseover`: найди `tooltipTarget = event.target.closest('[data-tooltip]')`. Если `tooltipTarget` найден и курсор пришёл **извне** (т. е. `!tooltipTarget.contains(event.relatedTarget)`), выведи `'Показать подсказку: ' + tooltipTarget.dataset.tooltip`.
+2) В обработчике `mouseout`: если курсор ушёл **за пределы** всего `tooltipTarget` (`!tooltipTarget.contains(event.relatedTarget)`), выведи `'Скрыть подсказку'`.
+
+```js
+'use strict';
+
+/*
+  HTML на странице:
+  <button data-tooltip="Сохранить изменения"><span>Сохранить</span></button>
+*/
+
+/* Твоё решение: */
+function initTooltips() {
+  /* ... */
+}
+
+initTooltips();
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initTooltips() {
+  document.addEventListener('mouseover', (event) => {
+    const tooltipTarget = event.target.closest('[data-tooltip]');
+    if (!tooltipTarget) return;
+
+    /*
+      Если relatedTarget (откуда пришёл курсор) уже лежит внутри tooltipTarget,
+      значит мы просто перешагнули между <span> и <button> — повторно не срабатываем.
+      Когда relatedTarget === null (заход извне окна), contains(null) даёт false
+    */
+    if (tooltipTarget.contains(event.relatedTarget)) return;
+
+    console.log(`Показать подсказку: ${tooltipTarget.dataset.tooltip}`);
+  });
+
+  document.addEventListener('mouseout', (event) => {
+    const tooltipTarget = event.target.closest('[data-tooltip]');
+    if (!tooltipTarget) return;
+
+    /* Скрываем подсказку, только если курсор ушёл за пределы всего элемента */
+    if (tooltipTarget.contains(event.relatedTarget)) return;
+
+    console.log('Скрыть подсказку');
+  });
+}
+
+initTooltips();
+```
+
+</details>
+
+**Задача 3. Горизонтальный ползунок на Pointer Events с `setPointerCapture`**
+
+Напиши функцию `initRangeSlider(trackElement, thumbElement)` для перетаскивания бегунка строго по горизонтали внутри шкалы:
+1) На `pointerdown` по `thumbElement`: захвати указатель (`setPointerCapture(event.pointerId)`), вычисли смещение `shiftX = event.clientX - thumbElement.getBoundingClientRect().left` и включи `isDragging = true`.
+2) На `pointermove` по `thumbElement`: если `isDragging`, рассчитай `newLeft = event.clientX - shiftX - trackElement.getBoundingClientRect().left`, ограничь его в диапазоне `[0 .. trackElement.clientWidth - thumbElement.offsetWidth]` через `Math.max` / `Math.min` и обнови `thumbElement.style.left` в `'px'`.
+3) На `pointerup`: выключи `isDragging = false`.
+
+```js
+'use strict';
+
+/*
+  Вёрстка:
+  <div data-js-track style="position: relative; width: 300px;">
+    <div data-js-thumb style="position: absolute; width: 20px; touch-action: none;"></div>
+  </div>
+*/
+
+/* Твоё решение: */
+function initRangeSlider(trackElement, thumbElement) {
+  /* ... */
+}
+
+const trackElement = document.querySelector('[data-js-track]');
+const thumbElement = document.querySelector('[data-js-thumb]');
+initRangeSlider(trackElement, thumbElement);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initRangeSlider(trackElement, thumbElement) {
+  if (!trackElement || !thumbElement) return;
+
+  let isDragging = false;
+  let shiftX = 0;
+
+  thumbElement.addEventListener('pointerdown', (event) => {
+    /* Захватываем указатель — все pointermove/up прилетят в thumb даже за краем окна */
+    thumbElement.setPointerCapture(event.pointerId);
+    shiftX = event.clientX - thumbElement.getBoundingClientRect().left;
+    isDragging = true;
+  });
+
+  thumbElement.addEventListener('pointermove', (event) => {
+    if (!isDragging) return;
+
+    const trackRect = trackElement.getBoundingClientRect();
+    let newLeft = event.clientX - shiftX - trackRect.left;
+
+    /* Ограничиваем сдвиг рамками шкалы: не левее 0 и не правее (шкала - ширина бегунка) */
+    const maxLeft = trackElement.clientWidth - thumbElement.offsetWidth;
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+
+    thumbElement.style.left = `${Math.round(newLeft)}px`;
+  });
+
+  thumbElement.addEventListener('pointerup', () => {
+    isDragging = false;
+  });
+}
+
+const trackElement = document.querySelector('[data-js-track]');
+const thumbElement = document.querySelector('[data-js-thumb]');
+initRangeSlider(trackElement, thumbElement);
+```
+
+</details>

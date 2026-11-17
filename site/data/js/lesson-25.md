@@ -112,74 +112,175 @@ div.children;               /* HTMLCollection (теги) vs div.childNodes (Node
 
 ## Вопросы для закрепления
 
-**1. Почему при подключении обычного `<script src="app.js">` внутри `<head>` выражение `document.body` вернёт `null`, а `defer` это исправляет?**
+**1. Почему обычный цикл `for` удалит лишь половину детей у `list`, и почему `list.children.forEach(...)` упадёт с `TypeError`?**
+
+```js
+const list = document.body.firstElementChild;
+
+for (let i = 0; i < list.children.length; i++) {
+  list.children[i].remove();
+}
+```
 
 <details>
 <summary>Показать ответ</summary>
 
-Обычный `<script>` останавливает парсинг HTML сразу внутри `<head>`, когда браузер ещё не дошёл до тега `<body>`. Скрипт с `defer` скачивается параллельно и запускается только после полного построения DOM, перед `DOMContentLoaded`.
+1. Свойство `list.children` возвращает **живую коллекцию `HTMLCollection`**. Когда на шаге `i = 0` удаляется первый элемент, остальные сдвигаются влево (бывший индекс `1` становится `0`), а `.length` уменьшается. На шаге `i = 1` цикл перескакивает сдвинутый элемент, поэтому половина остаётся — удалять нужно по статичному массиву `[...list.children]`.
+2. У `HTMLCollection` нет методов массива (`.forEach`, `.map`), поэтому `list.children.forEach(...)` сразу выбросит `TypeError` (в отличие от `NodeList` у `childNodes`, где `.forEach()` есть).
 
 </details>
 
-**2. В чём разница между `elem.children` и `elem.childNodes`, и сработает ли `elem.children.forEach(...)`?**
+**2. В каком порядке запустятся скрипты `a.js` и `b.js`, если `b.js` скачается быстрее, и сработает ли `defer` на встроенном `<script defer>` без `src`?**
+
+```html
+<head>
+  <script src="a.js" defer></script>
+  <script src="b.js" defer></script>
+</head>
+```
 
 <details>
 <summary>Показать ответ</summary>
 
-`children` возвращает живую коллекцию `HTMLCollection` только из HTML-тегов (метода `.forEach()` у неё нет — нужно `[...elem.children]`). `childNodes` возвращает `NodeList` со всеми узлами подряд, включая текстовые узлы `#text` с пробелами и переносами строк.
+1. Первым всё равно выполнится **`a.js`**, а за ним **`b.js`** — в том порядке, как они записаны в HTML. Скрипты с `defer` ждут готовности DOM и соблюдают порядок подключения (а вот при `async` первым запустился бы более быстрый `b.js`).
+2. На встроенном теге `<script>` без атрибута `src` атрибуты `defer` и `async` полностью **игнорируются** — код сработает сразу в `<head>`, пока `document.body` ещё равен `null`.
 
 </details>
 
-**3. Что вернёт `document.documentElement.parentElement` против `document.documentElement.parentNode`?**
+**3. В чём разница между `document.documentElement.parentElement` и `parentNode`, и почему `box.firstChild` часто возвращает `#text` вместо первого тега?**
 
 <details>
 <summary>Показать ответ</summary>
 
-`parentElement` вернёт `null` (над тегом `<html>` нет другого HTML-элемента), а `parentNode` вернёт объект `document`.
+1. Над корневым `<html>` (`document.documentElement`) нет другого HTML-тега, поэтому `parentElement` вернёт **`null`**, а `parentNode` вернёт объект **`document`**.
+2. Свойства без слова `Element` (`firstChild`, `nextSibling`) перебирают **все узлы подряд**, в том числе невидимые переносы строк и пробелы разметки между тегами (`#text`). Для шагов строго по тегам используют `firstElementChild` и `nextElementSibling`.
 
 </details>
 
 ## Задачи
 
-**Задача 1. Безопасная очистка контейнера**
+**Задача 1. Почини порядок подключения скриптов в `<head>`**
 
-Напиши цикл, который удалит все дочерние теги внутри `list`, не пропуская элементы из-за живой коллекции `children`.
+Исправь теги `<script>` внутри `<head>` так, чтобы:
+1) `core.js` и `ui.js` дождались построения всей страницы и гарантированно запустились строго по порядку (`core.js` первым, `ui.js` вторым).
+2) Независимый счётчик `analytics.js` не блокировал HTML и сработал сразу после скачивания, не дожидаясь DOM и остальных скриптов.
+
+```html
+<head>
+  <!-- Твоё решение: -->
+  <script src="analytics.js"></script>
+  <script src="ui.js" async></script>
+  <script src="core.js" async></script>
+</head>
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```html
+<head>
+  <!--
+    defer: оба файла качаются параллельно, ждут готовности DOM и
+    запускаются строго в порядке объявления (сначала core.js, затем ui.js)
+  -->
+  <script src="core.js" defer></script>
+  <script src="ui.js" defer></script>
+
+  <!--
+    async: для независимой аналитики — запускается сразу по мере скачивания,
+    не задерживая рендер и не дожидаясь других скриптов
+  -->
+  <script src="analytics.js" async></script>
+</head>
+```
+
+</details>
+
+**Задача 2. Безопасная очистка живой коллекции `children`**
+
+Сейчас функция `clearAndCount(container)` удаляет не всех детей (из-за сдвига индексов в живой коллекции `HTMLCollection`) и возвращает `0`. Перепиши её так, чтобы она сделала копию-массив `[...container.children]`, безопасно удалила все дочерние элементы и вернула исходное количество удалённых тегов.
 
 ```js
-const list = document.body.firstElementChild;
+'use strict';
 
 /* Твоё решение: */
+function clearAndCount(container) {
+  for (let i = 0; i < container.children.length; i++) {
+    container.children[i].remove();
+  }
+  return container.children.length;
+}
 ```
 
 <details>
 <summary>Подсказка и решение</summary>
 
 ```js
-/* Делаем снимок-массив через spread, чтобы индексы не сдвигались при удалении */
-for (const item of [...list.children]) {
-  item.remove();
+'use strict';
+
+function clearAndCount(container) {
+  /*
+    Спред [...container.children] создаёт независимый обычный массив:
+    1) индексы не сдвигаются при удалении элементов из DOM
+    2) появляется метод .forEach(), которого нет у живой HTMLCollection
+  */
+  const items = [...container.children];
+
+  items.forEach((child) => child.remove());
+
+  /* Возвращаем сохранённое количество удалённых элементов */
+  return items.length;
 }
 ```
 
 </details>
 
-**Задача 2. Шаг к соседнему элементу и первой ячейке таблицы**
+**Задача 3. Шаги по DOM-элементам и быстрый доступ к таблице**
 
-От элемента `head` получи `<body>`, а от таблицы `table` — текст первой ячейки во второй строке (`rows` и `cells`).
+Используя только свойства навигации (без поиска по селекторам) и безопасную цепочку `?.`:
+1) От `head` перейди к следующему соседнему тегу `<body>`.
+2) От `currentItem` получи предыдущий соседний **тег** (игнорируя пробелы `#text`) и родительский тег.
+3) У таблицы `table` найди вторую строку (`[1]`) и её первую ячейку (`[0]`) через `rows` и `cells`.
 
 ```js
+'use strict';
+
 const head = document.head;
-const table = document.body.firstElementChild;
+const currentItem = document.body.firstElementChild?.children[1];
+const table = document.body.lastElementChild;
 
 /* Твоё решение: */
+const bodyEl = null;
+const prevSiblingEl = null;
+const parentEl = null;
+const targetCell = null;
+
+console.log(bodyEl === document.body); /* true */
+console.log(prevSiblingEl, parentEl, targetCell);
 ```
 
 <details>
 <summary>Подсказка и решение</summary>
 
 ```js
+'use strict';
+
+const head = document.head;
+const currentItem = document.body.firstElementChild?.children[1];
+const table = document.body.lastElementChild;
+
+/* nextElementSibling шагает строго к следующему тегу (<body> идёт сразу за <head>) */
 const bodyEl = head.nextElementSibling;
-const cellText = table.rows[1]?.cells[0]?.textContent;
+
+/* Свойства со словом Element пропускают текстовые узлы (пробелы и переносы строк) */
+const prevSiblingEl = currentItem?.previousElementSibling ?? null;
+const parentEl = currentItem?.parentElement ?? null;
+
+/* Свойства table.rows и row.cells автоматически обходят скрытый браузером <tbody> */
+const targetCell = table?.rows?.[1]?.cells?.[0] ?? null;
+
+console.log(bodyEl === document.body); /* true */
+console.log(prevSiblingEl, parentEl, targetCell);
 ```
 
 </details>

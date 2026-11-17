@@ -79,3 +79,213 @@ ladder.up().up().down().showStep(); /* Ступенька: 1 (без return this
 2. Ждать во вложенном методе user.address.log() доступ к user через this — контекст всегда равен объекту непосредственно перед точкой (address).
 
 3. Вызывать методы цепочкой ladder.up().down() без return this; — по умолчанию метод вернёт undefined, и следующий вызов через точку упадёт с TypeError.
+
+## Вопросы для закрепления
+
+**1. Что случится при запуске этого кода в строгом режиме и почему `user.ref.name` не выведет `'Иван'`?**
+
+```js
+'use strict';
+
+function makeUser() {
+  return {
+    name: 'Иван',
+    ref: this,
+  };
+}
+
+const user = makeUser();
+console.log(user.ref.name);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Код упадёт с **`TypeError: Cannot read properties of undefined (reading 'name')`**. Значение `this` определяется **в момент вызова функции**, а не там, где записан объект. Так как `makeUser()` вызвали просто как функцию без объекта слева от точки, внутри неё в `'use strict'` `this === undefined` — именно `undefined` записался в `ref`. Чтобы `ref` указывал на `user`, его нужно сделать методом: `ref() { return this; }` (и вызывать `user.ref().name`).
+
+</details>
+
+**2. Что выведут оба вызова и почему ни один из них не вернёт `'Алекс'`?**
+
+```js
+'use strict';
+
+const user = {
+  name: 'Алекс',
+  sayHi: () => console.log(this?.name),
+  profile: {
+    level: 5,
+    showOwner() {
+      console.log(this.name);
+    },
+  },
+};
+
+user.sayHi();
+user.profile.showOwner();
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Оба вызова выведут **`undefined`**.
+1. `sayHi` объявлен стрелочной функцией — у стрелки нет своего `this`, она берёт внешний контекст файла (в модулях это `undefined`, где нет `name`).
+2. `showOwner` — обычный метод, но вызван на вложенном объекте `profile`: для него слева от точки стоит именно **`user.profile`**, а в нём есть `level`, но нет `name`.
+
+</details>
+
+**3. Почему оторванный метод `const fn = user.logName; fn();` теряет контекст и чем `bind` отличается от `call` / `apply`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+При присваивании `const fn = user.logName` копируется только ссылка на саму функцию, а связь с объектом `user` теряется — при вызове `fn()` без точки `this` становится `undefined` (в строгом режиме). Методы `call(obj, a, b)` и `apply(obj, [a, b])` вызывают функцию **сразу** с нужным `this` (разница лишь в передаче аргументов: через запятую или массивом), а `bind(obj)` функцию **не запускает**, а возвращает новую функцию с навсегда привязанным `this`.
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини метод-стрелку и потерю контекста через `bind`**
+
+Сейчас `account.logBalance` написан стрелкой и не видит `this.balance`, а переменная `show` отрывает метод от объекта и теряет контекст. Исправь объявление метода на сокращённое `logBalance() {}` и привяжи `account` к `show` с помощью `.bind()`, чтобы оба вызова вывели `'Елена: 1500 руб.'`.
+
+```js
+'use strict';
+
+const account = {
+  owner: 'Елена',
+  balance: 1500,
+  /* Твоё решение: исправь метод logBalance */
+  logBalance: () => {
+    console.log(`${this.owner}: ${this.balance} руб.`);
+  },
+};
+
+/* Твоё решение: сохрани метод с жёстко привязанным контекстом */
+const show = account.logBalance;
+
+account.logBalance(); /* Елена: 1500 руб. */
+show();               /* Елена: 1500 руб. */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const account = {
+  owner: 'Елена',
+  balance: 1500,
+  /*
+    Заменили стрелку на обычный сокращённый метод: теперь при вызове
+    account.logBalance() его this автоматически ссылается на account
+  */
+  logBalance() {
+    console.log(`${this.owner}: ${this.balance} руб.`);
+  },
+};
+
+/*
+  .bind(account) НЕ вызывает функцию сразу, а создаёт новую обёртку,
+  внутри которой this навсегда зафиксирован на объекте account
+*/
+const show = account.logBalance.bind(account);
+
+account.logBalance(); /* Елена: 1500 руб. */
+show();               /* Елена: 1500 руб. */
+```
+
+</details>
+
+**Задача 2. Одна функция для разных объектов (`call` и `apply`)**
+
+Напиши обычную функцию `formatBadge(prefix, suffix)`, которая возвращает строку `` `${prefix} ${this.name} (${this.role})${suffix}` ``. Не записывая её в сами объекты `dev` и `designer`, вызови её и выведи результат: для `dev` — через `.call(...)` с аргументами `'[DEV]'` и `'!'`, для `designer` — через `.apply(...)` с аргументами `'[UX]'` и `'.'`.
+
+```js
+'use strict';
+
+const dev = { name: 'Иван', role: 'Frontend' };
+const designer = { name: 'Мария', role: 'UI/UX' };
+
+/* Твоё решение: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const dev = { name: 'Иван', role: 'Frontend' };
+const designer = { name: 'Мария', role: 'UI/UX' };
+
+/*
+  Используем function (а не стрелку), потому что call и apply могут подменить
+  this только у обычной функции (стрелка игнорирует переданный контекст)
+*/
+function formatBadge(prefix, suffix) {
+  return `${prefix} ${this.name} (${this.role})${suffix}`;
+}
+
+/* call передаёт контекст первым аргументом, а параметры функции — через запятую */
+console.log(formatBadge.call(dev, '[DEV]', '!'));        /* [DEV] Иван (Frontend)! */
+
+/* apply работает так же, но принимает параметры функции единым массивом */
+console.log(formatBadge.apply(designer, ['[UX]', '.'])); /* [UX] Мария (UI/UX). */
+```
+
+</details>
+
+**Задача 3. Бонусный кошелёк с цепочкой вызовов (`return this`)**
+
+Создай объект `wallet` со свойством `points: 0` и тремя методами, поддерживающими цепочку вызовов: `add(amount)` (прибавляет `amount` к `this.points`), `spend(amount)` (вычитает `amount`, если `this.points >= amount`, иначе печатает `'Недостаточно баллов'`) и `log()` (печатает `Баланс: <points>`).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+wallet.add(100).spend(30).add(50).log(); /* Баланс: 120 */
+wallet.spend(200).log();                 /* Недостаточно баллов, затем Баланс: 120 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const wallet = {
+  points: 0,
+
+  add(amount) {
+    this.points += amount;
+    /* Возвращаем this (сам объект wallet), чтобы сразу вызывать следующий метод */
+    return this;
+  },
+
+  spend(amount) {
+    if (this.points >= amount) {
+      this.points -= amount;
+    } else {
+      console.log('Недостаточно баллов');
+    }
+    /*
+      return this обязан быть в любом исходе (даже если баллов не хватило),
+      иначе следующий метод в цепочке .log() упадёт на undefined
+    */
+    return this;
+  },
+
+  log() {
+    console.log(`Баланс: ${this.points}`);
+    return this;
+  },
+};
+
+wallet.add(100).spend(30).add(50).log(); /* Баланс: 120 */
+wallet.spend(200).log();                 /* Недостаточно баллов -> Баланс: 120 */
+```
+
+</details>

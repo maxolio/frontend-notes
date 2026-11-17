@@ -110,3 +110,273 @@ new ThemeSwitcher();
 2. Писать в document.cookie пробелы/спецсимволы без encodeURIComponent или пытаться засунуть туда большие данные (лимит 4 КБ отрежет значение и сломает парсинг).
 
 3. Сохранить долгоживущие настройки (например, тему сайта) в sessionStorage вместо localStorage — после закрытия вкладки все данные исчезнут.
+
+## Вопросы для закрепления
+
+**1. Мы выполнили `localStorage.setItem('isDark', false)`. Что вернёт `localStorage.getItem('isDark')` и сработает ли условие `if (localStorage.getItem('isDark'))`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Хранилища `localStorage` и `sessionStorage` автоматически приводят любые ключи и значения к **строке**. Поэтому вместо булева `false` сохранится непустая строка `'false'`. Условие `if ('false')` **сработает** (любая непустая строка — truthy). Если же ключа в хранилище вообще нет, `getItem` вернёт `null`. Для сохранения типов нужно использовать `JSON.stringify` и `JSON.parse`.
+
+</details>
+
+**2. Сработает ли обработчик `window.addEventListener('storage', ...)` в той же вкладке, где скрипт только что вызвал `localStorage.setItem(...)`? И почему ключи хранилища нельзя перебирать циклом `for..in`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Нет — событие `storage` срабатывает **только в других открытых вкладках (или окнах) того же домена**, чтобы синхронизировать состояние между ними (например, тему или выход из аккаунта), но не в текущей вкладке. Цикл `for..in` по `localStorage` перебирает не только ваши ключи, но и встроенные свойства и методы объекта (`length`, `getItem`, `setItem`, `clear` и т.д.). Для перебора только сохранённых ключей используйте `Object.keys(localStorage)` или `localStorage.key(i)`.
+
+</details>
+
+**3. Если выполнить `document.cookie = 'theme=dark; path=/'`, затрутся ли остальные куки домена? И как прочитать в JS серверную куку, установленную с флагом `HttpOnly`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Не затрутся: `document.cookie` устроен как специальный сеттер — присваивание добавляет или перезаписывает только одну куку по указанному имени, не трогая остальные. Серверную куку с флагом `HttpOnly` прочитать через JS **невозможно** (браузер скрывает её от `document.cookie` для защиты сессии от кражи при XSS-атаках).
+
+</details>
+
+## Задачи
+
+**Задача 1. Безопасные обёртки `saveJson(key, value)` и `loadJson(key, fallback = null)` для `localStorage`**
+
+Напиши две функции-помощника для работы с объектами, массивами и примитивами без потери типов:
+1) `saveJson(key, value)` — сериализует `value` через `JSON.stringify` (если результат `undefined`, ничего не записывает и возвращает `false`), сохраняет в `localStorage` внутри `try..catch` (защита от `QuotaExceededError` и циклических ссылок) и возвращает `true` при успехе или `false` при ошибке.
+2) `loadJson(key, fallback = null)` — читает строку через `localStorage.getItem(key)`: если вернулся `null`, возвращает `fallback`; иначе парсит через `JSON.parse` в `try..catch` и при битом JSON возвращает `fallback`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function saveJson(key, value) {
+  /* try..catch страхует сразу от двух ошибок: циклической ссылки в JSON.stringify
+     и переполнения лимита хранилища (~5 МБ, QuotaExceededError) в setItem: */
+  try {
+    const serialized = JSON.stringify(value);
+    /* JSON.stringify(undefined) возвращает не строку, а undefined —
+       запись его напрямую превратилась бы в строку 'undefined', которую JSON.parse сломает: */
+    if (serialized === undefined) return false;
+
+    localStorage.setItem(key, serialized);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function loadJson(key, fallback = null) {
+  const raw = localStorage.getItem(key);
+  /* Если ключа нет, getItem возвращает null — возвращаем значение по умолчанию без парсинга: */
+  if (raw === null) return fallback;
+
+  /* Если пользователь или расширение повредили строку в DevTools, JSON.parse кинет SyntaxError;
+     обработка исключения не даст упасть всему приложению: */
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+
+saveJson('settings', { volume: 80, muted: false });
+console.log(loadJson('settings')); /* { volume: 80, muted: false } */
+console.log(loadJson('missing', { volume: 50 })); /* { volume: 50 } */
+```
+
+</details>
+
+**Задача 2. Утилиты для работы с `document.cookie`: `setCookie`, `getCookie` и `deleteCookie`**
+
+Реализуй три функции:
+1) `setCookie(name, value, options = {})` — объединяет `{ path: '/', ...options }`, кодирует `name` и `value` через `encodeURIComponent`, добавляет опции через `; ` (если значение опции равно `true`, например `secure: true`, пишет только имя флага `secure` без `=true`; значения `false`, `null`, `undefined` пропускает) и записывает строку в `document.cookie`.
+2) `getCookie(name)` — ищет запись в `document.cookie` по декодированному имени (учитывай, что внутри самого значения куки может встречаться знак `=`, поэтому не теряй хвост значения!) и возвращает декодированное значение или `undefined`.
+3) `deleteCookie(name)` — удаляет куку, вызывая `setCookie` с `{ 'max-age': -1 }`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function setCookie(name, value, options = {}) {
+  /* Без path=/ кука будет видна только на текущем URL-пути, а не на всём сайте: */
+  const fullOptions = { path: '/', ...options };
+  /* Кодируем имя и значение, чтобы пробелы, ';' и '=' не сломали формат строки cookie: */
+  let entry = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+
+  for (const [optKey, optVal] of Object.entries(fullOptions)) {
+    if (optVal === false || optVal === null || optVal === undefined) continue;
+    entry += `; ${optKey}`;
+    /* Флаговые опции вроде secure или HttpOnly задаются без '=true': */
+    if (optVal !== true) {
+      entry += `=${optVal}`;
+    }
+  }
+
+  /* Сеттер document.cookie добавляет или обновляет только эту запись, сохраняя остальные: */
+  document.cookie = entry;
+}
+
+function getCookie(name) {
+  if (!document.cookie) return undefined;
+
+  for (const part of document.cookie.split('; ')) {
+    /* Ищем только ПЕРВЫЙ знак '=', чтобы не обрезать '=' внутри самого значения: */
+    const eqIndex = part.indexOf('=');
+    if (eqIndex === -1) continue;
+
+    const entryName = decodeURIComponent(part.slice(0, eqIndex));
+    if (entryName === name) {
+      return decodeURIComponent(part.slice(eqIndex + 1));
+    }
+  }
+
+  return undefined;
+}
+
+function deleteCookie(name) {
+  /* Отрицательный max-age немедленно удаляет куку с тем же path=/, с которым она была создана: */
+  setCookie(name, '', { 'max-age': -1 });
+}
+
+setCookie('userName', 'Alex Ivanov', { 'max-age': 3600, samesite: 'Lax' });
+console.log(getCookie('userName')); /* 'Alex Ivanov' */
+deleteCookie('userName');
+console.log(getCookie('userName')); /* undefined */
+```
+
+</details>
+
+**Задача 3. Класс `DraftSaver` — автосохранение черновика формы и синхронизация между вкладками**
+
+Напиши класс `DraftSaver`, который привязывается к форме (с полями с атрибутом `name`) и хранит её черновик в `localStorage` по ключу `'feedback-draft'`:
+1) В `constructor(formSelector)` найди форму; если не найдена — выйди. Иначе восстанови сохранённый черновик из `localStorage` (если он есть) и повесь обработчики.
+2) При событии `'input'` на форме собери значения именованных полей (`this.form.elements`) в объект (игнорируя элементы без `name` и кнопки `submit`/`button`) и сохрани JSON в `localStorage` (внутри `try..catch`).
+3) При событии `'submit'` отмени отправку (`preventDefault()`), удали черновик через `removeItem` и сбрось форму (`reset()`).
+4) Подпишись на `window` событие `'storage'`: если изменился наш ключ `this.storageKey`, при `event.newValue === null` сбрось форму (`reset()`), иначе примени новое значение черновика, чтобы форма синхронизировалась с другими вкладками.
+
+```html
+<!-- Пример разметки:
+<form data-js-feedback-form>
+  <input name="author" placeholder="Имя" />
+  <textarea name="message" placeholder="Сообщение"></textarea>
+  <button type="submit">Отправить</button>
+</form>
+-->
+```
+
+```js
+'use strict';
+
+class DraftSaver {
+  storageKey = 'feedback-draft';
+
+  /* Твоё решение: */
+}
+
+new DraftSaver('[data-js-feedback-form]');
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+class DraftSaver {
+  storageKey = 'feedback-draft';
+
+  constructor(formSelector) {
+    this.form = document.querySelector(formSelector);
+    if (!this.form) return;
+
+    /* При загрузке страницы сразу подставляем черновик, если он сохранился с прошлого визита: */
+    this.applyDraft(localStorage.getItem(this.storageKey));
+    this.bindEvents();
+  }
+
+  /* Стрелочные методы привязывают this к экземпляру DraftSaver при передаче в addEventListener: */
+  onInput = () => {
+    const draft = {};
+
+    /* Перебираем элементы формы через коллекцию elements и пропускаем кнопки / поля без name: */
+    for (const field of this.form.elements) {
+      if (!field.name || field.type === 'submit' || field.type === 'button') continue;
+      draft[field.name] = field.value;
+    }
+
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(draft));
+    } catch {
+      /* Ошибка квоты или запрета storage в приватном режиме не должна ломать ввод текста */
+    }
+  };
+
+  onSubmit = (event) => {
+    event.preventDefault();
+    /* Очищаем ключ после успешной отправки — это вызовет событие 'storage' в соседних вкладках: */
+    localStorage.removeItem(this.storageKey);
+    this.form.reset();
+  };
+
+  onStorage = (event) => {
+    /* Игнорируем изменения других ключей в localStorage: */
+    if (event.key !== this.storageKey) return;
+
+    /* Если черновик удалили (submit в другой вкладке), сбрасываем поля текущей формы: */
+    if (event.newValue === null) {
+      this.form.reset();
+      return;
+    }
+
+    this.applyDraft(event.newValue);
+  };
+
+  applyDraft(rawJson) {
+    if (!rawJson) return;
+
+    try {
+      const draft = JSON.parse(rawJson);
+      if (!draft || typeof draft !== 'object') return;
+
+      for (const field of this.form.elements) {
+        /* Object.hasOwn защищает от чтения унаследованных свойств вроде toString: */
+        if (field.name && Object.hasOwn(draft, field.name)) {
+          field.value = String(draft[field.name] ?? '');
+        }
+      }
+    } catch {
+      /* Битый JSON в хранилище молча игнорируем */
+    }
+  }
+
+  bindEvents() {
+    this.form.addEventListener('input', this.onInput);
+    this.form.addEventListener('submit', this.onSubmit);
+    /* Событие 'storage' на window приходит только при изменениях из других вкладок этого домена: */
+    window.addEventListener('storage', this.onStorage);
+  }
+}
+
+new DraftSaver('[data-js-feedback-form]');
+```
+
+</details>

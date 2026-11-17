@@ -152,3 +152,210 @@ const removed = tech.splice(2, 1, 'JS', 'TS'); // С индекса 2 удали
 2. Искать объекты через indexOf / includes — они сравнивают ссылки и вернут -1/false; для объектов используй find / findIndex / some.
 
 3. Вызывать sort() без (a, b) => a - b и забывать про мутацию — числа отсортируются как строки (500 перед 8), а sort/reverse испортят исходный массив без [...arr].
+
+## Вопросы для закрепления
+
+**1. Что выведет этот код и почему не сработали ни сортировка чисел, ни досрочная остановка через `return`?**
+
+```js
+const nums = [10, 2, 5];
+const sorted = nums.sort();
+
+nums.forEach((n) => {
+  if (n === 5) return;
+  console.log(n);
+});
+
+console.log(sorted, nums === sorted);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется `10`, `2`, а затем `[10, 2, 5]` и `true`.
+1. Метод `sort()` без функции сравнения сортирует всё как **строки** (`'10' < '2'`), а ещё **мутирует исходный массив** и возвращает ссылку на него же (`nums === sorted`). Для чисел без изменения оригинала пишут `[...nums].sort((a, b) => a - b)`.
+2. Внутри `forEach` инструкция `return` пропускает лишь один шаг (как `continue`), а прервать `forEach` досрочно нельзя — для этого используют `for..of`, `some` или `find`.
+
+</details>
+
+**2. Что вернёт `reduce` без второго аргумента на массиве объектов и на пустом массиве `[]`?**
+
+```js
+const users = [{ age: 20 }, { age: 30 }];
+const badSum = (arr) => arr.reduce((acc, user) => acc + user.age);
+
+console.log(badSum(users));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+На `users` вернётся строка **`'[object Object]30'`**, а на пустом массиве `[]` — **`TypeError: Reduce of empty array with no initial value`**. Без второго аргумента в `acc` на первом шаге попадает сам объект `{ age: 20 }`, а при сложении `+ 30` он превращается в `'[object Object]'`. В `reduce` всегда передают начальное значение: `arr.reduce((acc, u) => acc + u.age, 0)`.
+
+</details>
+
+**3. Почему `[{ id: 1 }].includes({ id: 1 })` вернёт `false`, а удалять элемент из массива через `delete arr[1]` — плохая практика?**
+
+<details>
+<summary>Показать ответ</summary>
+
+`includes` и `indexOf` сравнивают объекты по **ссылке** (`===`), а два отдельных литерала `{ id: 1 }` лежат по разным адресам в памяти — для поиска объектов используют `find`, `findIndex` или `some`. А `delete arr[1]` не сдвигает соседние элементы и не уменьшает `length`, оставляя в массиве пустую дыру (`empty`) — для честного удаления из середины применяют `arr.splice(1, 1)`.
+
+</details>
+
+## Задачи
+
+**Задача 1. Преобразуй `kebab-case` в `camelCase` (`camelize`)**
+
+Напиши функцию `camelize(str)`, которая убирает дефисы и переводит каждое слово после первого в верхний регистр первой буквы (`'background-color'` -> `'backgroundColor'`). Используй цепочку `.split('-')`, `.map(...)` и `.join('')`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(camelize('background-color'));   /* 'backgroundColor' */
+console.log(camelize('list-style-image'));   /* 'listStyleImage' */
+console.log(camelize('-webkit-transition')); /* 'WebkitTransition' */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function camelize(str) {
+  return str
+    .split('-') /* режем строку на массив слов по разделителю '-' */
+    .map((word, index) => {
+      /* Защита от пустых фрагментов вроде ведущего '-' в '-webkit-transition' */
+      if (!word) return '';
+
+      /* Первое слово (index === 0) оставляем как есть, у остальных поднимаем 1-ю букву */
+      return index === 0
+        ? word.toLowerCase()
+        : word[0].toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(''); /* склеиваем обработанные слова обратно в одну строку */
+}
+
+console.log(camelize('background-color'));   /* 'backgroundColor' */
+console.log(camelize('list-style-image'));   /* 'listStyleImage' */
+console.log(camelize('-webkit-transition')); /* 'WebkitTransition' */
+```
+
+</details>
+
+**Задача 2. Фильтрация, сортировка без мутации и деструктуризация массива**
+
+Не меняя исходный массив `users`, отфильтруй только активных пользователей (`isActive === true`), отсортируй их по возрасту от младшего к старшему и забери только массив их имён `activeNames`. Затем с помощью деструктуризации массива сохрани первое имя в константу `youngestActive`.
+
+```js
+'use strict';
+
+const users = [
+  { name: 'Иван',  age: 32, isActive: true },
+  { name: 'Мария', age: 22, isActive: true },
+  { name: 'Олег',  age: 19, isActive: false },
+  { name: 'Алина', age: 27, isActive: true },
+];
+
+/* Твоё решение: */
+
+console.log(activeNames);    /* ['Мария', 'Алина', 'Иван'] */
+console.log(youngestActive); /* 'Мария' */
+console.log(users[0].name);  /* 'Иван' (исходный массив не изменён!) */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const users = [
+  { name: 'Иван',  age: 32, isActive: true },
+  { name: 'Мария', age: 22, isActive: true },
+  { name: 'Олег',  age: 19, isActive: false },
+  { name: 'Алина', age: 27, isActive: true },
+];
+
+/*
+  filter создаёт НОВЫЙ массив, поэтому следующий за ним sort((a, b) => a.age - b.age)
+  сортирует уже отфильтрованную копию и не мутирует исходный users.
+  Затем map достаёт только свойство name из каждого объекта
+*/
+const activeNames = users
+  .filter(({ isActive }) => isActive)
+  .sort((a, b) => a.age - b.age)
+  .map(({ name }) => name);
+
+/* Деструктуризация массива берёт первый элемент (индекс 0) */
+const [youngestActive] = activeNames;
+
+console.log(activeNames);    /* ['Мария', 'Алина', 'Иван'] */
+console.log(youngestActive); /* 'Мария' */
+console.log(users[0].name);  /* 'Иван' */
+```
+
+</details>
+
+**Задача 3. Средний возраст и группировка по `id` через `reduce`**
+
+Напиши две функции с помощью `.reduce`:
+1) `getAverageAge(list)` — считает средний возраст пользователей (для пустого массива должна возвращать `0`, а не `NaN`).
+2) `groupById(list)` — собирает из массива пользователей объект-словарь, где ключом выступает `user.id`, а значением — сам объект пользователя.
+
+```js
+'use strict';
+
+const users = [
+  { id: 'u1', name: 'Алекс', age: 20 },
+  { id: 'u2', name: 'Лена',  age: 30 },
+  { id: 'u3', name: 'Дима',  age: 40 },
+];
+
+/* Твоё решение: */
+
+console.log(getAverageAge(users)); /* 30 */
+console.log(getAverageAge([]));    /* 0 */
+console.log(groupById(users).u2);  /* { id: 'u2', name: 'Лена', age: 30 } */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const users = [
+  { id: 'u1', name: 'Алекс', age: 20 },
+  { id: 'u2', name: 'Лена',  age: 30 },
+  { id: 'u3', name: 'Дима',  age: 40 },
+];
+
+function getAverageAge(list) {
+  /* Защита от деления 0 / 0 = NaN на пустом массиве */
+  if (list.length === 0) return 0;
+
+  /* Начальное значение 0 обязательно, чтобы сумма начиналась с числа, а не объекта */
+  const totalAge = list.reduce((sum, { age }) => sum + age, 0);
+  return totalAge / list.length;
+}
+
+function groupById(list) {
+  /* Начальное значение {} — пустой словарь, который постепенно наполняется */
+  return list.reduce((acc, user) => {
+    acc[user.id] = user;
+    /* Обязательно возвращаем acc на каждом шаге, иначе на следующем acc станет undefined */
+    return acc;
+  }, {});
+}
+
+console.log(getAverageAge(users)); /* 30 */
+console.log(getAverageAge([]));    /* 0 */
+console.log(groupById(users).u2);  /* { id: 'u2', name: 'Лена', age: 30 } */
+```
+
+</details>

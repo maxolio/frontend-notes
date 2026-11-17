@@ -58,3 +58,212 @@ console.log('' == false);       /* true — оба приводятся к 0, п
 2. Написать const next = count++ и ждать уже увеличенного числа — постфиксный ++ сначала отдаёт старое значение (10), а увеличивает count потом.
 
 3. Сравнивать значения через == вместо === (получая скрытое приведение типов) или сравнивать числа как строки (в строках "20" > "100" даст true, т.к. "2" > "1").
+
+## Вопросы для закрепления
+
+**1. Какие числа окажутся в переменных `a`, `b`, `c` и `d`, и почему запись `5++` вызовет ошибку?**
+
+```js
+let a = 1;
+let b = 1;
+const c = ++a;
+const d = b++;
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+После выполнения: `a = 2`, `b = 2`, `c = 2`, `d = 1`. Префиксный `++a` **сначала** увеличивает переменную и возвращает новое значение (`2`), а постфиксный `b++` **сначала** возвращает старое значение (`1`) и только потом прибавляет к `b` единицу. Запись `5++` вызовет `SyntaxError`, потому что инкремент и декремент работают только с переменными, а не с готовыми значениями или выражениями вроде `(2 + 2)++`.
+
+</details>
+
+**2. Что выведут эти три сравнения и почему результаты `null` кажутся противоречивыми?**
+
+```js
+console.log('20' > '100');
+console.log(null == 0);
+console.log(null >= 0);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется `true`, `false`, `true`.
+1. `'20' > '100'` сравнивает две строки посимвольно по кодам Unicode: первый символ `'2'` больше `'1'`, поэтому дальше проверка не идёт.
+2. `null == 0` возвращает `false`, так как оператор нестрогого равенства `==` считает `null` равным только `undefined` и никому больше.
+3. `null >= 0` даёт `true`, потому что операторы сравнения (`>`, `<`, `>=`, `<=`) приводят `null` к числу `0`, и получается `0 >= 0`.
+
+</details>
+
+**3. Зачем нужен унарный `+` в записи `+'10' + +'20'`, и какой знак будет у результата `-13 % 5`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Без унарного плюса бинарный `+` склеит две строки в `'1020'`. Унарный `+` имеет более высокий приоритет и пишется слитно с операндом — он заранее превращает `'10'` и `'20'` в числа, чтобы бинарный `+` выполнил сложение и дал `30`. А остаток от деления `-13 % 5` вернёт `-3`, потому что знак остатка в JS всегда совпадает со знаком левого числа (делимого).
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини подсчёт заказа через унарный `+`, `+=` и остаток `%`**
+
+Из формы пришли две строковые цены `firstItem` и `secondItem`, а на балансе клиента уже есть `bonus = 50`. Сложи цены как числа с помощью унарного `+` (без `Number()`), прибавь полученную сумму к `bonus` через сокращённый оператор `+=`, а в `isMultipleOfTen` проверь с помощью `%` и `===`, делится ли итоговый `bonus` на `10` без остатка.
+
+```js
+'use strict';
+
+const firstItem = '450';
+const secondItem = '150';
+let bonus = 50;
+
+/* Твоё решение: */
+const cartSum = firstItem + secondItem;
+bonus = bonus + cartSum;
+const isMultipleOfTen = false;
+
+console.log(cartSum);
+console.log(bonus);
+console.log(isMultipleOfTen);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const firstItem = '450';
+const secondItem = '150';
+let bonus = 50;
+
+/*
+  Унарный + имеет более высокий приоритет, чем бинарный +,
+  поэтому строки '450' и '150' сначала становятся числами и дают 600
+*/
+const cartSum = +firstItem + +secondItem;
+
+/* Сокращённый оператор += обновляет let-переменную: 50 + 600 = 650 */
+bonus += cartSum;
+
+/*
+  Оператор % возвращает остаток от деления; сравнение === 0
+  строго проверяет, что число разделилось на 10 нацело (true)
+*/
+const isMultipleOfTen = bonus % 10 === 0;
+
+console.log(cartSum);         /* 600 */
+console.log(bonus);           /* 650 */
+console.log(isMultipleOfTen); /* true */
+```
+
+</details>
+
+**Задача 2. Почини счётчик шагов и приоритет операторов**
+
+Сейчас `currentStep` забирает старый `0` вместо увеличенного `1`, изменение `price` записано длинно, а `doubledTotal` считает сумму неверно из-за приоритета `*` над `+`. Исправь три выражения так, чтобы в консоль вывелись `1 1` и `340`.
+
+```js
+'use strict';
+
+let step = 0;
+let price = 100;
+const delivery = 50;
+
+/* Твоё решение: */
+const currentStep = step++;
+price = price + 20;
+const doubledTotal = price + delivery * 2;
+
+console.log(step, currentStep);
+console.log(doubledTotal);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+let step = 0;
+let price = 100;
+const delivery = 50;
+
+/*
+  Меняем постфикс step++ на префикс ++step: теперь переменная
+  сначала увеличится до 1, и это новое значение сразу попадёт в currentStep
+*/
+const currentStep = ++step;
+
+/* Используем сокращённое присваивание += (price становится 120) */
+price += 20;
+
+/*
+  Умножение * выполняется раньше сложения +, поэтому берём сумму
+  в круглые скобки, чтобы сначала сложить (120 + 50), а затем умножить на 2
+*/
+const doubledTotal = (price + delivery) * 2;
+
+console.log(step, currentStep); /* 1 1 */
+console.log(doubledTotal);      /* 340 */
+```
+
+</details>
+
+**Задача 3. Убери ловушки сравнения строк и нестрогого `==`**
+
+В коде ниже `'20' > '100'` даёт `true`, пустая строка `''` считается равной `false`, а проверка `userData` использует нестрогое `==`. Исправь сравнения (приведи числовые строки унарным `+` и замени `==` на строгое `===`), чтобы результаты стали математически и типобезопасно верными.
+
+```js
+'use strict';
+
+const balanceInput = '20';
+const minLimitInput = '100';
+const emptyAnswer = '';
+const userData = null;
+
+/* Твоё решение: */
+const hasEnoughMoney = balanceInput > minLimitInput;
+const isExplicitFalse = emptyAnswer == false;
+const isNoData = userData == undefined;
+
+console.log(hasEnoughMoney);  /* должно быть: false */
+console.log(isExplicitFalse); /* должно быть: false */
+console.log(isNoData);        /* должно быть: true */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const balanceInput = '20';
+const minLimitInput = '100';
+const emptyAnswer = '';
+const userData = null;
+
+/*
+  Строки сравниваются по кодам символов ('2' > '1'), поэтому переводим
+  оба ввода в числа через унарный + и сравниваем 20 > 100 (false)
+*/
+const hasEnoughMoney = +balanceInput > +minLimitInput;
+
+/*
+  Нестрогое == приводило '' и false к нулю (0 == 0 -> true).
+  Строгое === учитывает тип: строка не равна boolean (false)
+*/
+const isExplicitFalse = emptyAnswer === false;
+
+/*
+  Проверяем конкретно null через ===, чтобы случайно
+  не перепутать его с undefined, как это делает ==
+*/
+const isNoData = userData === null;
+
+console.log(hasEnoughMoney);  /* false */
+console.log(isExplicitFalse); /* false */
+console.log(isNoData);        /* true */
+```
+
+</details>

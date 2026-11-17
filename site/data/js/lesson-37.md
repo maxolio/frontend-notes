@@ -97,3 +97,256 @@ citySelect.append(new Option('Казань', 'kazan', true, true)); /* defaultSe
 2. Читать значение `<textarea>` через .textContent / .innerHTML вместо .value — получите исходный текст разметки вместо введённого.
 
 3. В `<select multiple>` пытаться прочитать все пункты через select.value (покажет только первый) вместо [...select.selectedOptions], либо записать туда несуществующий вариант (сбросит выбор в пустоту).
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль в первых двух строках и почему сломается вызов `formElement.submit()`?**
+
+```html
+<form name="orderForm">
+  <input type="checkbox" name="agree">
+  <textarea name="comment">Начало</textarea>
+  <button name="submit">Отправить</button>
+</form>
+```
+
+```js
+const formElement = document.forms.orderForm;
+formElement.elements.comment.value = 'Новый текст';
+
+console.log(formElement.elements.agree.value);
+console.log(formElement.elements.comment.textContent);
+formElement.submit();
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется **`'on'`** и **`'Начало'`**, а строка `formElement.submit()` упадёт с **`TypeError: formElement.submit is not a function`**.
+1. У чекбокса `.value` по умолчанию всегда `'on'`, даже когда галочка снята — проверять нужно строго `.checked` (`true`/`false`).
+2. У `<textarea>` актуальное содержимое читают и меняют только через `.value`, а `.textContent` хранит старый текст разметки.
+3. Кнопка с `name="submit"` перетёрла одноимённый метод отправки формы `formElement.submit()` — не называйте поля и кнопки `submit` или `reset`.
+
+</details>
+
+**2. Почему `select.value` не подходит для `<select multiple>`, и что случится при записи `select.value = 'несуществующий'`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. У `<select multiple>` свойство `select.value` всегда возвращает лишь **первый** выбранный пункт. Все выбранные элементы берут через `[...select.selectedOptions]`.
+2. Если записать в `select.value` значение, которого нет среди `<option>`, выбор сбросится и `select.value` станет пустой строкой `""`. Создать новую опцию (и при желании сразу выбрать её) удобно одной строкой: `new Option('Текст', 'val', true, true)`.
+
+</details>
+
+**3. Чем отличаются атрибуты `readonly` и `disabled`, и почему `form.elements.city` надёжнее короткого обращения `form.city`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Поле с `readonly` нельзя редактировать, но в него можно поставить фокус и его значение **отправляется** на сервер с формой. Поле с `disabled` не принимает фокус/клики и **полностью исключается из отправки** (как и вся группа при `fieldset.disabled = true`).
+2. При смене `field.name = 'town'` свойство `form.elements` корректно удаляет старое имя `city`, а короткая запись `form.city` продолжает хранить ссылку на переименованное поле (и может конфликтовать со свойствами самой формы).
+
+</details>
+
+## Задачи
+
+**Задача 1. Доступ через `document.forms`, `elements` и внешнее поле с атрибутом `form`**
+
+1) В HTML-разметке привяжи внешний `<select name="city">` к форме `id="orderForm"` через HTML-атрибут, чтобы он попал в `elements`.
+2) В функции `readOrderForm()` получи форму через `document.forms.orderForm` и через `formElement.elements` верни объект с полями: `comment` (текст `<textarea>`), `delivery` (значение выбранной радиокнопки), `isAgreed` (`boolean` чекбокса) и `city` (выбранный город).
+
+```html
+<!-- 1) В HTML привяжи <select> к форме id="orderForm": -->
+<!-- Твоё решение: -->
+<form id="orderForm">
+  <textarea name="comment"></textarea>
+  <input type="radio" name="delivery" value="courier" checked>
+  <input type="radio" name="delivery" value="pickup">
+  <input type="checkbox" name="agree">
+</form>
+<select name="city">
+  <option value="msk">Москва</option>
+  <option value="spb">Питер</option>
+</select>
+```
+
+```js
+/* 2) JS: */
+'use strict';
+
+/* Твоё решение: */
+function readOrderForm() {
+  /* ... */
+}
+
+console.log(readOrderForm());
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```html
+<form id="orderForm">
+  <textarea name="comment"></textarea>
+  <input type="radio" name="delivery" value="courier" checked>
+  <input type="radio" name="delivery" value="pickup">
+  <input type="checkbox" name="agree">
+</form>
+<!-- Атрибут form="orderForm" связывает внешний select с формой по её id -->
+<select name="city" form="orderForm">
+  <option value="msk">Москва</option>
+  <option value="spb">Питер</option>
+</select>
+```
+
+```js
+'use strict';
+
+function readOrderForm() {
+  const formElement = document.forms.orderForm;
+  if (!formElement) return null;
+
+  /* Используем formElement.elements вместо прямого formElement.<name> */
+  const { comment, delivery, agree, city } = formElement.elements;
+
+  return {
+    comment: comment.value,   /* у <textarea> актуальный текст всегда в .value */
+    delivery: delivery.value, /* RadioNodeList сам отдаст value выбранной радиокнопки */
+    isAgreed: agree.checked,  /* у чекбокса статус галки только в .checked */
+    city: city.value,         /* благодаря form="orderForm" внешний select здесь доступен */
+  };
+}
+
+console.log(readOrderForm());
+```
+
+</details>
+
+**Задача 2. Управление `<select multiple>` и создание пунктов через `new Option`**
+
+Напиши две функции для `<select multiple name="skills">`:
+1) `addSkillOption(selectElement, text, value, isSelected = false)`: проверь через `[...selectElement.options].some(...)`, что опции с таким `value` ещё нет, создай её конструктором `new Option(text, value, isSelected, isSelected)` и вставь в конец списка.
+2) `getSelectedSkills(selectElement)`: верни массив значений (`value`) всех выбранных сейчас вариантов с помощью `selectElement.selectedOptions`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+function addSkillOption(selectElement, text, value, isSelected = false) {
+  /* ... */
+}
+
+function getSelectedSkills(selectElement) {
+  /* ... */
+}
+
+const skillsSelectElement = document.forms[0]?.elements.skills;
+addSkillOption(skillsSelectElement, 'TypeScript', 'ts', true);
+console.log(getSelectedSkills(skillsSelectElement));
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function addSkillOption(selectElement, text, value, isSelected = false) {
+  if (!selectElement) return;
+
+  /* Защита от дублей: перебираем существующие <option> через options */
+  const exists = [...selectElement.options].some((opt) => opt.value === value);
+  if (exists) return;
+
+  /*
+    new Option(text, value, defaultSelected, selected) создаёт <option> без createElement;
+    3-й и 4-й аргументы сразу помечают пункт выбранным и в HTML, и в текущем состоянии
+  */
+  const optionElement = new Option(text, value, isSelected, isSelected);
+  selectElement.append(optionElement);
+}
+
+function getSelectedSkills(selectElement) {
+  if (!selectElement) return [];
+
+  /* В multiple-селекте select.value покажет только 1-й пункт, поэтому берём selectedOptions */
+  return [...selectElement.selectedOptions].map((opt) => opt.value);
+}
+
+const skillsSelectElement = document.forms[0]?.elements.skills;
+addSkillOption(skillsSelectElement, 'TypeScript', 'ts', true);
+console.log(getSelectedSkills(skillsSelectElement));
+```
+
+</details>
+
+**Задача 3. Живой депозитный калькулятор на событиях формы**
+
+Напиши функцию `initDepositCalculator()` для формы `document.forms.calculator`:
+- Подпишись на делегированное событие `'input'` на всей форме (чтобы реагировать на ввод денег, смену срока в `<select>` и переключение чекбокса `isVip`).
+- Вычисляй ставку: `14%` (`0.14`) если `isVip.checked`, иначе `10%` (`0.1`). Итог считай по формуле `Math.round(initial * (1 + rate) ** (months / 12))` (если сумма `<= 0` или `NaN` — выводи `'0'`).
+- Выводи результат в элемент `[data-js-result]` через `.textContent`, и сразу вызови расчёт 1 раз при инициализации.
+
+```js
+'use strict';
+
+/*
+  HTML на странице:
+  <form name="calculator">
+    <input name="money" type="number" value="10000">
+    <select name="months">
+      <option value="12" selected>1 год</option>
+      <option value="24">2 года</option>
+    </select>
+    <input name="isVip" type="checkbox">
+  </form>
+  <div data-js-result></div>
+*/
+
+/* Твоё решение: */
+function initDepositCalculator() {
+  /* ... */
+}
+
+initDepositCalculator();
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initDepositCalculator() {
+  const formElement = document.forms.calculator;
+  const resultElement = document.querySelector('[data-js-result]');
+  if (!formElement || !resultElement) return;
+
+  const { money, months, isVip } = formElement.elements;
+
+  const updateCalculation = () => {
+    const initial = Number(money.value);
+    const periodMonths = Number(months.value);
+
+    if (!Number.isFinite(initial) || initial <= 0) {
+      resultElement.textContent = '0';
+      return;
+    }
+
+    const rate = isVip.checked ? 0.14 : 0.1;
+    const total = Math.round(initial * (1 + rate) ** (periodMonths / 12));
+    resultElement.textContent = String(total);
+  };
+
+  /* Событие input всплывает от <input>, <select> и checkbox до самой формы */
+  formElement.addEventListener('input', updateCalculation);
+
+  /* Первый расчёт сразу при открытии страницы на основе стартовых значений HTML */
+  updateCalculation();
+}
+
+initDepositCalculator();
+```
+
+</details>

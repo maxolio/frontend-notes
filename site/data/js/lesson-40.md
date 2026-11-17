@@ -110,3 +110,216 @@ const controller = new AbortController(); /* controller.abort() -> ошибка 
 2. Забыть return перед response.json() (следующий .then получит undefined) или передать в body обычный объект вместо JSON.stringify(...) при отправке JSON.
 
 3. Считать, что fetch отправляет cookies на чужой домен/порт — по умолчанию стоит credentials: "same-origin", поэтому для кросс-доменных кук нужен credentials: "include".
+
+## Вопросы для закрепления
+
+**1. Почему при статусе `404` блок `.catch()` ниже не сработает, а во втором `.then()` окажется `undefined`?**
+
+```js
+fetch('https://example.com/missing-page')
+  .then((response) => {
+    response.json();
+  })
+  .then((data) => console.log(data))
+  .catch((err) => console.log('Ошибка:', err.message));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `fetch()` отклоняет промис только при **сетевом сбое** (нет интернета, упал DNS). HTTP-ошибки `404` и `500` считаются ответом сервера (`response.ok === false`), и промис остаётся выполненным — поэтому в первом `.then` обязательно проверяют `if (!response.ok) throw new Error(response.status)`.
+2. Перед `response.json()` забыли **`return`**: метод возвращает `Promise`, и без возврата следующий `.then` сразу получает `undefined`, не дожидаясь JSON.
+
+</details>
+
+**2. Почему нельзя вызвать `await response.text()` сразу после `await response.json()`, и что случится при `.json()` на ответе со статусом `204`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Тело ответа (`Response`) — это поток, который разрешено прочитать **только 1 раз**: второй вызов `.text()` или `.json()` сразу выбросит `TypeError` (`body stream already read`). Для чтения в двух видах заранее делают копию через `response.clone()` (при этом `ok`, `status` и `headers` можно читать сколько угодно раз).
+2. Статус `204 No Content` означает пустое тело без JSON — вызов `response.json()` упадёт с `SyntaxError`, поэтому перед чтением проверяют `if (response.status === 204) return null;`.
+
+</details>
+
+**3. Зачем при отправке JSON методом `POST` передавать и заголовок `'Content-Type': 'application/json'`, и `JSON.stringify(data)`, и почему куки не уходят на другой порт `localhost:3000`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Без `JSON.stringify` обычный объект в `body` превратится в бесполезную строку `"[object Object]"`, а без заголовка `'Content-Type': 'application/json'` сервер примет тело за простой текст и не распарсит JSON.
+2. По умолчанию у `fetch` включено правило `credentials: 'same-origin'` — cookies отправляются только на **совпадающий** домен и порт. Для кросс-доменных или кросс-портовых запросов указывают `credentials: 'include'`.
+
+</details>
+
+## Задачи
+
+**Задача 1. Универсальная обёртка `fetchJson(url, options)` с проверкой `ok`, `204` и таймаутом `AbortController`**
+
+Напиши асинхронную функцию `fetchJson(url, options = {})`:
+1) Создай `const controller = new AbortController()` и поставь `setTimeout`, чтобы запрос отменялся через `5000` мс (передай `{ ...options, signal: controller.signal }` в `fetch`).
+2) В блоке `try`: если `!response.ok`, выброси `new Error(...)` со статусом ответа. Если `response.status === 204` — верни `null`, иначе верни `await response.json()`.
+3) В блоке `finally` обязательно очисти таймер через `clearTimeout`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+async function fetchJson(url, options = {}) {
+  /* ... */
+}
+
+fetchJson('https://jsonplaceholder.typicode.com/todos/1')
+  .then((data) => console.log(data))
+  .catch((err) => console.log('Сбой запроса:', err.message));
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+async function fetchJson(url, options = {}) {
+  const controller = new AbortController();
+  /* Если сервер не ответит за 5 секунд — abort() прервёт fetch с AbortError */
+  const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+
+    /* Явно переводим HTTP-ошибки (404, 500) в исключение, иначе они не попадут в catch */
+    if (!response.ok) {
+      throw new Error(`HTTP ошибка: ${response.status}`);
+    }
+
+    /* При статусе 204 тело ответа пустое — не пытаемся парсить JSON */
+    if (response.status === 204) return null;
+
+    return await response.json();
+  } finally {
+    /* Очищаем таймер даже при быстром ответе или ошибке, чтобы не утекал */
+    clearTimeout(timeoutId);
+  }
+}
+
+fetchJson('https://jsonplaceholder.typicode.com/todos/1')
+  .then((data) => console.log(data))
+  .catch((err) => console.log('Сбой запроса:', err.message));
+```
+
+</details>
+
+**Задача 2. Фильтрация `GET` через `URLSearchParams` и `POST` из формы**
+
+Напиши две асинхронные функции для `http://localhost:3000/posts`:
+1) `loadFilteredPosts(authorName, minViews)` — формирует query-строку через `new URLSearchParams({ author: authorName, views_gte: minViews })`, делает `GET`-запрос с проверкой `!response.ok` и возвращает массив постов из `.json()`.
+2) `createPostFromForm(formElement)` — собирает данные через `new FormData(formElement)` + `Object.fromEntries`, добавляет `views: 0` и отправляет `POST` с заголовком `'Content-Type': 'application/json'` и телом `JSON.stringify(...)`, возвращая созданный объект.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+async function loadFilteredPosts(authorName, minViews) {
+  /* ... */
+}
+
+async function createPostFromForm(formElement) {
+  /* ... */
+}
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const POSTS_URL = 'http://localhost:3000/posts';
+
+async function loadFilteredPosts(authorName, minViews) {
+  /* URLSearchParams сам безопасно кодирует кириллицу, пробелы и спецсимволы в URL */
+  const params = new URLSearchParams({
+    author: authorName,
+    views_gte: minViews,
+  });
+
+  const response = await fetch(`${POSTS_URL}?${params}`);
+  if (!response.ok) {
+    throw new Error(`Ошибка загрузки постов: ${response.status}`);
+  }
+
+  return await response.json();
+}
+
+async function createPostFromForm(formElement) {
+  const formDataObject = Object.fromEntries(new FormData(formElement));
+
+  const response = await fetch(POSTS_URL, {
+    method: 'POST',
+    /* Заголовок обязателен, чтобы сервер понял, что в теле приходит JSON */
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ...formDataObject, views: 0 }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Ошибка создания поста: ${response.status}`);
+  }
+
+  return await response.json();
+}
+```
+
+</details>
+
+**Задача 3. Параллельная загрузка профилей GitHub `getUsers(names)` с `null` при ошибке**
+
+Напиши асинхронную функцию `getUsers(names)`, которая принимает массив логинов и запрашивает профили по адресу `` `https://api.github.com/users/${name}` `` **одновременно** через `Promise.all` + `names.map(...)`. Если конкретный логин вернул статус не `ok` (например, `404`) или произошёл обрыв сети — для него в итоговом массиве должно вернуться `null`, не ломая остальные запросы.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+async function getUsers(names) {
+  /* ... */
+}
+
+getUsers(['iliakan', 'remy', 'no-such-user-999999'])
+  .then((users) => console.log(users));
+/* Ожидается массив из 3 элементов: [{ ... }, { ... }, null] */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+async function getUsers(names) {
+  /*
+    Запускаем все запросы параллельно через .map(), оборачивая каждый
+    в свой try...catch, чтобы сбой или 404 одного не уронил весь Promise.all
+  */
+  const requests = names.map(async (name) => {
+    try {
+      const response = await fetch(`https://api.github.com/users/${name}`);
+      if (!response.ok) return null;
+
+      return await response.json();
+    } catch {
+      /* Сетевой сбой для отдельного пользователя тоже превращаем в null */
+      return null;
+    }
+  });
+
+  return await Promise.all(requests);
+}
+
+getUsers(['iliakan', 'remy', 'no-such-user-999999'])
+  .then((users) => console.log(users));
+```
+
+</details>

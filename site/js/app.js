@@ -53,9 +53,13 @@ const dom = {
   lessonArticle: document.getElementById('lesson-article'),
   statusDoneBtn: document.getElementById('status-done-btn'),
   statusReviewBtn: document.getElementById('status-review-btn'),
-  copyAiBtn: document.getElementById('copy-ai-btn'),
+  aiWrap: document.querySelector('.ai-wrap'),
+  aiBtn: document.getElementById('ai-btn'),
+  aiMenu: document.getElementById('ai-menu'),
   docxLink: document.getElementById('docx-link'),
 };
+
+const PUBLIC_SITE_BASE = 'https://maxolio.github.io/frontend-notes/site/';
 
 const FONT_PREVIEW = {
   inter: '"Inter Variable", sans-serif',
@@ -129,6 +133,33 @@ function setSubjectMenuOpen(isOpen) {
     dom.appearanceMenu.hidden = true;
     dom.appearanceBtn.setAttribute('aria-expanded', 'false');
   }
+}
+
+function setAiMenuOpen(isOpen) {
+  dom.aiMenu.hidden = !isOpen;
+  dom.aiBtn.setAttribute('aria-expanded', String(isOpen));
+}
+
+function getPublicBaseUrl() {
+  const host = window.location.hostname;
+  const isLocal =
+    !host ||
+    host === 'localhost' ||
+    host === '127.0.0.1' ||
+    host.startsWith('192.168.') ||
+    host.startsWith('10.');
+  return isLocal ? PUBLIC_SITE_BASE : new URL('./', window.location.href).href;
+}
+
+let aiFlashTimer = null;
+function flashAiLabel(label) {
+  const labelSpan = dom.aiBtn.firstElementChild;
+  if (!labelSpan) return;
+  labelSpan.textContent = label;
+  clearTimeout(aiFlashTimer);
+  aiFlashTimer = setTimeout(() => {
+    labelSpan.textContent = '🤖 Для ИИ';
+  }, 1500);
 }
 
 function applyTheme(themeId) {
@@ -354,6 +385,12 @@ async function selectSubject(subjectId, targetLessonId = '') {
     dom.bundleLink.hidden = true;
   }
 
+  const bundleCopyBtn = dom.aiMenu.querySelector('[data-ai-action="copy-bundle-url"]');
+  if (bundleCopyBtn) bundleCopyBtn.hidden = !subject.bundleFile;
+
+  const shareBtn = dom.aiMenu.querySelector('[data-ai-action="share-url"]');
+  if (shareBtn) shareBtn.hidden = typeof navigator.share !== 'function';
+
   for (const btn of dom.subjectOptions.querySelectorAll('[data-subject-id]')) {
     btn.dataset.active = String(btn.dataset.subjectId === subject.id);
   }
@@ -474,12 +511,16 @@ function bindEvents() {
     if (!dom.subjectWrap.contains(event.target)) {
       setSubjectMenuOpen(false);
     }
+    if (!dom.aiWrap.contains(event.target)) {
+      setAiMenuOpen(false);
+    }
   });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape') {
       setAppearanceMenuOpen(false);
       setSubjectMenuOpen(false);
+      setAiMenuOpen(false);
     }
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
       event.preventDefault();
@@ -500,31 +541,49 @@ function bindEvents() {
     updateProgressAndStatusUI();
   });
 
-  dom.copyAiBtn.addEventListener('click', async () => {
+  dom.aiBtn.addEventListener('click', () => {
+    setAiMenuOpen(dom.aiMenu.hidden);
+  });
+
+  dom.aiMenu.addEventListener('click', async (event) => {
+    const btn = event.target.closest('[data-ai-action]');
+    if (!btn) return;
+
+    const action = btn.dataset.aiAction;
     const lesson = allLessons.find((l) => l.id === activeLessonId);
     if (!activeSubject || !lesson) return;
 
-    try {
-      const markdown = await getLessonMarkdown(activeSubject, lesson);
-      const prompt = [
-        'Ты — мой Senior Frontend-наставник. Ниже мой конспект урока в формате Markdown.',
-        'Помоги закрепить тему: задай 2–3 вопроса с подвохом или разбери со мной задачу без готового ответа сразу.',
-        '',
-        '---',
-        '',
-        markdown.trim(),
-      ].join('\n');
+    setAiMenuOpen(false);
 
-      await copyToClipboard(prompt);
-      dom.copyAiBtn.textContent = 'Скопировано ✓';
-      setTimeout(() => {
-        dom.copyAiBtn.textContent = '🤖 Для ИИ';
-      }, 1500);
-    } catch {
-      dom.copyAiBtn.textContent = 'Ошибка';
-      setTimeout(() => {
-        dom.copyAiBtn.textContent = '🤖 Для ИИ';
-      }, 1500);
+    try {
+      if (action === 'copy-text') {
+        const markdown = await getLessonMarkdown(activeSubject, lesson);
+        const prompt = [
+          'Ты — мой Senior Frontend-наставник. Ниже мой конспект урока в формате Markdown.',
+          'Помоги закрепить тему: задай 2–3 вопроса с подвохом или разбери со мной задачу без готового ответа сразу.',
+          '',
+          '---',
+          '',
+          markdown.trim(),
+        ].join('\n');
+        await copyToClipboard(prompt);
+        flashAiLabel('Скопировано ✓');
+      } else if (action === 'copy-lesson-url') {
+        const url = `${getPublicBaseUrl()}${activeSubject.basePath}/${lesson.file}`;
+        await copyToClipboard(url);
+        flashAiLabel('Ссылка ✓');
+      } else if (action === 'copy-bundle-url' && activeSubject.bundleFile) {
+        const url = `${getPublicBaseUrl()}${activeSubject.bundleFile}`;
+        await copyToClipboard(url);
+        flashAiLabel('Курс ✓');
+      } else if (action === 'share-url' && navigator.share) {
+        const url = `${getPublicBaseUrl()}${activeSubject.basePath}/${lesson.file}`;
+        await navigator.share({ title: lesson.title, url });
+      }
+    } catch (error) {
+      if (error?.name !== 'AbortError') {
+        flashAiLabel('Ошибка');
+      }
     }
   });
 

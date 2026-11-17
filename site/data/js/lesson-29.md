@@ -96,3 +96,213 @@ const isVisible = rect.top < window.innerHeight && rect.bottom > 0;
 2. Путать координаты getBoundingClientRect() (от окна, меняются при скролле) с координатами на странице (к ним нужно прибавить window.scrollX и window.scrollY).
 
 3. Ждать, что второй вызов box.scroll(10, 50) докрутит ещё 50px — scroll() задаёт абсолютную точку от (0, 0), а не относительный сдвиг.
+
+## Вопросы для закрепления
+
+**1. В чём разница между `offsetWidth`, `clientWidth` и `scrollHeight`, и чему они равны при `display: none`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `offsetWidth` — **полная внешняя** ширина (контент + `padding` + `border` + скроллбар).
+2. `clientWidth` — **видимая внутренняя** область (контент + `padding`, без `border` и без скроллбара).
+3. `scrollHeight` — **вся высота целиком**, включая спрятанную скроллом часть.
+
+Если сам элемент или его предок скрыт через `display: none`, все его размеры равны **`0`**, а `offsetParent` равен **`null`** (так по `elem.offsetWidth === 0` проверяют, виден ли элемент в потоке).
+
+</details>
+
+**2. Сработают ли эти три строки как изменение высоты и прокрутка на `100px` вниз?**
+
+```js
+box.clientHeight = 300;
+box.scroll(0, 50);
+box.scroll(0, 50);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Нет, не сработают:
+1. Почти все метрики (`clientHeight`, `offsetWidth`, `scrollHeight`) работают **только для чтения** — запись `box.clientHeight = 300` проигнорируется (менять размер нужно через `box.style.height`). Изменять можно только `scrollTop` и `scrollLeft`.
+2. Метод `box.scroll(0, 50)` задаёт **абсолютную** позицию от начала `(0, 0)`, поэтому повторный вызов оставит прокрутку на `50px` (для прибавления сдвига пишут `box.scrollTop += 50`).
+
+</details>
+
+**3. Чем координаты `rect.top` из `getBoundingClientRect()` отличаются от `rect.top + window.scrollY`, и когда `rect.width` не совпадает с `box.offsetWidth`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `rect.top` измеряется от верхнего края **видимого окна** браузера и меняется при прокрутке (нужен для `position: fixed`). А `rect.top + window.scrollY` — постоянная координата от **начала всей страницы** (нужна для `position: absolute`).
+2. `offsetWidth` всегда округляется до целого числа и **игнорирует `transform: scale(...)`**, тогда как `rect.width` возвращает точную дробную ширину с учётом CSS-масштабирования.
+
+</details>
+
+## Задачи
+
+**Задача 1. Остаток прокрутки снизу и ширина системного скроллбара**
+
+Напиши две функции:
+1) `getScrollBottom(boxElement)` — вычисляет, сколько пикселей ещё осталось проскроллить до самого конца элемента `boxElement` (используй `scrollHeight`, `scrollTop` и `clientHeight`).
+2) `getScrollbarWidth()` — вычисляет ширину стандартной полосы прокрутки: создаёт `<div>` размером `50px` на `50px` с `overflowY = 'scroll'`, временно добавляет в `document.body` (иначе метрики будут `0`), считает разницу `offsetWidth - clientWidth` и сразу удаляет элемент через `.remove()`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+function getScrollBottom(boxElement) {
+  /* ... */
+}
+
+function getScrollbarWidth() {
+  /* ... */
+}
+
+console.log('Ширина скроллбара (px):', getScrollbarWidth());
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function getScrollBottom(boxElement) {
+  if (!boxElement) return 0;
+
+  /*
+    scrollHeight (вся высота) минус уже прокрученное сверху (scrollTop)
+    и видимое окно блока (clientHeight) = остаток снизу
+  */
+  return boxElement.scrollHeight - boxElement.scrollTop - boxElement.clientHeight;
+}
+
+function getScrollbarWidth() {
+  const probeElement = document.createElement('div');
+  probeElement.style.overflowY = 'scroll';
+  probeElement.style.width = '50px';
+  probeElement.style.height = '50px';
+
+  /* Пока элемент не вставлен в DOM, браузер не вычисляет ему размеры (все = 0) */
+  document.body.append(probeElement);
+
+  /* Разница между полной шириной и внутренней видимой зоной — толщина скроллбара */
+  const scrollbarWidth = probeElement.offsetWidth - probeElement.clientWidth;
+
+  /* Обязательно убираем временный элемент со страницы */
+  probeElement.remove();
+
+  return scrollbarWidth;
+}
+
+console.log('Ширина скроллбара (px):', getScrollbarWidth());
+```
+
+</details>
+
+**Задача 2. Помести мяч точно в центр поля (`client*` против `offset*`)**
+
+Напиши функцию `centerBallInField(fieldElement, ballElement)`, которая выставляет инлайновые `left` и `top` для абсолютно спозиционированного мяча внутри поля так, чтобы его центр совпал с центром внутренней области поля (рамка `border` поля не должна сбивать расчёт). Не забудь единицы `'px'` и округление через `Math.round`.
+
+```js
+'use strict';
+
+/*
+  Вёрстка на странице:
+  #field — position: relative; border: 10px solid black; width: 300px; height: 200px;
+  #ball  — position: absolute; width: 40px; height: 40px;
+*/
+
+/* Твоё решение: */
+function centerBallInField(fieldElement, ballElement) {
+  /* ... */
+}
+
+const fieldElement = document.querySelector('[data-js-field]');
+const ballElement = document.querySelector('[data-js-ball]');
+centerBallInField(fieldElement, ballElement);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function centerBallInField(fieldElement, ballElement) {
+  if (!fieldElement || !ballElement) return;
+
+  /*
+    left/top у position: absolute считаются от ВНУТРЕННЕГО края поля (после border),
+    поэтому берём clientWidth/clientHeight поля. А у мяча берём полные внешние
+    размеры offsetWidth/offsetHeight и сдвигаем его назад на половину
+  */
+  const left = Math.round(fieldElement.clientWidth / 2 - ballElement.offsetWidth / 2);
+  const top = Math.round(fieldElement.clientHeight / 2 - ballElement.offsetHeight / 2);
+
+  ballElement.style.left = `${left}px`;
+  ballElement.style.top = `${top}px`;
+}
+
+const fieldElement = document.querySelector('[data-js-field]');
+const ballElement = document.querySelector('[data-js-ball]');
+centerBallInField(fieldElement, ballElement);
+```
+
+</details>
+
+**Задача 3. Координаты на странице и проверка видимости элемента в окне**
+
+Напиши функцию `getTargetMetrics(targetElement)`, которая с помощью `getBoundingClientRect()` возвращает объект:
+- `pageTop` и `pageLeft` — координаты верхнего левого угла **относительно всей страницы** (с учётом `window.scrollY` / `window.scrollX`, округлённые через `Math.round`),
+- `isVisible` — виден ли элемент прямо сейчас хотя бы частично в окне браузера (и не скрыт через `display: none`).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+function getTargetMetrics(targetElement) {
+  /* ... */
+}
+
+const cardElement = document.querySelector('[data-js-card]');
+console.log(getTargetMetrics(cardElement));
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function getTargetMetrics(targetElement) {
+  if (!targetElement) return null;
+
+  /* Координаты относительно видимого окна браузера (viewport) */
+  const rect = targetElement.getBoundingClientRect();
+
+  /* Переводим координаты окна в координаты документа, прибавляя текущую прокрутку */
+  const pageTop = Math.round(rect.top + window.scrollY);
+  const pageLeft = Math.round(rect.left + window.scrollX);
+
+  /* Проверяем, что элемент не скрыт (offsetWidth > 0) и пересекается с видимым окном */
+  const isInViewport =
+    targetElement.offsetWidth > 0 &&
+    rect.top < window.innerHeight &&
+    rect.bottom > 0 &&
+    rect.left < window.innerWidth &&
+    rect.right > 0;
+
+  return {
+    pageTop,
+    pageLeft,
+    isVisible: isInViewport,
+  };
+}
+
+const cardElement = document.querySelector('[data-js-card]');
+console.log(getTargetMetrics(cardElement));
+```
+
+</details>

@@ -142,3 +142,250 @@ Modals.closeAllModals(); // А вспомогательные действия �
 • Как работает new: 1) создаёт {} со связью методов -> 2) запускает constructor с this -> 3) возвращает объект.
 
 • Зачем нужны: порядок в коде (модули UI), наследование без дублей (extends + super) и защита данных (#, get/set).
+
+## Вопросы для закрепления
+
+**1. Какие две ошибки возникнут в этом коде и почему наследник `User` не сможет прочитать `#id`?**
+
+```js
+class Base {
+  #id = 1;
+}
+
+class User extends Base {
+  constructor(name) {
+    this.name = name;
+    super();
+  }
+  showId() {
+    return this.#id;
+  }
+}
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. В `constructor` дочернего класса сначала обязан вызываться **`super()`**, и лишь после него можно обращаться к `this.name = name` — иначе при `new User(...)` выпадет `ReferenceError`.
+2. Приватное поле `#id` видно **только внутри самого класса `Base`** (`SyntaxError` при попытке обращения из `User`). Для доступа к данным из наследников в родителе оставляют публичный геттер или метод.
+
+</details>
+
+**2. Почему `new Item(100)` упадёт с переполнением стека (`RangeError`), а вызов `item.getTax()` выдаст `TypeError`?**
+
+```js
+class Item {
+  #price = 0;
+  constructor(price) { this.price = price; }
+  set price(val) { this.price = val; }
+  static getTax() { return 0.2; }
+}
+
+const item = new Item(100);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Внутри сеттера `set price(val)` написано `this.price = val;` — присваивание снова вызывает этот же сеттер, и код уходит в **бесконечную рекурсию**. Внутри сеттера данные нужно записывать в приватное поле: `this.#price = val;`.
+2. `static getTax()` — статический метод: он принадлежит самому классу **`Item`**, а не его экземпляру `item`. Вызывать его нужно через `Item.getTax()`.
+
+</details>
+
+**3. Почему класс нельзя вызвать как обычную функцию без `new` и зачем писать метод стрелкой `onClick = () => ...` внутри класса?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Класс JS создан специально для `new`: обычный вызов `User()` сразу выдаст `TypeError`, сами классы не всплывают до своей строки (находятся в TDZ), а внутри них всегда активен строгий режим `'use strict'`.
+2. Если передать обычный метод класса как колбэк (например, в обработчик клика или таймер), он потеряет `this` (`undefined`). А стрелочное свойство в теле класса `onClick = () => this...` при создании экземпляра намертво привязывает `this` к этому объекту.
+
+</details>
+
+## Задачи
+
+**Задача 1. Класс `BankAccount` с приватным полем `#balance` и `get / set`**
+
+Создай класс `BankAccount` с приватным полем `#balance = 0`. В `constructor(owner, initialBalance = 0)` сохрани `this.owner` и запиши начальную сумму через сеттер `this.balance = initialBalance`. Добавь:
+- `set balance(value)`: принимает только число `>= 0` (и не `NaN`), иначе печатает `'Некорректная сумма'` и не меняет `#balance`.
+- `get balance()`: возвращает `#balance`.
+- `deposit(amount)`: если `amount > 0`, увеличивает `this.balance += amount`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+const acc = new BankAccount('Алиса', 1000);
+acc.deposit(500);
+acc.balance = -200;       /* выведет: 'Некорректная сумма' */
+console.log(acc.balance); /* 1500 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+class BankAccount {
+  /* Приватное поле #balance обязательно объявляется в теле класса заранее */
+  #balance = 0;
+
+  constructor(owner, initialBalance = 0) {
+    this.owner = owner;
+    /* Запись в this.balance сразу прогонит начальную сумму через проверку в set */
+    this.balance = initialBalance;
+  }
+
+  set balance(value) {
+    if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+      console.log('Некорректная сумма');
+      return;
+    }
+    /* Пишем строго в приватное #balance, а не в this.balance (иначе рекурсия!) */
+    this.#balance = value;
+  }
+
+  get balance() {
+    return this.#balance;
+  }
+
+  deposit(amount) {
+    if (amount > 0) {
+      /* Сначала сработает get balance(), затем сумма запишется через set balance() */
+      this.balance += amount;
+    }
+  }
+}
+
+const acc = new BankAccount('Алиса', 1000);
+acc.deposit(500);
+acc.balance = -200;       /* 'Некорректная сумма' */
+console.log(acc.balance); /* 1500 */
+```
+
+</details>
+
+**Задача 2. Почини потерю `this` в колбэке и добавь `static` в `Counter`**
+
+Сейчас `runTwice(counter.inc)` падает из-за потери `this`. Перепиши `inc` на стрелочное свойство в теле класса (чтобы `this` не терялся при передаче функции как колбэка), а также добавь в `Counter` статическое свойство `static MAX = 10` и статический метод `static isAllowed(value)`, возвращающий `value <= Counter.MAX`.
+
+```js
+'use strict';
+
+function runTwice(callback) {
+  callback();
+  callback();
+}
+
+/* Твоё решение: */
+class Counter {
+  count = 0;
+
+  inc() {
+    this.count++;
+  }
+}
+
+const counter = new Counter();
+runTwice(counter.inc);
+
+console.log(counter.count);         /* должно быть: 2 */
+console.log(Counter.isAllowed(5));  /* true */
+console.log(Counter.isAllowed(15)); /* false */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function runTwice(callback) {
+  callback();
+  callback();
+}
+
+class Counter {
+  /* Статические члены принадлежат самому классу Counter, а не экземплярам */
+  static MAX = 10;
+
+  static isAllowed(value) {
+    return value <= Counter.MAX;
+  }
+
+  count = 0;
+
+  /*
+    Стрелочное поле класса при создании объекта навсегда привязывает this
+    к конкретному counter — при вызове без точки (callback()) контекст не теряется
+  */
+  inc = () => {
+    this.count++;
+  };
+}
+
+const counter = new Counter();
+runTwice(counter.inc);
+
+console.log(counter.count);         /* 2 */
+console.log(Counter.isAllowed(5));  /* true */
+console.log(Counter.isAllowed(15)); /* false */
+```
+
+</details>
+
+**Задача 3. Наследование `extends`, `super(...)` и расширение метода `format()`**
+
+Создай класс `Notification(title)` с методом `format()`, возвращающим строку `` `[Уведомление] ${this.title}` ``. Затем создай наследника `EmailNotification extends Notification(title, email)`: вызови `super(title)` до записи `this.email = email` и расширь `format()` через `super.format()`, чтобы он возвращал `` `[Уведомление] ${this.title} -> ${this.email}` ``.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+const notice = new EmailNotification('Заказ оплачен', 'user@mail.ru');
+
+console.log(notice.format());                     /* [Уведомление] Заказ оплачен -> user@mail.ru */
+console.log(notice instanceof EmailNotification); /* true */
+console.log(notice instanceof Notification);      /* true */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+class Notification {
+  constructor(title) {
+    this.title = title;
+  }
+
+  format() {
+    return `[Уведомление] ${this.title}`;
+  }
+}
+
+class EmailNotification extends Notification {
+  constructor(title, email) {
+    /* Первой строкой обязаны вызвать конструктор родителя до любого this */
+    super(title);
+    this.email = email;
+  }
+
+  format() {
+    /* Переиспользуем базовый вывод через super.format() без дублирования кода */
+    return `${super.format()} -> ${this.email}`;
+  }
+}
+
+const notice = new EmailNotification('Заказ оплачен', 'user@mail.ru');
+
+console.log(notice.format());                     /* [Уведомление] Заказ оплачен -> user@mail.ru */
+console.log(notice instanceof EmailNotification); /* true */
+console.log(notice instanceof Notification);      /* true */
+```
+
+</details>

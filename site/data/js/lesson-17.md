@@ -99,3 +99,213 @@ set.forEach((val, val2, setRef) => console.log(val));
 2. map.size — свойство, а не метод, и Map не читается через [] — пиши map.size без скобок (), а значения бери строго через map.get(key).
 
 3. Object.fromEntries(map) теряет нестроковые ключи — если в Map были и число 1, и строка "1", в объекте останется только последний из них.
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль и почему при сборке объекта из `map` пропадёт один из ключей?**
+
+```js
+const map = new Map();
+map.set(1, 'число').set('1', 'строка');
+map.set({ id: 1 }, 'пользователь');
+
+console.log(map.size, map.get({ id: 1 }));
+console.log(Object.fromEntries(map));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Первая строка выведет **`3`** и **`undefined`**.
+1. В `Map` число `1` и строка `'1'` — разные ключи, поэтому в коллекции хранятся все 3 пары. Но объект-ключ ищется строго по **ссылке**, а `{ id: 1 }` внутри `map.get(...)` — это новый объект с другим адресом в памяти, поэтому возвращается `undefined`.
+2. При вызове `Object.fromEntries(map)` обычный объект превращает все ключи в строки: `1` и `'1'` сливаются, и остаётся только последняя запись `'1': 'строка'` (а ключ-объект станет `'[object Object]'`).
+
+</details>
+
+**2. Что выведет этот код и какие две ошибки допущены при работе с `Map`?**
+
+```js
+const map = new Map([['role', 'admin']]);
+map['level'] = 5;
+
+map.forEach((a, b) => console.log(a, b));
+console.log(map.size, map.get('level'));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+В `forEach` выведется **`'admin' 'role'`**, а ниже — **`1` и `undefined`**.
+1. В методе `map.forEach((value, key) => ...)` первым аргументом идёт **значение**, а вторым **ключ** (обратный порядок по сравнению с `Object.entries`).
+2. Запись `map['level'] = 5` создала обычное свойство на JS-объекте, не добавив запись в саму коллекцию `Map` — поэтому `map.size` (это свойство без `()`) остался равен `1`, а `map.get('level')` вернул `undefined`. Для `Map` всегда используют `.set()` и `.get()`.
+
+</details>
+
+**3. Почему у `map.values().filter(...)` возникнет ошибка `TypeError`, и чему равен `uniqueSet.size`?**
+
+```js
+const uniqueSet = new Set(['А', 'Б', 'А', { x: 1 }, { x: 1 }]);
+console.log(uniqueSet.size);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Методы `keys()`, `values()` и `entries()` у `Map` и `Set` возвращают **итераторы, а не массивы**, поэтому методы массивов вроде `.filter` или `.map` у них напрямую вызывать нельзя (`TypeError`). Сначала их преобразуют в массив: `[...map.values()]`.
+2. `uniqueSet.size` выведет **`4`**: дубль строки `'А'` отбросился, а два литерала `{ x: 1 }` имеют разные ссылки в памяти и считаются разными элементами.
+
+</details>
+
+## Задачи
+
+**Задача 1. Трансформация объекта через `Object.entries` и `Object.fromEntries`**
+
+Напиши функцию `doublePrices(pricesObj)`, которая не мутирует исходный объект, а возвращает новый объект с теми же ключами, где каждая цена умножена на `2`. Используй связку `Object.entries`, `.map` (с деструктуризацией `[key, value]`) и `Object.fromEntries`.
+
+```js
+'use strict';
+
+const prices = {
+  apple: 100,
+  banana: 60,
+  coffee: 250,
+};
+
+/* Твоё решение: */
+
+console.log(doublePrices(prices)); /* { apple: 200, banana: 120, coffee: 500 } */
+console.log(prices.apple);         /* 100 (оригинал не тронут) */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const prices = {
+  apple: 100,
+  banana: 60,
+  coffee: 250,
+};
+
+function doublePrices(pricesObj) {
+  /*
+    1. Object.entries превращает объект в массив пар [['apple', 100], ...]
+    2. map перебирает пары и возвращает новые пары с удвоенной ценой
+    3. Object.fromEntries собирает обработанные пары обратно в новый объект
+  */
+  return Object.fromEntries(
+    Object.entries(pricesObj).map(([product, price]) => [product, price * 2])
+  );
+}
+
+console.log(doublePrices(prices)); /* { apple: 200, banana: 120, coffee: 500 } */
+console.log(prices.apple);         /* 100 */
+```
+
+</details>
+
+**Задача 2. Удаление дублей через `Set` и подсчёт частоты слов через `Map`**
+
+Напиши две функции:
+1) `getUniqueTags(tags)` — возвращает новый массив только уникальных значений (через `Set` и спред `[...]`).
+2) `countWords(words)` — принимает массив строк и возвращает коллекцию `Map`, где ключ — слово, а значение — сколько раз оно встретилось (удобно читать текущее число через `(map.get(word) ?? 0) + 1`).
+
+```js
+'use strict';
+
+const tags = ['js', 'css', 'js', 'html', 'css', 'react'];
+
+/* Твоё решение: */
+
+const unique = getUniqueTags(tags);
+const freqMap = countWords(tags);
+
+console.log(unique);               /* ['js', 'css', 'html', 'react'] */
+console.log(freqMap.get('js'));    /* 2 */
+console.log(freqMap.get('react')); /* 1 */
+console.log(freqMap.size);         /* 4 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const tags = ['js', 'css', 'js', 'html', 'css', 'react'];
+
+/* Оборачиваем массив в Set (удалит дубли) и спредом разворачиваем обратно в массив */
+const getUniqueTags = (list) => [...new Set(list)];
+
+function countWords(words) {
+  const map = new Map();
+
+  for (const word of words) {
+    /* Если слова ещё нет, get вернёт undefined — подставляем 0 через ?? и прибавляем 1 */
+    const currentCount = map.get(word) ?? 0;
+    map.set(word, currentCount + 1);
+  }
+
+  return map;
+}
+
+const unique = getUniqueTags(tags);
+const freqMap = countWords(tags);
+
+console.log(unique);               /* ['js', 'css', 'html', 'react'] */
+console.log(freqMap.get('js'));    /* 2 */
+console.log(freqMap.get('react')); /* 1 */
+console.log(freqMap.size);         /* 4 */
+```
+
+</details>
+
+**Задача 3. Очистка от анаграмм `aclean(words)` через `Map`**
+
+Анаграммы — это слова из одних и тех же букв в разном порядке (`'nap'` и `'PAN'`, `'ear'` и `'era'`). Напиши функцию `aclean(words)`, которая оставляет в массиве ровно по одному слову из каждой группы анаграмм: приведи каждое слово к единому «ключу» из отсортированных букв в нижнем регистре, сохрани в `Map` и верни массив значений (`[...map.values()]`).
+
+```js
+'use strict';
+
+const words = ['nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares'];
+
+/* Твоё решение: */
+
+console.log(aclean(words)); /* ['PAN', 'hectares', 'era'] */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const words = ['nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares'];
+
+function aclean(arr) {
+  const map = new Map();
+
+  for (const word of arr) {
+    /*
+      Делаем общий ключ для всех анаграмм: переводим в нижний регистр,
+      делим на буквы, сортируем по алфавиту и склеиваем обратно ('PAN' -> 'anp')
+    */
+    const sortedKey = word.toLowerCase().split('').sort().join('');
+
+    /*
+      Если такой sortedKey уже есть в Map, новое слово перезапишет старое —
+      в итоге под каждым ключом останется ровно 1 слово из группы
+    */
+    map.set(sortedKey, word);
+  }
+
+  /* Превращаем итератор значений Map в обычный массив через спред [...] */
+  return [...map.values()];
+}
+
+console.log(aclean(words)); /* ['PAN', 'hectares', 'era'] */
+```
+
+</details>

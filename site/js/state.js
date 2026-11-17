@@ -40,7 +40,8 @@ export function saveFont(fontId) {
 
 export function getSavedSubject(subjects) {
   const saved = localStorage.getItem(KEYS.subject);
-  return subjects.some((s) => s.id === saved) ? saved : subjects[0]?.id;
+  if (subjects.some((s) => s.id === saved)) return saved;
+  return subjects.find((s) => s.default)?.id || subjects[0]?.id;
 }
 
 export function saveSubject(subjectId) {

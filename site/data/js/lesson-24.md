@@ -103,3 +103,189 @@ const modernVar = 2;  /* window.modernVar === undefined (остаётся отд
 2. Объявлять на глобальном уровне переменные с именами из window (location, innerWidth, document) — в обычном скрипте это приводит к ошибке или перекрытию.
 
 3. Создав внутри функции/модуля свою переменную (например, location), обращаться к браузеру без "window." — JS возьмёт твою локальную переменную и вернёт undefined.
+
+## Вопросы для закрепления
+
+**1. Почему при одном `<p>` и одном комментарии внутри `<body>` свойство `document.body.children.length` вернёт `1`, а `document.body.childNodes.length` может вернуть `5`?**
+
+```html
+<body>
+  <!-- Комментарий -->
+  <p>Привет</p>
+</body>
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Свойство `children` собирает **только HTML-элементы** (`nodeType === 1`) — здесь это один тег `<p>`.
+2. Коллекция `childNodes` включает **все узлы DOM**, куда попадают и HTML-комментарии (`nodeType === 8`), и невидимые переносы строк с отступами вокруг тегов — они становятся текстовыми узлами (`nodeType === 3`).
+
+</details>
+
+**2. Почему `console.log(document.body)` может вернуть `null` в `<head>`, и откуда в DOM берётся `<tbody>`, если его не писали в HTML?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Обычный тег `<script>` без `defer` или `type="module"` внутри `<head>` запускается **сразу же**, до того как браузер дошёл до чтения `<body>` — поэтому `document.body` в этот момент ещё равен `null`.
+2. При построении DOM-дерева браузер **автоматически чинит разметку**: добавляет недостающие `<html>`/`<body>` и всегда вставляет обёртку `<tbody>` внутрь любой `<table>`.
+
+</details>
+
+**3. Почему `const location = 'home';` внутри функции сломает `location.href`, и чем опасен глобальный `var` вне модулей?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Локальная переменная `const location = 'home'` перекрывает (затеняет) браузерное свойство `window.location`, поэтому `location.href` пытается прочитать `.href` у строки `'home'` и отдаёт `undefined` (надо писать явно `window.location.href`). А в обычном не-модульном `<script>` на верхнем уровне `const location = ...` сразу выдаст `SyntaxError`.
+2. Объявленный через `var` на глобальном уровне (без `type="module"`) попадает прямо в объект `window` (`window.myVar`) и может случайно перетереть встроенные свойства, тогда как `let` и `const` там не создаются.
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини доступ к `document.body` в `<head>` и конфликт с `window.location`**
+
+1) В HTML исправь тег `<script>` внутри `<head>`, чтобы при запуске файла `app.js` свойство `document.body` уже существовало (не равнялось `null`).
+2) В функции `logPageInfo(location)` параметр перекрывает глобальный `location`. Используя `window`, выведи реальный URL страницы, ширину окна браузера, ширину экрана и сам `document.body`.
+
+```html
+<!-- 1) Внутри <head> HTML: -->
+<!-- Твоё решение: -->
+<head>
+  <script src="./app.js"></script>
+</head>
+```
+
+```js
+/* 2) Файл app.js */
+'use strict';
+
+function logPageInfo(location) {
+  /* Твоё решение: */
+  console.log(location.href);
+}
+
+logPageInfo('main');
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```html
+<!-- Добавляем defer (или type="module"), чтобы скрипт запустился ПОСЛЕ чтения всего HTML -->
+<head>
+  <script src="./app.js" defer></script>
+</head>
+```
+
+```js
+/* 2) Файл app.js */
+'use strict';
+
+function logPageInfo(location) {
+  /*
+    Явная приставка window. обращается к BOM браузера в обход локального
+    параметра location ('main')
+  */
+  console.log('Локальный параметр:', location);
+  console.log('URL страницы:', window.location.href);
+  console.log('Ширина окна (viewport):', window.innerWidth);
+  console.log('Ширина экрана:', window.screen.width);
+  console.log('Тег body:', document.body);
+}
+
+logPageInfo('main');
+```
+
+</details>
+
+**Задача 2. Подсчёт узлов DOM по `nodeType` (`childNodes` против `children`)**
+
+Напиши функцию `inspectBodyNodes()`, которая перебирает `document.body.childNodes` и возвращает объект со статистикой:
+- `elementsCount` — число HTML-элементов (`node.nodeType === 1`),
+- `commentsCount` — число HTML-комментариев (`node.nodeType === 8`),
+- `texts` — массив **непустых** строк из текстовых узлов (`node.nodeType === 3`, текст лежит в `node.data`, пробелы и переносы строк отфильтруй через `.trim()`).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(inspectBodyNodes());
+/* Например: { elementsCount: 3, commentsCount: 1, texts: ['Привет!'] } */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function inspectBodyNodes() {
+  let elementsCount = 0;
+  let commentsCount = 0;
+  const texts = [];
+
+  /* childNodes содержит ВСЕ узлы внутри body, включая пробелы-переносы и комментарии */
+  for (const node of document.body.childNodes) {
+    if (node.nodeType === 1) {
+      elementsCount++;
+    } else if (node.nodeType === 8) {
+      commentsCount++;
+    } else if (node.nodeType === 3) {
+      /* У текстовых узлов текст хранится в свойстве .data; отсекаем пустые переносы */
+      const trimmed = node.data.trim();
+      if (trimmed) texts.push(trimmed);
+    }
+  }
+
+  return { elementsCount, commentsCount, texts };
+}
+
+console.log(inspectBodyNodes());
+```
+
+</details>
+
+**Задача 3. Универсальный отчёт окружения через `globalThis`, BOM и DOM**
+
+Напиши функцию `getEnvironmentReport()`, которая безопасно собирает информацию об окружении в объект (и не падает с ошибкой, даже если скрипт запустят вне браузера, например в Node.js):
+- `hasDocument`: есть ли глобальный `document` (`typeof globalThis.document !== 'undefined'`),
+- `url`: текущий адрес через `globalThis.location?.href ?? 'none'`,
+- `userAgent`: строка браузера из `globalThis.navigator?.userAgent ?? 'unknown'`,
+- `rootChildrenCount`: сколько прямых дочерних тегов лежит внутри `<html>` (`globalThis.document?.documentElement?.children?.length ?? 0`).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(getEnvironmentReport());
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function getEnvironmentReport() {
+  /*
+    globalThis работает и в браузере (указывает на window), и в Node.js —
+    поэтому проверка через него и оператор ?. безопасна в любой среде
+  */
+  return {
+    hasDocument: typeof globalThis.document !== 'undefined',
+    url: globalThis.location?.href ?? 'none',
+    userAgent: globalThis.navigator?.userAgent ?? 'unknown',
+    /* У валидной HTML-страницы внутри <html> ровно 2 ребёнка: <head> и <body> */
+    rootChildrenCount: globalThis.document?.documentElement?.children?.length ?? 0,
+  };
+}
+
+console.log(getEnvironmentReport());
+```
+
+</details>

@@ -103,3 +103,199 @@ for (const item of a) { console.log(item); }
 2. Запись по огромному индексу и [...arr] — arr[100] создаёт пустые дыры (undefined), а [...arr] копирует только 1-й уровень (для вложенных нужен structuredClone).
 
 3. typeof [] === "object" и toString для объектов — проверяй массив через Array.isArray(arr), перебирай через for..of, а объекты внутри .join() дадут "[object Object]".
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль и чем `new Array(3)` отличается от `[3]`?**
+
+```js
+const fruits = ['Яблоко', 'Груша'];
+const cart = fruits;
+cart.push('Банан');
+
+console.log(fruits.length);
+console.log([1, 2] === [1, 2]);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется **`3`** и **`false`**.
+1. Запись `const cart = fruits` копирует лишь **ссылку**, поэтому `cart` и `fruits` смотрят на один массив в памяти — изменение одного меняет и другой (для независимой копии делают `[...fruits]` или `fruits.slice()`).
+2. `[1, 2] === [1, 2]` даёт `false`, потому что сравниваются адреса в памяти, а не элементы.
+3. Конструктор `new Array(3)` с одним числом создаёт **пустой** массив длиной `3` без элементов (`<3 empty items>`), а не `[3]`, поэтому массивы всегда создают через `[...]`.
+
+</details>
+
+**2. Почему `unshift` и `shift` работают медленнее `push` / `pop`, и как надёжно отличить массив от обычного объекта?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Методы `push` и `pop` работают только с **концом** массива и не затрагивают остальные элементы. А при добавлении или удалении из начала (`unshift` / `shift`) движку приходится **сдвигать и перенумеровывать каждый элемент** массива, что на больших списках даёт сильную просадку. Оператор `typeof` для массива врёт и возвращает `'object'`, поэтому единственный надёжный способ проверки — **`Array.isArray(value)`**.
+
+</details>
+
+**3. Что выведет этот код и почему объект превратился в `'[object Object]'`?**
+
+```js
+const items = [{ id: 1 }, 'JS'];
+items[5] = 'End';
+
+console.log(items[-1], items.at(-1), items.length);
+console.log(items.join(' | '));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Первая строка выведет `undefined`, `'End'`, `6`. Обычные скобки `items[-1]` не умеют считать с конца (`undefined`), а `.at(-1)` берёт последний элемент `'End'`. Запись на далёкий индекс `5` растянула `length` до `6`, оставив в ячейках `[2]..[4]` пустые дыры.
+2. Вторая строка выведет **`'[object Object] | JS |  |  |  | End'`**: при превращении в строку через `join` или `toString` любой объект теряет свои поля и становится `'[object Object]'`, а пустые ячейки превращаются в пустые строки.
+
+</details>
+
+## Задачи
+
+**Задача 1. Операции с началом, серединой и концом массива (`styles`)**
+
+Выполни по порядку шаги над массивом `styles`:
+1) Добавь `'Рок-н-Ролл'` в конец массива (`.push`).
+2) Замени центральный элемент на `'Классика'` (индекс середины вычисли для любой нечётной длины через `Math.floor((styles.length - 1) / 2)`).
+3) Удали первый элемент (`.shift`) и выведи его в консоль.
+4) Вставь в начало `'Рэп'` и `'Регги'` через `.unshift` и выведи итоговый массив одной строкой с разделителем `' / '` через `.join`.
+
+```js
+'use strict';
+
+const styles = ['Джаз', 'Блюз'];
+
+/* Твоё решение: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const styles = ['Джаз', 'Блюз'];
+
+/* 1. Добавляем элемент в конец (длина становится 3) */
+styles.push('Рок-н-Ролл');
+
+/* 2. Вычисляем индекс середины (для длины 3 это индекс 1) и меняем значение */
+const middleIndex = Math.floor((styles.length - 1) / 2);
+styles[middleIndex] = 'Классика';
+
+/* 3. Удаляем и сразу получаем первый элемент ('Джаз') */
+const firstRemoved = styles.shift();
+console.log(firstRemoved); /* 'Джаз' */
+
+/* 4. Вставляем два элемента в начало (передаём в нужном порядке) и склеиваем в строку */
+styles.unshift('Рэп', 'Регги');
+console.log(styles.join(' / ')); /* 'Рэп / Регги / Классика / Рок-н-Ролл' */
+```
+
+</details>
+
+**Задача 2. Функция поэлементного сравнения массивов `isSameArray`**
+
+Напиши функцию `isSameArray(arr1, arr2)`, которая проверяет, равны ли два массива примитивов по содержимому (так как `arr1 === arr2` сравнивает лишь ссылки). Проверь через `Array.isArray`, что оба аргумента — действительно массивы, сравни их длину `length`, а затем элементы в цикле `for`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+const part1 = [1, 2];
+const part2 = [3, 4];
+const merged = [...part1, ...part2];
+
+console.log(isSameArray(merged, [1, 2, 3, 4])); /* true */
+console.log(isSameArray(merged, [1, 2, 4, 3])); /* false */
+console.log(isSameArray(merged, { 0: 1 }));     /* false */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function isSameArray(arr1, arr2) {
+  /* Быстрый возврат, если обе переменные ведут на один и тот же массив */
+  if (arr1 === arr2) return true;
+
+  /* typeof [] даёт 'object', поэтому проверяем типы строго через Array.isArray */
+  if (!Array.isArray(arr1) || !Array.isArray(arr2)) return false;
+
+  /* Если длины разные — массивы точно не равны */
+  if (arr1.length !== arr2.length) return false;
+
+  /* Идём по индексам и при первом же несовпадении выходим с false */
+  for (let i = 0; i < arr1.length; i++) {
+    if (arr1[i] !== arr2[i]) return false;
+  }
+
+  return true;
+}
+
+const part1 = [1, 2];
+const part2 = [3, 4];
+const merged = [...part1, ...part2];
+
+console.log(isSameArray(merged, [1, 2, 3, 4])); /* true */
+console.log(isSameArray(merged, [1, 2, 4, 3])); /* false */
+console.log(isSameArray(merged, { 0: 1 }));     /* false */
+```
+
+</details>
+
+**Задача 3. Подмассив наибольшей суммы `getMaxSubSum(arr)`**
+
+Напиши функцию `getMaxSubSum(arr)`, которая находит **непрерывный** участок массива чисел с максимальной суммой и возвращает её (если все числа отрицательные или массив пуст — возвращает `0`). Реши за один проход `for..of`: накапливай `currentSum`, обновляй `maxSum` через `Math.max`, а если текущая сумма ушла ниже нуля — сбрасывай `currentSum = 0`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(getMaxSubSum([-1, 2, 3, -9]));     /* 5 */
+console.log(getMaxSubSum([2, -1, 2, 3, -9]));  /* 6 */
+console.log(getMaxSubSum([-1, 2, 3, -9, 11])); /* 11 */
+console.log(getMaxSubSum([-1, -2, -3]));       /* 0 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function getMaxSubSum(arr) {
+  let maxSum = 0;
+  let currentSum = 0;
+
+  /* Перебираем значения через for..of (без лишних индексов) */
+  for (const num of arr) {
+    currentSum += num;
+    /* Запоминаем лучший результат на каждом шаге */
+    maxSum = Math.max(maxSum, currentSum);
+
+    /*
+      Если накопленная сумма стала отрицательной, тащить этот «хвост»
+      дальше невыгодно — сбрасываем его в 0 и начинаем новый участок
+    */
+    if (currentSum < 0) currentSum = 0;
+  }
+
+  return maxSum;
+}
+
+console.log(getMaxSubSum([-1, 2, 3, -9]));     /* 5 (2 + 3) */
+console.log(getMaxSubSum([2, -1, 2, 3, -9]));  /* 6 (2 - 1 + 2 + 3) */
+console.log(getMaxSubSum([-1, 2, 3, -9, 11])); /* 11 */
+console.log(getMaxSubSum([-1, -2, -3]));       /* 0 */
+```
+
+</details>

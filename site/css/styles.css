@@ -149,6 +149,14 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 html,
@@ -181,7 +189,7 @@ svg {
 .topbar {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 50;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -631,6 +639,7 @@ svg {
 }
 
 .article-toolbar {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -660,10 +669,60 @@ svg {
   background: var(--tip-bg);
 }
 
-.status-btn[data-active="true"][data-status="review"] {
+.status-btn[data-active="true"][data-status="review"],
+#ai-btn[aria-expanded="true"] {
   border-color: var(--review-color);
   color: var(--review-color);
   background: var(--warn-bg);
+}
+
+#ai-btn[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.ai-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  z-index: 45;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: min(17.5rem, 100%);
+  padding: 0.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 0.75rem 2rem rgba(0, 0, 0, 0.22);
+}
+
+.ai-menu[hidden] {
+  display: none;
+}
+
+.ai-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.375rem;
+  padding: 0.45rem 0.65rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface-alt);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.ai-option[hidden] {
+  display: none;
 }
 
 .docx-link {
@@ -699,6 +758,12 @@ svg {
 .lesson-article p {
   margin: 0 0 0.875rem;
   overflow-wrap: anywhere;
+}
+
+code,
+pre {
+  font-variant-ligatures: none;
+  font-feature-settings: "liga" 0, "calt" 0;
 }
 
 .lesson-article code:not(pre code) {
@@ -953,6 +1018,7 @@ svg {
   .copy-btn:hover,
   .appearance-option:hover,
   .subject-option:hover,
+  .ai-option:hover,
   .bundle-link:hover {
     border-color: var(--accent);
   }
@@ -1018,6 +1084,14 @@ svg {
     padding: 0.9375rem 1.125rem;
   }
 
+  .ai-wrap {
+    position: relative;
+  }
+
+  .ai-menu {
+    width: 17.5rem;
+  }
+
   .traps-section {
     padding: 1.125rem 1.375rem;
   }
@@ -1048,6 +1122,7 @@ svg {
   .sidebar {
     position: sticky;
     top: var(--header-height);
+    z-index: 10;
     width: auto;
     max-width: none;
     transform: none;

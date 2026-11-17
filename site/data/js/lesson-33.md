@@ -93,3 +93,239 @@ document.addEventListener('preloaderClose', (event) => {
 2. Вешать клик на форму вместо события submit — отправка по клавише Enter проскочит мимо, и preventDefault() на кнопке не сработает.
 
 3. Забыть bubbles: true при отправке new CustomEvent(...) на дочернем элементе — слушатель на document или родителе такое событие просто не поймает.
+
+## Вопросы для закрепления
+
+**1. Почему при делегировании проверка `event.target.classList.contains('btn')` ломается на вложенных тегах и зачем вместе с `closest()` используют `.contains()`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Если внутри `<button class="btn">` лежит `<span>` или `<svg>`, клик по тексту запишет в `event.target` именно внутренний `<span>`, а не кнопку — поэтому ищут вверх от цели через `event.target.closest('.btn')`.
+2. Если `closest('.btn')` не найдёт класс внутри нужного списка, он продолжит подниматься выше по странице и может зацепить кнопку с таким же классом в родителе. Проверка `if (!btn || !listElement.contains(btn)) return;` отсекает всё, что лежит снаружи контейнера.
+
+</details>
+
+**2. Отменит ли этот код переход по ссылке и в чём разница между `preventDefault()` и `stopPropagation()`?**
+
+```js
+linkElement.addEventListener('click', (event) => {
+  event.stopPropagation();
+  return false;
+});
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Переход по ссылке **не отменится**:
+1. Внутри `addEventListener` инструкция `return false` ничего не отменяет (она работала только в старом `onclick = ...`) — нужно явно вызывать `event.preventDefault()`.
+2. Это два разных механизма: `preventDefault()` отменяет **действие браузера** (переход по ссылке `<a>`, отправку формы `<form>`), но событие всё ещё всплывает; а `stopPropagation()` останавливает **всплытие** к родителям, но браузер всё равно перейдёт по ссылке.
+
+</details>
+
+**3. Почему обработчик на `document` не поймает это событие `card:close` и как отправитель узнает, что кто-то вызвал `event.preventDefault()`?**
+
+```js
+cardElement.dispatchEvent(new CustomEvent('card:close', {
+  detail: { id: 7 },
+}));
+
+document.addEventListener('card:close', (event) => {
+  console.log(event.detail.id);
+});
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. По умолчанию у `CustomEvent` опция `bubbles` равна `false`, поэтому событие остаётся на `cardElement` и **не всплывает** к `document` — нужно явно передать `bubbles: true`.
+2. Метод `dispatchEvent()` срабатывает **синхронно**: если передать ещё `cancelable: true`, а любой слушатель вызовет `event.preventDefault()`, то `dispatchEvent(...)` вернёт **`false`** (иначе `true`).
+
+</details>
+
+## Задачи
+
+**Задача 1. Единый обработчик списка задач (`data-action` + `closest` + `contains`)**
+
+Напиши функцию `initTodoActions(listElement)`, которая вешает **один** слушатель `'click'` на список `listElement` (чтобы работали даже динамически добавленные задачи и клики по вложенным `<span>`):
+- Найди нажатую кнопку действия `[data-action]` через `closest` и проверь, что она принадлежит `listElement`.
+- Найди родительский пункт `[data-js-todo-item]` через `closest`.
+- Если `dataset.action === 'complete'` — переключи у пункта класс `'is-completed'`, если `'delete'` — удали пункт из DOM (`.remove()`).
+
+```js
+'use strict';
+
+/*
+  HTML списка:
+  <ul data-js-todo-list>
+    <li data-js-todo-item>
+      <span>Купить молоко</span>
+      <button type="button" data-action="complete"><span>Готово</span></button>
+      <button type="button" data-action="delete"><span>Удалить</span></button>
+    </li>
+  </ul>
+*/
+
+/* Твоё решение: */
+function initTodoActions(listElement) {
+  /* ... */
+}
+
+const todoListElement = document.querySelector('[data-js-todo-list]');
+initTodoActions(todoListElement);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initTodoActions(listElement) {
+  if (!listElement) return;
+
+  listElement.addEventListener('click', (event) => {
+    /*
+      closest('[data-action]') найдёт саму кнопку, даже если кликнули в <span> внутри неё.
+      contains(actionButtonElement) страхует от выхода closest() за пределы listElement
+    */
+    const actionButtonElement = event.target.closest('[data-action]');
+    if (!actionButtonElement || !listElement.contains(actionButtonElement)) return;
+
+    const todoItemElement = actionButtonElement.closest('[data-js-todo-item]');
+    if (!todoItemElement) return;
+
+    const action = actionButtonElement.dataset.action;
+
+    if (action === 'complete') {
+      todoItemElement.classList.toggle('is-completed');
+    } else if (action === 'delete') {
+      todoItemElement.remove();
+    }
+  });
+}
+
+const todoListElement = document.querySelector('[data-js-todo-list]');
+initTodoActions(todoListElement);
+```
+
+</details>
+
+**Задача 2. Перехват перехода по ссылкам (`preventDefault` + делегирование)**
+
+Напиши функцию `protectExternalNavigation(containerElement)`: повесь на `containerElement` один обработчик `'click'`. Если клик пришёлся по ссылке `<a>` (учитывай вложенные теги вроде `<i>` через `closest('a')`) внутри контейнера, спроси подтверждение через `confirm(...)` с указанием адреса; если пользователь нажал Отмена — отмени стандартный переход браузера через `event.preventDefault()`.
+
+```js
+'use strict';
+
+/*
+  HTML контейнера:
+  <div data-js-contents>
+    Прочитать подробнее на <a href="https://example.com"><i>внешнем сайте</i></a>.
+  </div>
+*/
+
+/* Твоё решение: */
+function protectExternalNavigation(containerElement) {
+  /* ... */
+}
+
+const contentsElement = document.querySelector('[data-js-contents]');
+protectExternalNavigation(contentsElement);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function protectExternalNavigation(containerElement) {
+  if (!containerElement) return;
+
+  containerElement.addEventListener('click', (event) => {
+    /* Ищем ближайшую ссылку вверх от event.target, чтобы сработал клик по <i> */
+    const linkElement = event.target.closest('a');
+    if (!linkElement || !containerElement.contains(linkElement)) return;
+
+    const url = linkElement.getAttribute('href');
+    const shouldLeave = confirm(`Перейти на внешний сайт ${url}?`);
+
+    /* Если пользователь отказался — отменяем стандартный переход браузера */
+    if (!shouldLeave) {
+      event.preventDefault();
+    }
+  });
+}
+
+const contentsElement = document.querySelector('[data-js-contents]');
+protectExternalNavigation(contentsElement);
+```
+
+</details>
+
+**Задача 3. Общение модулей через `CustomEvent` и `dispatchEvent`**
+
+Соедини отправку товара в корзину через кастомное событие `'cart:add'`:
+1) Подпишись на `'cart:add'` на `document`: достань объект товара из `event.detail`; если `price <= 0`, вызови `event.preventDefault()`, иначе выведи `'Добавлен товар: <имя>'`.
+2) Напиши функцию `emitAddToCart(buttonElement, item)`, которая создаёт и отправляет на `buttonElement` событие `new CustomEvent('cart:add', ...)` так, чтобы оно **всплыло до `document`**, могло **отменяться** и передавало `detail: item`. Верни результат `dispatchEvent(...)` (`true` или `false`).
+
+```js
+'use strict';
+
+/* Твоё решение: */
+document.addEventListener('cart:add', (event) => {
+  /* ... */
+});
+
+function emitAddToCart(buttonElement, item) {
+  /* ... */
+}
+
+const addButtonElement = document.querySelector('[data-js-add-cart]');
+console.log('Успешно 1:', emitAddToCart(addButtonElement, { name: 'Книга', price: 500 }));
+console.log('Успешно 2:', emitAddToCart(addButtonElement, { name: 'Ошибка', price: 0 }));
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+document.addEventListener('cart:add', (event) => {
+  const { name, price } = event.detail;
+
+  /* Отменяем кастомное событие при невалидной цене, чтобы отправитель получил false */
+  if (price <= 0) {
+    event.preventDefault();
+    return;
+  }
+
+  console.log(`Добавлен товар: ${name}`);
+});
+
+function emitAddToCart(buttonElement, item) {
+  if (!buttonElement) return false;
+
+  /*
+    bubbles: true — позволяет событию дойти до слушателя на document
+    cancelable: true — разрешает слушателю отменить его через event.preventDefault()
+  */
+  const customEvent = new CustomEvent('cart:add', {
+    bubbles: true,
+    cancelable: true,
+    detail: item,
+  });
+
+  /* dispatchEvent синхронно запустит слушателей и вернёт false при preventDefault() */
+  return buttonElement.dispatchEvent(customEvent);
+}
+
+const addButtonElement = document.querySelector('[data-js-add-cart]');
+console.log('Успешно 1:', emitAddToCart(addButtonElement, { name: 'Книга', price: 500 }));
+console.log('Успешно 2:', emitAddToCart(addButtonElement, { name: 'Ошибка', price: 0 }));
+```
+
+</details>

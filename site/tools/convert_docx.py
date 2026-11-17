@@ -189,14 +189,22 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Конвертация .docx конспектов в .md + lessons.json")
     parser.add_argument("--lesson", type=int, help="Номер конкретного урока (например, 25)")
     parser.add_argument("--all", action="store_true", help="Конвертировать все .docx из conspects/")
+    parser.add_argument("--bundle-only", action="store_true", help="Только пересобрать all-lessons.md из готовых .md")
     args = parser.parse_args()
+
+    index_path = OUT_DATA_DIR / "lessons.json"
+    if args.bundle_only:
+        lessons_index = json.loads(index_path.read_text(encoding="utf-8"))
+        bundle_path = build_all_lessons_bundle(lessons_index)
+        print(f"Собран общий файл для ИИ ({len(lessons_index)} уроков): {bundle_path}")
+        return
 
     files = sorted(CONSPECTS_DIR.glob("lesson-*.docx"))
     if args.lesson is not None:
         prefix = f"lesson-{args.lesson:02d}-"
         files = [f for f in files if f.name.startswith(prefix)]
     elif not args.all:
-        raise SystemExit("Укажи --lesson N или --all")
+        raise SystemExit("Укажи --lesson N, --all или --bundle-only")
 
     if not files:
         raise SystemExit("Подходящие .docx файлы не найдены.")
@@ -204,7 +212,6 @@ def main() -> None:
     lessons_index = [convert_file(f) for f in files]
     lessons_index.sort(key=lambda item: item["number"])
 
-    index_path = OUT_DATA_DIR / "lessons.json"
     index_path.write_text(json.dumps(lessons_index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     bundle_path = build_all_lessons_bundle(lessons_index)
     print(f"Готово: сконвертировано уроков: {len(lessons_index)} -> {OUT_DATA_DIR}")

@@ -132,9 +132,34 @@
           <button id="status-review-btn" class="status-btn" type="button" data-status="review">
             ↻ Повторить
           </button>
-          <button id="copy-ai-btn" class="status-btn" type="button" title="Скопировать урок с промптом для ИИ">
-            🤖 Для ИИ
-          </button>
+          <div class="ai-wrap">
+            <button
+              id="ai-btn"
+              class="status-btn"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false"
+              title="Отправить конспект или ссылку для ИИ"
+            >
+              <span>🤖 Для ИИ</span>
+              <span class="subject-caret" aria-hidden="true">▾</span>
+            </button>
+
+            <div id="ai-menu" class="ai-menu" hidden>
+              <button type="button" class="ai-option" data-ai-action="copy-text">
+                📋 Скопировать текст + промпт
+              </button>
+              <button type="button" class="ai-option" data-ai-action="copy-lesson-url">
+                🔗 Ссылка на этот урок (.md)
+              </button>
+              <button type="button" class="ai-option" data-ai-action="copy-bundle-url" hidden>
+                📚 Ссылка на весь курс (.md)
+              </button>
+              <button type="button" class="ai-option" data-ai-action="share-url" hidden>
+                📤 Поделиться ссылкой...
+              </button>
+            </div>
+          </div>
           <a id="docx-link" class="docx-link" href="#" download hidden>
             .docx
           </a>

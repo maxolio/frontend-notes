@@ -61,3 +61,176 @@ console.log(Number.isFinite('123')); /* false (глобальный isFinite('12
 2. Передать массив в Math.max(nums) без спреда ...nums (вернёт NaN) или путать Math.floor(-3.1) (-4) с Math.trunc(-3.1) (-3).
 
 3. Ждать число от parseInt("$100") или parseFloat("px100") — если нецифровой символ идёт перед цифрами, парсинг сразу вернёт NaN.
+
+## Вопросы для закрепления
+
+**1. Почему `100.toFixed(2)` упадёт с ошибкой, что вернёт `(6.35).toFixed(1)` и что получится в выражении `(10.5).toFixed(2) + 5`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `100.toFixed(2)` вызовет **`SyntaxError`**, потому что точку сразу после целого числа JS считает началом десятичной дроби (`100.`), а следом встречает буквы. Нужно либо обернуть в скобки `(100).toFixed(2)`, либо поставить две точки: `100..toFixed(2)`.
+2. `(6.35).toFixed(1)` вернёт **`'6.3'`** вместо `'6.4'`: из-за двоичной точности IEEE 754 число `6.35` хранится в памяти как `6.349999999...`, поэтому округляется вниз. Надёжный обход — `Math.round(6.35 * 10) / 10`.
+3. `(10.5).toFixed(2) + 5` склеит строку **`'10.505'`**, так как `toFixed()` всегда возвращает **строку**, а не число.
+
+</details>
+
+**2. Что вернут `Math.floor(-3.2)`, `Math.trunc(-3.2)` и `Math.max([5, 10, 2])`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `Math.floor(-3.2)` вернёт **`-4`** (округляет всегда вниз, к меньшему числу: `-4 < -3.2`), а `Math.trunc(-3.2)` вернёт **`-3`** (просто отрезает дробную часть).
+2. `Math.max([5, 10, 2])` вернёт **`NaN`**, потому что `Math.max` и `Math.min` принимают числа через запятую, а не массив — перед передачей массив нужно развернуть спредом: `Math.max(...[5, 10, 2])`.
+
+</details>
+
+**3. Чем строгий `Number.isFinite('123')` отличается от глобального `isFinite('123')`, и что вернут `parseInt('12.9px')` и `parseFloat('$12.9')`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Глобальный `isFinite('123')` неявно переводит строку в число и возвращает `true`, тогда как **`Number.isFinite('123')` типы не приводит и возвращает `false`** (проверяет, что аргумент уже является валидным конечным числом). `parseInt('12.9px')` вернёт **`12`** (остановится на первой точке), а `parseFloat('$12.9')` сразу вернёт **`NaN`**, так как первый символ `'$'` нечисловой.
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини парсинг `px`, математику после `toFixed` и округление `6.35`**
+
+Сейчас `widthNumber` отбрасывает дробную часть, `totalSum` склеивает строку `'10.505.25'` вместо `15.75`, а `roundedRating` возвращает строку `'6.3'` вместо числа `6.4`. Исправь все три расчёта, используя инструменты урока.
+
+```js
+'use strict';
+
+const cssWidth = '45.8px';
+const rawPrice1 = (10.5).toFixed(2);
+const rawPrice2 = 5.25;
+const rating = 6.35;
+
+/* Твоё решение: */
+const widthNumber = parseInt(cssWidth);
+const totalSum = rawPrice1 + rawPrice2;
+const roundedRating = rating.toFixed(1);
+
+console.log(widthNumber);   /* должно быть: 45.8 */
+console.log(totalSum);      /* должно быть: 15.75 */
+console.log(roundedRating); /* должно быть: 6.4 */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const cssWidth = '45.8px';
+const rawPrice1 = (10.5).toFixed(2);
+const rawPrice2 = 5.25;
+const rating = 6.35;
+
+/* parseFloat, в отличие от parseInt, считывает и дробную часть до 'px' */
+const widthNumber = parseFloat(cssWidth);
+
+/* toFixed() возвращает строку '10.50', поэтому приводим её к числу перед + */
+const totalSum = Number(rawPrice1) + rawPrice2;
+
+/*
+  Умножаем на 10 до округления, чтобы обойти погрешность IEEE 754 у 6.35,
+  округляем до целого и делим обратно -> получаем число 6.4
+*/
+const roundedRating = Math.round(rating * 10) / 10;
+
+console.log(widthNumber);   /* 45.8 */
+console.log(totalSum);      /* 15.75 */
+console.log(roundedRating); /* 6.4 */
+```
+
+</details>
+
+**Задача 2. Надёжный ввод числа `readNumber()`**
+
+Напиши функцию `readNumber()`, которая в цикле запрашивает ввод через `prompt('Введите число:', '')`, пока пользователь не введёт корректное конечное число (проверку строй на строгом `Number.isFinite`). Если пользователь нажал Cancel (`null`) или оставил пустую строку (`''`), функция должна вернуть `null`, иначе — введённое число типа `number`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+console.log(`Результат: ${readNumber()}`);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function readNumber() {
+  let raw;
+
+  do {
+    raw = prompt('Введите число:', '');
+
+    /*
+      Проверяем отмену (null) и пустой ввод ('') ДО приведения к числу,
+      иначе +null и +'' превратятся в 0 и сломают смысл отмены
+    */
+    if (raw === null || raw === '') return null;
+  } while (!Number.isFinite(+raw));
+  /*
+    Number.isFinite(+raw) вернёт false и повторит запрос, если ввели
+    буквы (NaN) или Infinity — выйдет только на настоящем конечном числе
+  */
+
+  return +raw;
+}
+
+console.log(`Результат: ${readNumber()}`);
+```
+
+</details>
+
+**Задача 3. Равномерный бросок кубика `randomInteger(min, max)` и поиск минимума/максимума**
+
+Напиши функцию `randomInteger(min, max)`, возвращающую случайное целое число от `min` до `max` включительно с равной вероятностью для каждого числа (через `Math.floor` и `Math.random`). Сделай 3 броска кубика (`1..6`) в массив `rolls` и выведи сам массив, минимальное и максимальное значения через `Math.min` / `Math.max`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+const rolls = [
+  randomInteger(1, 6),
+  randomInteger(1, 6),
+  randomInteger(1, 6),
+];
+
+/* Выведи rolls, минимум и максимум: */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+/*
+  Формула с (max + 1 - min) и Math.floor даёт каждому целому числу
+  равный интервал шириной 1 (Math.round урезал бы шансы крайних чисел вдвое)
+*/
+const randomInteger = (min, max) => Math.floor(min + Math.random() * (max + 1 - min));
+
+const rolls = [
+  randomInteger(1, 6),
+  randomInteger(1, 6),
+  randomInteger(1, 6),
+];
+
+/* Разворачиваем массив спредом ...rolls, иначе Math.min / Math.max вернут NaN */
+console.log(rolls);
+console.log('Минимум:', Math.min(...rolls));
+console.log('Максимум:', Math.max(...rolls));
+```
+
+</details>

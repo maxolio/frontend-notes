@@ -71,3 +71,208 @@ console.log(Boolean(0), Boolean(''));    /* false */
 2. Ждать от Boolean("0") или Boolean(" ") значения false — любая строка даже с одним пробелом даёт true (false даёт только пустая строка "").
 
 3. Путать Number(null) (даёт 0) и Number(undefined) (даёт NaN), а также складывать BigInt (10n) с обычным числом (5) без суффикса n.
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль в каждой из трёх строк (классическая ловушка шаблонной строки)?**
+
+```js
+const name = 'Илья';
+
+console.log(`Привет, ${1}`);
+console.log(`Привет, ${'name'}`);
+console.log(`Привет, ${name}`);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `'Привет, 1'` — число `1` вычисляется внутри `${...}` и преобразуется в строку.
+2. `'Привет, name'` — внутри `${...}` записан строковый литерал `'name'` в кавычках, поэтому движок подставляет сам текст `name`, а не переменную.
+3. `'Привет, Илья'` — здесь уже указано имя переменной без кавычек, поэтому подставляется её значение.
+
+</details>
+
+**2. Что вернёт `typeof` в этих трёх строках и почему последний результат часто путает новичков?**
+
+```js
+console.log(typeof null);
+console.log(typeof ('текст' / 2));
+console.log(typeof 100 + '5');
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `'object'` — исторический баг JS: сам `null` является примитивом, но `typeof null` всегда возвращает `'object'`.
+2. `'number'` — `'текст' / 2` даёт `NaN`, а `NaN` в языке относится к числовому типу `number`.
+3. `'number5'` — оператор `typeof` имеет более высокий приоритет, чем `+`. Сначала вычисляется `typeof 100` (`'number'`), а затем к строке `'number'` приклеивается `'5'`. Чтобы проверить тип результата сложения, нужны скобки: `typeof (100 + '5')`.
+
+</details>
+
+**3. Почему `Number(null)` и `Number(undefined)` дают разные результаты, а `Boolean('0')` возвращает `true`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+При явном приведении к числу `null` превращается в `0`, а `undefined` — в `NaN` (при этом пустая строка или строка из одних пробелов `'   '` тоже даёт `0`). Логическое `Boolean('0')` возвращает `true`, потому что `'0'` — непустая строка: к `false` приводятся ровно 8 Falsy-значений (`false`, `0`, `-0`, `0n`, `""`, `null`, `undefined`, `NaN`), а любая строка даже с одним символом вроде `'0'` или пробела `' '` даёт `true`.
+
+</details>
+
+## Задачи
+
+**Задача 1. Подсчёт суммы и шаблонная строка**
+
+Из формы пришли две строковые цены `firstPrice` и `secondPrice`. Исправь расчёт так, чтобы вместо склейки строк числа честно сложились, и выведи в консоль через обратные кавычки строку `Итого: 3100 руб.`, а отдельной строкой — тип переменной `total`.
+
+```js
+'use strict';
+
+const firstPrice = '1200';
+const secondPrice = '350';
+const count = 2;
+
+/* Твоё решение: */
+const total = (firstPrice + secondPrice) * count;
+console.log('Итого: ' + total + ' руб.');
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const firstPrice = '1200';
+const secondPrice = '350';
+const count = 2;
+
+/*
+  Оператор + со строкой склеивает их ('1200350'), а не складывает.
+  Приводим обе строки к числу явно через Number(), чтобы получить 1550 * 2 = 3100
+*/
+const total = (Number(firstPrice) + Number(secondPrice)) * count;
+
+/*
+  Обратные кавычки поддерживают интерполяцию ${...} — значение total
+  автоматически подставится в строку без громоздкой склейки через +
+*/
+console.log(`Итого: ${total} руб.`);
+console.log(typeof total); /* выведет: "number" */
+```
+
+</details>
+
+**Задача 2. Почини `BigInt`, сложение и проверку на `NaN`**
+
+Сейчас этот код падает при сложении большого числа, склеивает строку вместо математики и неправильно проверяет `NaN`. Исправь три выражения после комментария так, чтобы в консоль вывелись `10000000000000005n`, `50` и `true`.
+
+```js
+'use strict';
+
+const rawInput = '42';
+const brokenResult = 'abc' / 2;
+
+/* Твоё решение: */
+const totalBig = 10_000_000_000_000_000n + 5;
+const sum = rawInput + 8;
+const isBroken = brokenResult === NaN;
+
+console.log(totalBig);
+console.log(sum);
+console.log(isBroken);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const rawInput = '42';
+const brokenResult = 'abc' / 2;
+
+/*
+  BigInt нельзя смешивать с обычным number (будет TypeError):
+  суффикс n обязателен у обоих слагаемых
+*/
+const totalBig = 10_000_000_000_000_000n + 5n;
+
+/*
+  Явно переводим '42' в число через Number(), чтобы + выполнил
+  математическое сложение, а не склейку в строку '428'
+*/
+const sum = Number(rawInput) + 8;
+
+/*
+  NaN никогда не равен сам себе (NaN === NaN даёт false),
+  поэтому единственная надёжная проверка — Number.isNaN()
+*/
+const isBroken = Number.isNaN(brokenResult);
+
+console.log(totalBig); /* 10000000000000005n */
+console.log(sum);      /* 50 */
+console.log(isBroken); /* true */
+```
+
+</details>
+
+**Задача 3. Явное приведение и Falsy-ловушки**
+
+Приведи входные данные к нужному типу через `Number()` и `Boolean()`, чтобы увидеть разницу между пробельной строкой числа, `null`, `undefined` и непустой строкой `'0'`. Замени `null` в заготовках на правильные вызовы и выведи значения.
+
+```js
+'use strict';
+
+const rawAge = '  24  ';
+const rawFlag = '0';
+const userDiscount = null;
+let notSet;
+
+/* Твоё решение: */
+const age = null;
+const discountFromNull = null;
+const discountFromUndefined = null;
+const flagBool = null;
+
+console.log(age, typeof age);
+console.log(discountFromNull, discountFromUndefined);
+console.log(flagBool, typeof flagBool);
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const rawAge = '  24  ';
+const rawFlag = '0';
+const userDiscount = null;
+let notSet;
+
+/*
+  Number() автоматически обрезает пробелы по краям строки,
+  поэтому '  24  ' корректно превратится в число 24
+*/
+const age = Number(rawAge);
+
+/*
+  Важная разница: при приведении к числу null даёт 0,
+  а неинициализированный undefined превращается в NaN
+*/
+const discountFromNull = Number(userDiscount);
+const discountFromUndefined = Number(notSet);
+
+/*
+  Строка '0' — непустая (в ней есть символ), поэтому Boolean('0')
+  вернёт true, в отличие от числа 0 или пустой строки ''
+*/
+const flagBool = Boolean(rawFlag);
+
+console.log(age, typeof age);                       /* 24 "number" */
+console.log(discountFromNull, discountFromUndefined); /* 0 NaN */
+console.log(flagBool, typeof flagBool);             /* true "boolean" */
+```
+
+</details>

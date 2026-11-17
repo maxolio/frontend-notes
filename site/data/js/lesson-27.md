@@ -97,3 +97,228 @@ const config = rawConfig ? JSON.parse(rawConfig) : {};
 2. Пытаться удалить атрибут через setAttribute("attr", "") вместо removeAttribute("attr") или менять кастомный атрибут через elem.customAttr = ...
 
 3. Забыть, что getAttribute и dataset всегда отдают строки: объект из HTML нужно распарсить через JSON.parse(...), а в HTML обернуть атрибут в одинарные кавычки.
+
+## Вопросы для закрепления
+
+**1. Что выведется в консоль и разблокируется ли кнопка `sendBtn` после выполнения этого кода?**
+
+```html
+<input id="login" value="Старый">
+<button id="sendBtn" disabled>Отправить</button>
+```
+
+```js
+const inputElement = document.getElementById('login');
+const btnElement = document.getElementById('sendBtn');
+
+inputElement.value = 'Новый';
+btnElement.setAttribute('disabled', 'false');
+
+console.log(inputElement.getAttribute('value'));
+console.log(btnElement.disabled);
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Выведется **`'Старый'`** и **`true`** (кнопка **останется заблокированной**).
+1. У `<input>` свойство `value` синхронизируется односторонне: запись `inputElement.value = 'Новый'` меняет текст на экране, но HTML-атрибут `value` продолжает хранить исходное значение `'Старый'` для сброса формы.
+2. Атрибут `disabled` блокирует кнопку самим своим наличием (даже если там строка `'false'`). Чтобы разблокировать её, меняют булево свойство `btnElement.disabled = false;` (или вызывают `removeAttribute('disabled')`).
+
+</details>
+
+**2. В чём отличие `link.href` от `link.getAttribute('href')` для `<a href="/catalog">`, и почему в JS используют `className` и `htmlFor`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+1. `link.getAttribute('href')` вернёт буквальную строку из HTML (`'/catalog'`), а DOM-свойство `link.href` всегда возвращает **полный абсолютный URL** вместе с доменом (`'https://site.ru/catalog'`).
+2. Имена `class` и `for` — зарезервированные ключевые слова самого JS (для классов и циклов), поэтому в DOM-свойствах их заменили на `className` и `htmlFor`.
+
+</details>
+
+**3. Под каким именем атрибут `data-user-role="admin"` попадёт в `elem.dataset`, и какого типа значение вернёт `elem.dataset.userCount` для `data-user-count="5"`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+В `dataset` префикс `data-` отбрасывается, а дефисы преобразуются в `camelCase` — читать нужно через **`elem.dataset.userRole`**. Все значения и из `dataset`, и из `getAttribute` всегда приходят **строками** (поэтому `'5'` нужно переводить через `Number(...)`, а JSON-настройки — через `JSON.parse(...)`).
+
+</details>
+
+## Задачи
+
+**Задача 1. Почини чтение `value`, снятие `disabled` и удаление атрибута**
+
+Сейчас код читает старое значение поля через `getAttribute`, пытается разблокировать кнопку строкой `'false'` и оставляет пустой атрибут `data-loading=""` вместо его удаления. Исправь эти три ошибки.
+
+```js
+'use strict';
+
+/*
+  HTML на странице:
+  <input data-js-name value="">
+  <button data-js-submit disabled data-loading="true">Отправить</button>
+*/
+const nameInputElement = document.querySelector('[data-js-name]');
+const submitButtonElement = document.querySelector('[data-js-submit]');
+
+nameInputElement.value = 'Иван';
+
+/* Твоё решение: */
+const currentName = nameInputElement.getAttribute('value');
+
+if (currentName && currentName.trim() !== '') {
+  submitButtonElement.setAttribute('disabled', 'false');
+  submitButtonElement.setAttribute('data-loading', '');
+}
+
+console.log(currentName);                                      /* 'Иван' */
+console.log(submitButtonElement.disabled);                     /* false */
+console.log(submitButtonElement.hasAttribute('data-loading')); /* false */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const nameInputElement = document.querySelector('[data-js-name]');
+const submitButtonElement = document.querySelector('[data-js-submit]');
+
+nameInputElement.value = 'Иван';
+
+/* Актуальное введённое значение поля читают только через свойство .value */
+const currentName = nameInputElement.value;
+
+if (currentName.trim() !== '') {
+  /* Логический атрибут отключают присвоением boolean false (он сам уберётся из HTML) */
+  submitButtonElement.disabled = false;
+  /* Полностью удаляем кастомный атрибут через removeAttribute вместо пустой строки */
+  submitButtonElement.removeAttribute('data-loading');
+}
+
+console.log(currentName);                                      /* 'Иван' */
+console.log(submitButtonElement.disabled);                     /* false */
+console.log(submitButtonElement.hasAttribute('data-loading')); /* false */
+```
+
+</details>
+
+**Задача 2. Поиск внешних ссылок через `getAttribute('href')`**
+
+Напиши функцию `getExternalLinks(rootElement)`, которая находит все ссылки `<a>` внутри `rootElement` и возвращает массив только **внешних** адресов (строк `href`, которые содержат `'://'` и **не** начинаются с `'https://mysite.ru'`). Используй именно `getAttribute('href')`, чтобы относительные ссылки вроде `'/about'` не превратились в полный URL.
+
+```js
+'use strict';
+
+/*
+  HTML на странице:
+  <nav data-js-menu>
+    <a href="/about">О нас</a>
+    <a href="https://mysite.ru/contacts">Контакты</a>
+    <a href="https://google.com">Поиск</a>
+  </nav>
+*/
+
+/* Твоё решение: */
+function getExternalLinks(rootElement) {
+  /* ... */
+}
+
+const menuElement = document.querySelector('[data-js-menu]');
+console.log(getExternalLinks(menuElement)); /* ['https://google.com'] */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function getExternalLinks(rootElement) {
+  if (!rootElement) return [];
+
+  const linkElements = rootElement.querySelectorAll('a');
+  const externalUrls = [];
+
+  linkElements.forEach((linkElement) => {
+    /*
+      Берём сырой HTML-атрибут через getAttribute('href'), потому что свойство
+      linkElement.href доклеило бы текущий домен даже к относительному '/about'
+    */
+    const href = linkElement.getAttribute('href');
+    if (!href) return;
+
+    if (href.includes('://') && !href.startsWith('https://mysite.ru')) {
+      externalUrls.push(href);
+    }
+  });
+
+  return externalUrls;
+}
+
+const menuElement = document.querySelector('[data-js-menu]');
+console.log(getExternalLinks(menuElement)); /* ['https://google.com'] */
+```
+
+</details>
+
+**Задача 3. JSON-конфиг из `data-js-config` и запись в `dataset`**
+
+Напиши функцию `initWidgetConfig(widgetElement)`:
+1) Проверь, что `widgetElement` передан (иначе верни `null`).
+2) Прочитай JSON-строку из `widgetElement.dataset.jsConfig` и распарси её в `try...catch` (если атрибут пуст или JSON битый — верни объект по умолчанию `{ speed: 300, autoplay: false }`).
+3) Запиши на элемент атрибут `data-initialized="true"` через `widgetElement.dataset` и верни объект конфигурации.
+
+```html
+<!-- HTML на странице: -->
+<div data-js-config='{ "speed": 500, "autoplay": true }'></div>
+```
+
+```js
+'use strict';
+
+/* Твоё решение: */
+function initWidgetConfig(widgetElement) {
+  /* ... */
+}
+
+const widgetElement = document.querySelector('[data-js-config]');
+console.log(initWidgetConfig(widgetElement));
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function initWidgetConfig(widgetElement) {
+  if (!widgetElement) return null;
+
+  const fallbackConfig = { speed: 300, autoplay: false };
+  /* Атрибут data-js-config в объекте dataset доступен в camelCase как jsConfig */
+  const rawConfig = widgetElement.dataset.jsConfig;
+  let config = fallbackConfig;
+
+  if (rawConfig) {
+    try {
+      /* dataset всегда хранит строку — превращаем её в объект через JSON.parse */
+      config = JSON.parse(rawConfig);
+    } catch (err) {
+      console.log('Битый JSON в data-js-config:', err.message);
+    }
+  }
+
+  /* Запись в dataset.initialized создаст на элементе HTML-атрибут data-initialized="true" */
+  widgetElement.dataset.initialized = 'true';
+  return config;
+}
+
+const widgetElement = document.querySelector('[data-js-config]');
+console.log(initWidgetConfig(widgetElement));
+```
+
+</details>

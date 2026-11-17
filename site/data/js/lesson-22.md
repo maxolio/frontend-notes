@@ -301,3 +301,238 @@ const posts = await Promise.all(ids.map((id) => loadPost(id)));
 2. Использовать await в обычном `<script>` вне async-функции: движок выдаст SyntaxError (верхнеуровневый await работает только в `<script type="module">`).
 
 3. Поставить await без try / catch или вызвать async-функцию без скобок (): отклонённый промис выбросит необработанное исключение, а без () у функции нет .then.
+
+## Вопросы для закрепления
+
+**1. В каком порядке выведутся числа в консоль, и почему `'3'` сработает до `'5'`, а `'4'` обгонит `'2'`?**
+
+```js
+console.log('1');
+
+setTimeout(() => console.log('2'), 0);
+
+new Promise((resolve) => {
+  console.log('3');
+  resolve();
+}).then(() => console.log('4'));
+
+console.log('5');
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+Порядок вывода: **`1 -> 3 -> 5 -> 4 -> 2`**.
+1. Функция внутри `new Promise(...)` запускается **синхронно** сразу в момент создания промиса, поэтому после `'1'` печатается `'3'`, затем `'5'`.
+2. После завершения синхронного кода Event Loop сначала полностью очищает очередь **микрозадач** (туда попал колбэк `.then` с `'4'`) и только потом берёт **макрозадачу** из `setTimeout` (`'2'`).
+
+</details>
+
+**2. Что выведется в первом примере и почему `.catch()` во втором не поймает ошибку из `setTimeout`?**
+
+```js
+new Promise((resolve, reject) => {
+  resolve('Первый итог');
+  reject(new Error('Не сработает'));
+}).then((val) => console.log(val));
+
+new Promise(() => {
+  setTimeout(() => { throw new Error('Сбой в таймере'); }, 50);
+}).catch((err) => console.log('Поймали:', err.message));
+```
+
+<details>
+<summary>Показать ответ</summary>
+
+1. Первый промис выведет **`'Первый итог'`**: промис меняет состояние из `pending` **только 1 раз** — повторные `resolve` и `reject` молча игнорируются.
+2. Во втором примере `.catch()` ошибку **не перехватит**: скрытый `try...catch` вокруг исполнителя `new Promise` работает только синхронно, а отложенный `throw` внутри `setTimeout` вылетит мимо промиса (внутри таймера ошибку передают через `reject(new Error(...))`).
+
+</details>
+
+**3. Почему цикл `ids.forEach(async (id) => await load(id))` не ждёт окончания запросов, и чем `Promise.allSettled` отличается от `Promise.all`?**
+
+<details>
+<summary>Показать ответ</summary>
+
+Метод `forEach` не ожидает `await` внутри колбэка: он мгновенно запускает все вызовы и идёт к следующей строке кода (для последовательного ожидания берут `for..of`, для параллельного — `await Promise.all(ids.map(...))`). Разница методов: **`Promise.all`** при падении хотя бы одного промиса сразу обрывается и уходит в `catch`, а **`Promise.allSettled`** ждёт завершения **всех** промисов и отдаёт массив статусов (`fulfilled` или `rejected`) для каждого.
+
+</details>
+
+## Задачи
+
+**Задача 1. Промисификация таймера `delay(ms, value)` и обработка `reject`**
+
+Напиши функцию `delay(ms, value = 'Готово')`, возвращающую `Promise`: если `ms < 0`, промис должен сразу отклоняться через `reject(new Error('Отрицательная задержка'))`; иначе спустя `ms` мс — успешно завершаться через `resolve(value)`.
+
+```js
+'use strict';
+
+/* Твоё решение: */
+
+async function test() {
+  try {
+    const msg = await delay(300, 'Шаг 1 выполнен');
+    console.log(msg);
+    await delay(-50); /* должно перебросить в catch! */
+  } catch (err) {
+    console.log('Ошибка:', err.message);
+  }
+}
+
+test();
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+function delay(ms, value = 'Готово') {
+  return new Promise((resolve, reject) => {
+    /*
+      Проверяем некорректную задержку сразу: вызываем reject с объектом Error
+      и делаем return, чтобы setTimeout уже не ставился
+    */
+    if (ms < 0) {
+      reject(new Error('Отрицательная задержка'));
+      return;
+    }
+
+    /* Когда таймер сработает, промис перейдёт в fulfilled с переданным value */
+    setTimeout(() => resolve(value), ms);
+  });
+}
+
+async function test() {
+  try {
+    const msg = await delay(300, 'Шаг 1 выполнен');
+    console.log(msg);
+    await delay(-50);
+  } catch (err) {
+    console.log('Ошибка:', err.message); /* 'Ошибка: Отрицательная задержка' */
+  }
+}
+
+test();
+```
+
+</details>
+
+**Задача 2. Перепиши `.then()`-цепочку на `async / await` + `try / catch`**
+
+В коде ниже цепочка `.then()` ломается (забыт `return` перед `fetchOrders`, и нет перехвата ошибок). Перепиши функцию `loadUserReport(userId)` полностью на `async / await` с `try...catch`, чтобы она возвращала строку вида `'Алиса: заказов 2'`, а при ошибке печатала её текст и возвращала `null`.
+
+```js
+'use strict';
+
+const fetchUser = (id) =>
+  Promise.resolve({ id, name: 'Алиса' });
+const fetchOrders = (userId) =>
+  userId > 0
+    ? Promise.resolve(['Заказ #1', 'Заказ #2'])
+    : Promise.reject(new Error('Некорректный ID'));
+
+/* Твоё решение: перепиши функцию на async / await */
+function loadUserReport(userId) {
+  return fetchUser(userId)
+    .then((user) => {
+      fetchOrders(user.id);
+    })
+    .then((orders) => {
+      return `Заказов: ${orders.length}`;
+    });
+}
+
+loadUserReport(1).then((report) => console.log(report));  /* 'Алиса: заказов 2' */
+loadUserReport(-1).then((report) => console.log(report)); /* 'Ошибка...' -> null */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const fetchUser = (id) =>
+  Promise.resolve({ id, name: 'Алиса' });
+const fetchOrders = (userId) =>
+  userId > 0
+    ? Promise.resolve(['Заказ #1', 'Заказ #2'])
+    : Promise.reject(new Error('Некорректный ID'));
+
+async function loadUserReport(userId) {
+  try {
+    /* await распаковывает Promise и приостанавливает только эту async-функцию */
+    const user = await fetchUser(userId);
+    const orders = await fetchOrders(user.id);
+
+    return `${user.name}: заказов ${orders.length}`;
+  } catch (err) {
+    /* Поймает reject из любого await внутри блока try */
+    console.log('Ошибка:', err.message);
+    return null;
+  }
+}
+
+loadUserReport(1).then((report) => console.log(report));  /* 'Алиса: заказов 2' */
+loadUserReport(-1).then((report) => console.log(report)); /* 'Ошибка: Некорректный ID' -> null */
+```
+
+</details>
+
+**Задача 3. Параллельная загрузка профилей (`Promise.allSettled` вместо `forEach`)**
+
+Сейчас `loadAllProfiles` использует `forEach`, поэтому не ждёт `await` и сразу возвращает `[]`, а при замене на `Promise.all` она целиком упадёт из-за профиля с `id = 2`. Перепиши функцию через `Promise.allSettled` и `ids.map(...)`, чтобы загрузить все профили параллельно и вернуть массив только успешно загруженных объектов.
+
+```js
+'use strict';
+
+const loadProfile = (id) => {
+  if (id === 2) return Promise.reject(new Error('Профиль 2 заблокирован'));
+  return Promise.resolve({ id, name: `Пользователь #${id}` });
+};
+
+/* Твоё решение: */
+async function loadAllProfiles(ids) {
+  const loaded = [];
+  ids.forEach(async (id) => {
+    const profile = await loadProfile(id);
+    loaded.push(profile);
+  });
+  return loaded;
+}
+
+loadAllProfiles([1, 2, 3]).then((profiles) => console.log(profiles));
+/* [{ id: 1, name: 'Пользователь #1' }, { id: 3, name: 'Пользователь #3' }] */
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```js
+'use strict';
+
+const loadProfile = (id) => {
+  if (id === 2) return Promise.reject(new Error('Профиль 2 заблокирован'));
+  return Promise.resolve({ id, name: `Пользователь #${id}` });
+};
+
+async function loadAllProfiles(ids) {
+  /*
+    ids.map запускает все запросы одновременно и возвращает массив промисов.
+    Promise.allSettled дожидается каждого, даже если один из них упал в reject
+  */
+  const results = await Promise.allSettled(ids.map((id) => loadProfile(id)));
+
+  /* Отбираем только успешные результаты (status === 'fulfilled') и достаём их value */
+  return results
+    .filter((item) => item.status === 'fulfilled')
+    .map((item) => item.value);
+}
+
+loadAllProfiles([1, 2, 3]).then((profiles) => console.log(profiles));
+/* [{ id: 1, name: 'Пользователь #1' }, { id: 3, name: 'Пользователь #3' }] */
+```
+
+</details>
