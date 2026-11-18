@@ -146,16 +146,321 @@ export async function copyToClipboard(text) {
   }
 }
 
-/** Добавляет шапку с языком, кнопку копирования и подсветку Highlight.js. */
-function enhanceCodeBlocks(container) {
+function buildCssPreviewDoc(cssText, customHtml) {
+  const safeCss = cssText.replace(/<\/style/gi, '<\\/style');
+  return `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      padding: 12px 14px;
+      background: #ffffff;
+      color: #1f2328;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    p { margin: 0 0 8px; }
+    .preview-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+    ${safeCss}
+  </style>
+</head>
+<body>${customHtml}</body>
+</html>`;
+}
+
+function createCssSandbox(rawCode, demoHtml = '') {
+  const htmlMatch = rawCode.match(/^\s*\/\*\s*html:\s*([\s\S]*?)\s*\*\/\s*/i);
+  const customHtml = demoHtml
+    || (htmlMatch
+      ? htmlMatch[1]
+      : '<p>Пример абзаца (&lt;p&gt;)</p><div class="preview-row"><a href="#" onclick="return false;">Пример ссылки (&lt;a&gt;)</a><button type="button">Кнопка (&lt;button&gt;)</button></div>');
+  const initialCss = (htmlMatch ? rawCode.slice(htmlMatch[0].length) : rawCode).trim();
+
+  const sandbox = document.createElement('div');
+  sandbox.className = 'css-sandbox';
+
+  const editorPane = document.createElement('div');
+  editorPane.className = 'css-sandbox-pane';
+
+  const editorBar = document.createElement('div');
+  editorBar.className = 'css-sandbox-bar';
+
+  const barTitle = document.createElement('span');
+  barTitle.textContent = 'Редактор CSS';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'copy-btn';
+  resetBtn.textContent = 'Сбросить';
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'css-sandbox-editor';
+  textarea.spellcheck = false;
+  textarea.rows = Math.min(16, Math.max(5, initialCss.split(/\r?\n/).length + 1));
+  textarea.value = initialCss;
+
+  const iframe = document.createElement('iframe');
+  iframe.className = 'css-preview-frame';
+  iframe.setAttribute('sandbox', '');
+  iframe.setAttribute('title', 'Результат CSS');
+  iframe.srcdoc = buildCssPreviewDoc(initialCss, customHtml);
+
+  textarea.addEventListener('input', () => {
+    iframe.srcdoc = buildCssPreviewDoc(textarea.value, customHtml);
+  });
+
+  resetBtn.addEventListener('click', () => {
+    textarea.value = initialCss;
+    iframe.srcdoc = buildCssPreviewDoc(initialCss, customHtml);
+  });
+
+  editorBar.append(barTitle, resetBtn);
+  editorPane.append(editorBar, textarea);
+  sandbox.append(editorPane, iframe);
+  return sandbox;
+}
+
+function formatConsoleArg(arg) {
+  if (typeof arg === 'string') return arg;
+  if (typeof arg === 'bigint') return `${arg}n`;
+  if (arg === undefined) return 'undefined';
+  if (arg === null || typeof arg !== 'object') return String(arg);
+  try {
+    return JSON.stringify(arg);
+  } catch {
+    return String(arg);
+  }
+}
+
+function appendConsoleLine(outputEl, type, text) {
+  const placeholder = outputEl.querySelector('.js-console-line.is-empty');
+  if (placeholder) {
+    placeholder.remove();
+  }
+
+  const line = document.createElement('div');
+  line.className = `js-console-line is-${type}`;
+  line.textContent = type === 'empty' ? text : `> ${text}`;
+  outputEl.append(line);
+  outputEl.scrollTop = outputEl.scrollHeight;
+}
+
+function createSandboxTimers() {
+  const timeouts = new Set();
+  const intervals = new Set();
+
+  return {
+    setTimeout(fn, delay, ...args) {
+      const id = window.setTimeout(() => {
+        timeouts.delete(id);
+        fn(...args);
+      }, delay);
+      timeouts.add(id);
+      return id;
+    },
+    setInterval(fn, delay, ...args) {
+      const id = window.setInterval(fn, delay, ...args);
+      intervals.add(id);
+      return id;
+    },
+    clearTimeout(id) {
+      timeouts.delete(id);
+      window.clearTimeout(id);
+    },
+    clearInterval(id) {
+      intervals.delete(id);
+      window.clearInterval(id);
+    },
+    cleanup() {
+      for (const id of timeouts) window.clearTimeout(id);
+      for (const id of intervals) window.clearInterval(id);
+      timeouts.clear();
+      intervals.clear();
+    },
+  };
+}
+
+function runJsCode(code, outputEl, timers) {
+  timers.cleanup();
+  outputEl.innerHTML = '';
+
+  const fakeConsole = {
+    log: (...args) => appendConsoleLine(outputEl, 'log', args.map(formatConsoleArg).join(' ')),
+    info: (...args) => appendConsoleLine(outputEl, 'log', args.map(formatConsoleArg).join(' ')),
+    warn: (...args) => appendConsoleLine(outputEl, 'warn', args.map(formatConsoleArg).join(' ')),
+    error: (...args) => appendConsoleLine(outputEl, 'error', args.map(formatConsoleArg).join(' ')),
+    dir: (item) => appendConsoleLine(outputEl, 'log', formatConsoleArg(item)),
+    table: (item) => appendConsoleLine(outputEl, 'log', formatConsoleArg(item)),
+  };
+
+  try {
+    const fn = new Function(
+      'console',
+      'setTimeout',
+      'setInterval',
+      'clearTimeout',
+      'clearInterval',
+      code
+    );
+    const result = fn(
+      fakeConsole,
+      timers.setTimeout,
+      timers.setInterval,
+      timers.clearTimeout,
+      timers.clearInterval
+    );
+    if (result && typeof result.catch === 'function') {
+      result.catch((err) => appendConsoleLine(outputEl, 'error', `${err.name}: ${err.message}`));
+    }
+  } catch (err) {
+    appendConsoleLine(outputEl, 'error', `${err.name}: ${err.message}`);
+  }
+
+  if (!outputEl.children.length) {
+    appendConsoleLine(outputEl, 'empty', 'Код выполнен (ожидание вывода или console.log не вызван)');
+  }
+}
+
+function createJsSandbox(rawCode) {
+  const initialJs = rawCode.trim();
+  const timers = createSandboxTimers();
+
+  const sandbox = document.createElement('div');
+  sandbox.className = 'css-sandbox';
+  sandbox.cleanup = () => timers.cleanup();
+
+  const editorPane = document.createElement('div');
+  editorPane.className = 'css-sandbox-pane';
+
+  const editorBar = document.createElement('div');
+  editorBar.className = 'css-sandbox-bar';
+
+  const barTitle = document.createElement('span');
+  barTitle.textContent = 'Редактор JS';
+
+  const barBtns = document.createElement('div');
+  barBtns.className = 'code-actions';
+
+  const runBtn = document.createElement('button');
+  runBtn.type = 'button';
+  runBtn.className = 'copy-btn';
+  runBtn.textContent = '▶ Выполнить';
+
+  const resetBtn = document.createElement('button');
+  resetBtn.type = 'button';
+  resetBtn.className = 'copy-btn';
+  resetBtn.textContent = 'Сбросить';
+
+  const textarea = document.createElement('textarea');
+  textarea.className = 'css-sandbox-editor';
+  textarea.spellcheck = false;
+  textarea.rows = Math.min(16, Math.max(5, initialJs.split(/\r?\n/).length + 1));
+  textarea.value = initialJs;
+
+  const consolePane = document.createElement('div');
+  consolePane.className = 'js-console-pane';
+
+  const consoleBar = document.createElement('div');
+  consoleBar.className = 'css-sandbox-bar';
+  consoleBar.textContent = 'Консоль вывода';
+
+  const outputEl = document.createElement('div');
+  outputEl.className = 'js-console-output';
+
+  runBtn.addEventListener('click', () => runJsCode(textarea.value, outputEl, timers));
+  resetBtn.addEventListener('click', () => {
+    textarea.value = initialJs;
+    runJsCode(initialJs, outputEl, timers);
+  });
+
+  barBtns.append(runBtn, resetBtn);
+  editorBar.append(barTitle, barBtns);
+  editorPane.append(editorBar, textarea);
+  consolePane.append(consoleBar, outputEl);
+  sandbox.append(editorPane, consolePane);
+
+  runJsCode(initialJs, outputEl, timers);
+  return sandbox;
+}
+
+function canRunJsSnippet(rawCode, meta) {
+  if (!meta || (meta.subjectId !== 'js' && meta.subjectId !== 'spa')) return false;
+  if (/\b(document|window|fetch|alert|prompt|confirm|localStorage|sessionStorage|location|history|XMLHttpRequest|import|export)\b/.test(rawCode)) {
+    return false;
+  }
+
+  const codeOnly = rawCode.replace(/\/\*[\s\S]*?\*\/|\/\/.*/g, '').trim();
+  if (!codeOnly) return false;
+
+  try {
+    new Function(rawCode);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function extractDemoHtml(pre) {
+  let prev = pre.previousSibling;
+  while (prev && prev.nodeType === Node.TEXT_NODE && !prev.nodeValue.trim()) {
+    prev = prev.previousSibling;
+  }
+  if (prev && prev.nodeType === Node.COMMENT_NODE) {
+    const raw = prev.nodeValue.trim();
+    if (/^demo-html:/i.test(raw)) {
+      return raw.replace(/^demo-html:/i, '').trim();
+    }
+  }
+
+  const details = pre.closest('details');
+  if (details && !details.classList.contains('lesson-accordion')) {
+    let sibling = details.previousElementSibling;
+    for (let i = 0; i < 4 && sibling; i += 1) {
+      if (sibling.tagName === 'DETAILS' || /^H[1-6]$/.test(sibling.tagName)) break;
+      if (sibling.tagName === 'PRE') {
+        const htmlCode = sibling.querySelector('code.language-html');
+        if (htmlCode) return htmlCode.textContent.trim();
+      }
+      sibling = sibling.previousElementSibling;
+    }
+  }
+
+  return '';
+}
+
+function canPreviewCss(rawCode, demoHtml = '') {
+  if (!/\{[^}]*\}/.test(rawCode)) return false;
+  if (demoHtml) return true;
+
+  const withoutComments = rawCode.replace(/\/\*[\s\S]*?\*\//g, '');
+  const selectors = withoutComments.replace(/\{[^}]*\}/g, ' ');
+  if (/[.#\[]/.test(selectors)) return false;
+
+  return /\b(body|p|a|button)\b/.test(selectors);
+}
+
+/** Добавляет шапку с языком, кнопку копирования, песочницы для CSS/JS и подсветку Highlight.js. */
+function enhanceCodeBlocks(container, meta) {
   const preBlocks = [...container.querySelectorAll('pre')];
 
   for (const pre of preBlocks) {
     const code = pre.querySelector('code');
     if (!code) continue;
 
+    const rawCode = code.textContent;
     const langMatch = code.className.match(/language-([\w-]+)/);
-    const lang = langMatch ? langMatch[1] : 'js';
+    const rawLang = langMatch ? langMatch[1] : 'js';
+    const isCssDemo = rawLang === 'css-demo';
+    const displayLang = isCssDemo ? 'css' : rawLang;
+    const demoHtml = displayLang === 'css' ? extractDemoHtml(pre) : '';
+    const hasCssPreview = displayLang === 'css' && canPreviewCss(rawCode, demoHtml);
+
+    if (isCssDemo) {
+      code.className = 'language-css';
+    }
 
     const wrapper = document.createElement('div');
     wrapper.className = 'code-block';
@@ -165,7 +470,36 @@ function enhanceCodeBlocks(container) {
 
     const langLabel = document.createElement('span');
     langLabel.className = 'code-lang';
-    langLabel.textContent = lang;
+    langLabel.textContent = displayLang;
+
+    const actions = document.createElement('div');
+    actions.className = 'code-actions';
+
+    let sandboxEl = null;
+    const isJsRunnable = displayLang === 'js' && canRunJsSnippet(rawCode, meta);
+    if (isCssDemo || hasCssPreview || isJsRunnable) {
+      const previewBtn = document.createElement('button');
+      previewBtn.type = 'button';
+      previewBtn.className = 'copy-btn';
+      const openLabel = isJsRunnable ? '▶ Запустить' : '▶ Песочница';
+      previewBtn.textContent = openLabel;
+
+      previewBtn.addEventListener('click', () => {
+        if (sandboxEl) {
+          sandboxEl.cleanup?.();
+          sandboxEl.remove();
+          sandboxEl = null;
+          previewBtn.textContent = openLabel;
+          return;
+        }
+
+        sandboxEl = isJsRunnable ? createJsSandbox(rawCode) : createCssSandbox(rawCode, demoHtml);
+        wrapper.append(sandboxEl);
+        previewBtn.textContent = '✕ Скрыть';
+      });
+
+      actions.append(previewBtn);
+    }
 
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
@@ -173,7 +507,7 @@ function enhanceCodeBlocks(container) {
     copyBtn.textContent = 'Копировать';
     copyBtn.addEventListener('click', async () => {
       try {
-        await copyToClipboard(code.textContent);
+        await copyToClipboard(rawCode);
         copyBtn.textContent = 'Скопировано ✓';
         setTimeout(() => {
           copyBtn.textContent = 'Копировать';
@@ -183,7 +517,8 @@ function enhanceCodeBlocks(container) {
       }
     });
 
-    header.append(langLabel, copyBtn);
+    actions.append(copyBtn);
+    header.append(langLabel, actions);
     pre.replaceWith(wrapper);
     wrapper.append(header, pre);
 
@@ -191,7 +526,7 @@ function enhanceCodeBlocks(container) {
   }
 }
 
-export function renderMarkdownLesson(container, markdownText) {
+export function renderMarkdownLesson(container, markdownText, meta = {}) {
   if (!window.marked) {
     container.textContent = markdownText;
     return;
@@ -201,7 +536,7 @@ export function renderMarkdownLesson(container, markdownText) {
   transformCallouts(container);
   wrapTrapsSection(container);
   wrapPracticeAccordions(container);
-  enhanceCodeBlocks(container);
+  enhanceCodeBlocks(container, meta);
 }
 
 export function renderSidebar(navElement, subjectId, lessons, activeId, statuses) {
@@ -251,91 +586,51 @@ export function renderSidebar(navElement, subjectId, lessons, activeId, statuses
   }
 }
 
-export function renderHomePage(container, { activeSubject, lessons, subjects, statuses }) {
-  const firstLesson = lessons[0];
-  const reviewLesson = lessons.find((l) => statuses[`${activeSubject.id}:${l.id}`] === 'review');
-  const nextUnreadLesson =
-    lessons.find((l) => statuses[`${activeSubject.id}:${l.id}`] !== 'done') || firstLesson;
-  const doneCount = lessons.filter((l) => statuses[`${activeSubject.id}:${l.id}`] === 'done').length;
-
+export function renderHomePage(container, { activeSubject, subjects }) {
   const subjectButtons = subjects
-    .map(
-      (s) => `
-      <button type="button" class="pill-btn" data-home-subject="${s.id}">
-        ${s.title}
-      </button>`
-    )
+    .map((s) => {
+      const activeClass = s.id === activeSubject.id ? ' is-active' : '';
+      return `<button type="button" class="pill-btn${activeClass}" data-home-subject="${s.id}">${s.title}</button>`;
+    })
     .join('');
 
   container.innerHTML = `
-    <h1>Frontend Notes — как пользоваться сайтом</h1>
+    <h1>Frontend Notes by Maxolio</h1>
+    <p class="home-lead">Краткие конспекты и тренажёр памяти: до урока пробегаешь суть, после — крутишь примеры в песочнице и решаешь задачи.</p>
 
-    <div class="callout callout-tldr">
-      <span class="callout-badge">Суть</span>
-      <p>Это не просто читалка конспектов, а тренажёр памяти: <strong>до урока</strong> пробегаешь выжимку, <strong>после</strong> проверяешь себя вопросами и задачами, а сложные темы отмечаешь на повтор.</p>
-    </div>
-
-    <div class="home-actions">
-      ${
-        nextUnreadLesson
-          ? `<button type="button" class="home-btn-primary" data-home-lesson="${nextUnreadLesson.id}">
-              ${doneCount > 0 ? `▶ Продолжить: Урок ${nextUnreadLesson.number}` : `▶ Начать с Урока ${nextUnreadLesson.number}`}
-            </button>`
-          : ''
-      }
-      ${
-        reviewLesson
-          ? `<button type="button" class="pill-btn" data-home-lesson="${reviewLesson.id}">
-              ↻ Повторить: Урок ${reviewLesson.number}
-            </button>`
-          : ''
-      }
-    </div>
-
-    <h2>Основные кнопки и фишки</h2>
-
-    <div class="home-grid">
-      <div class="home-card">
-        <h3 class="home-card-title">🎨 Тема и шрифт</h3>
-        <p>В шапке слева выбирай одну из 4 тем (Бумага, Сепия, One Dark, Nord) и один из 4 шрифтов для комфортного чтения.</p>
-      </div>
-
-      <div class="home-card">
-        <h3 class="home-card-title">⚡ Режим «Шпаргалка»</h3>
-        <p>Справа в шапке скрывает длинный код и оставляет только <strong>Суть урока</strong>, карточки <strong>Важно</strong> и <strong>3 главные ловушки</strong>.</p>
-      </div>
-
-      <div class="home-card">
-        <h3 class="home-card-title">❓ Вопросы и 🧩 Задачи</h3>
-        <p>Внизу каждого урока лежат свёрнутые блоки практики. Сначала отвечай по памяти и пиши код сам, потом открывай спойлер.</p>
-      </div>
-
-      <div class="home-card">
-        <h3 class="home-card-title">✓ Статусы прогресса</h3>
-        <p>Отмечай уроки как <strong>Изучено</strong> (зелёная точка) или <strong>Повторить</strong> (жёлтая) — всё сохраняется в браузере.</p>
-      </div>
-
-      <div class="home-card">
-        <h3 class="home-card-title">🔍 Поиск по всему коду</h3>
-        <p>Ищет по названиям, методам и примерам кода внутри всех уроков сразу и прыгает прямо к нужному разделу (горячая клавиша <code>Ctrl+K</code>).</p>
-      </div>
-
-      <div class="home-card">
-        <h3 class="home-card-title">🤖 Меню «Для ИИ»</h3>
-        <p>В 1 тап копирует конспект с готовым промптом или прямую ссылку на <code>.md</code> (или весь курс одним файлом внизу меню) для Gemini.</p>
-      </div>
-    </div>
-
-    <h2>Ритм учёбы за 3 шага</h2>
-    <ol class="home-steps">
-      <li><strong>До видео (2 мин):</strong> открой урок в режиме <strong>⚡</strong> — посмотри «Суть» и 3 ловушки.</li>
-      <li><strong>После видео (10–15 мин):</strong> выключи <strong>⚡</strong>, разбери примеры кода и реши задачи руками.</li>
-      <li><strong>На следующий день (5 мин):</strong> открой с телефона <strong>❓ Вопросы для закрепления</strong> и проверь, что осталось в памяти.</li>
-    </ol>
-
-    <h2>Разделы конспектов</h2>
     <div class="home-actions">
       ${subjectButtons}
     </div>
+
+    <dl class="home-list">
+      <div class="home-list-row">
+        <dt>Тема и шрифт</dt>
+        <dd>Выбор из 4 тем оформления и 4 шрифтов в шапке слева.</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>Режим ⚡ (Шпаргалка)</dt>
+        <dd>Скрывает длинный код и оставляет только суть, важные карточки и 3 главные ловушки.</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>▶ Песочница / Запустить</dt>
+        <dd>Встроенный редактор CSS с мгновенным предпросмотром и запуск JS-примеров прямо в уроке.</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>Вопросы и задачи</dt>
+        <dd>Свёрнутые блоки внизу урока — сначала отвечай по памяти и пиши код сам, потом открывай решение.</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>Статус урока</dt>
+        <dd>Отметки «Изучено» и «Повторить» в шапке урока (сохраняются в браузере).</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>Поиск (Ctrl+K)</dt>
+        <dd>Мгновенный поиск по всем урокам, свойствам и примерам кода с переходом к нужному разделу.</dd>
+      </div>
+      <div class="home-list-row">
+        <dt>Для ИИ</dt>
+        <dd>Копирует урок с готовым промптом или весь курс одним <code>.md</code>-файлом (кнопка внизу меню).</dd>
+      </div>
+    </dl>
   `;
 }

@@ -11,7 +11,16 @@
     "badge": "CSS",
     "title": "CSS Конспекты",
     "indexFile": "data/css/lessons.json",
-    "basePath": "data/css"
+    "basePath": "data/css",
+    "bundleFile": "data/css/all-lessons.md"
+  },
+  {
+    "id": "scss",
+    "badge": "SCSS",
+    "title": "SCSS Конспекты",
+    "indexFile": "data/scss/lessons.json",
+    "basePath": "data/scss",
+    "bundleFile": "data/scss/all-lessons.md"
   },
   {
     "id": "js",

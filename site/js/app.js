@@ -347,7 +347,7 @@ function openHomePage() {
     subjects: allSubjects,
     statuses: getStatuses(),
   });
-  document.title = 'Frontend Notes — Как пользоваться сайтом';
+  document.title = 'Frontend Notes by Maxolio — База конспектов';
   window.scrollTo({ top: 0, behavior: 'instant' });
 }
 
@@ -378,8 +378,11 @@ async function openLesson(lessonId, scrollToHeading = '') {
 
   try {
     const markdown = await getLessonMarkdown(activeSubject, lesson);
-    renderMarkdownLesson(dom.lessonArticle, markdown);
-    document.title = `${lesson.title} — ${activeSubject.title} | Frontend Notes`;
+    renderMarkdownLesson(dom.lessonArticle, markdown, {
+      subjectId: activeSubject.id,
+      lessonNumber: lesson.number,
+    });
+    document.title = `${lesson.title} — ${activeSubject.title} | Frontend Notes by Maxolio`;
 
     if (!scrollToMatchedHeading(scrollToHeading)) {
       window.scrollTo({ top: 0, behavior: 'instant' });
