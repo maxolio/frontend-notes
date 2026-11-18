@@ -1,0 +1,5 @@
+[
+  { "id": "lesson-01", "title": "Урок 01. Тестовый конспект", "file": "lesson-01.md" },
+  { "id": "lesson-02", "title": "Урок 02. Второй конспект", "file": "lesson-02.md" },
+  { "id": "lesson-03", "title": "Урок 03. Третий конспект", "file": "lesson-03.md" }
+]

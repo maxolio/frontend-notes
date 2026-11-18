@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой сайт конспектов — Шаг 2</title>
+
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 24px auto; padding: 0 16px; }
+    #menu { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+    #menu button { padding: 8px 12px; cursor: pointer; }
+    #menu button.active { font-weight: 700; border: 2px solid #0969da; }
+  </style>
+
+  <!-- 1. Подключаем парсер Markdown по CDN: он положит функцию marked.parse() в window -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+
+  <!-- 2. Наш скрипт идёт строго ПОСЛЕ marked, тоже с defer, чтобы ждал и HTML, и библиотеку -->
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <!-- Сюда JS добавит кнопки уроков из файла lessons.json -->
+  <nav id="menu"></nav>
+
+  <!-- Пустой контейнер: сюда JavaScript позже вставит готовый HTML нужного урока -->
+  <main>
+    <article id="content">Загрузка...</article>
+  </main>
+</body>
+</html>

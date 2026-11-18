@@ -21,5 +21,12 @@
     "basePath": "data/js",
     "bundleFile": "data/js/all-lessons.md",
     "default": true
+  },
+  {
+    "id": "spa",
+    "badge": "SPA",
+    "title": "Свой SPA с нуля",
+    "indexFile": "data/spa/lessons.json",
+    "basePath": "data/spa"
   }
 ]
