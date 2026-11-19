@@ -5745,6 +5745,49 @@ new Modals();            // Иногда экземпляр даже не сох
 Modals.closeAllModals(); // А вспомогательные действия вызывают напрямую через static-метод
 ```
 
+## 6. Когда методу в классе нужна стрелка `=>`, а когда нет
+
+**Правило:** стрелка `=>` в классе нужна **всегда, когда ты отдаёшь метод «на сторону» без `()`** и внутри него используется **`this`**.
+
+4 главных случая на практике:
+1. **Слушатели событий (`addEventListener`):** `this.buttonElement.addEventListener('click', this.onButtonClick)`
+2. **Наблюдатели браузера (`ResizeObserver`, `IntersectionObserver`):** `new ResizeObserver(this.onResize)`
+3. **Таймеры (`setTimeout`, `setInterval`):** `setTimeout(this.hideNotification, 3000)`
+4. **Коллбэки внутри методов (`forEach`, `map`, `.then`):** `items.forEach((item) => this.render(item))`
+
+**Когда стрелка НЕ нужна:** когда метод вызывается **напрямую через точку** (`this.init()`, `this.bindEvents()`, `this.expand()`).
+
+```js
+class HeaderScroll {
+  constructor(buttonElement) {
+    this.buttonElement = buttonElement;
+    this.bindEvents(); /* Прямой вызов через точку — стрелка НЕ нужна */
+  }
+
+  /* Обычный метод (лежит 1 раз в prototype — экономит память): */
+  bindEvents() {
+    /* Отдаём onButtonClick БЕЗ (), поэтому ему нужна стрелка => */
+    this.buttonElement.addEventListener('click', this.onButtonClick);
+    new ResizeObserver(this.onResize).observe(document.body);
+  }
+
+  /* Стрелка намертво привязывает this к экземпляру + удобно для removeEventListener: */
+  onButtonClick = () => {
+    this.expand(); /* Внутри стрелки this — наш экземпляр HeaderScroll */
+  };
+
+  onResize = () => {
+    setTimeout(this.syncWidth, 100); /* В setTimeout тоже передаём без () -> стрелка! */
+  };
+
+  syncWidth = () => { /* ... */ };
+
+  expand() { /* Вызывается как this.expand() — обычный метод */ }
+}
+```
+
+[!] **Почему не пишут все методы стрелками:** обычный метод создаётся в памяти **один раз** (в `Class.prototype`) для всех экземпляров, а поле со стрелкой `=>` создаёт новую функцию заново для каждого `new ...()`. Используй стрелку только там, где метод передаётся как коллбэк без `()`.
+
 ## 3 главные ловушки урока (чек-лист для повторения)
 
 1. Забыть super(...) в constructor наследника — в классе с extends нельзя писать this.field до вызова super(...), сразу упадёт ошибка.
