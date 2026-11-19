@@ -18,15 +18,18 @@
 - Урок 12. Ключевое слово this в объектах и функциях, чейнинг методов
 - Урок 13. Методы примитивов, числа, Math, округление и парсинг строк
 - Урок 14. Строки и методы работы со строками
+- Практика 1. Задачи по основам, функциям, объектам и строкам (01–14)
 - Урок 15. Массивы в JavaScript
 - Урок 16. Деструктуризация и продвинутые методы массивов
 - Урок 17. Перебор объектов (keys/values/entries) и коллекции Map, Set
 - Урок 18. Формат данных JSON: stringify, parse и ограничения
 - Урок 19. Классы в JavaScript: constructor, get/set, #, static, extends и super
+- Практика 2. Задачи на массивы, Map/Set, JSON и классы (15–19)
 - Урок 20. Таймеры в JavaScript: setTimeout, setInterval, clear и вложенный вызов
 - Урок 21. Обработка ошибок в JS: try, catch, finally и throw
 - Урок 22. Асинхронный JS: Event Loop, колбэки, Promise, async / await
 - Урок 23. Модули в JavaScript: декомпозиция, import и export
+- Практика 3. Задачи на таймеры, try/catch, Promise и Event Loop (20–23)
 - Урок 24. JavaScript в браузере: окружение, DOM и BOM
 - Урок 25. Навигация по DOM-дереву, атрибуты async и defer
 - Урок 26. Поиск элементов в DOM: getElement* и querySelector*
@@ -4294,6 +4297,121 @@ console.log(countMatches('Тест', ''));                           /* 0 */
 
 ---
 
+# Практика 1. Задачи по основам, функциям, объектам и строкам (уроки 01–14)
+
+<details>
+<summary>🧩 Задача 1. Проверка комментария на пробелы и запрещённые символы</summary>
+
+### Что нужно сделать
+Представь, что ты проверяешь комментарий пользователя перед публикацией. Напиши функцию `analyzeText(text, forbiddenChar = '!')`, которая:
+
+1. **Защищается от пустоты:** если в `text` передали `null` или `undefined` (комментария нет), считает, что там пустая строка `''`.
+2. **Считает статистику по символам** (проходит по строке циклом `for` от первого символа до последнего):
+   - сколько раз встретился пробел `' '`;
+   - сколько раз встретился запрещённый символ `forbiddenChar` (большие и маленькие буквы считаем одинаковыми, например `'А'` и `'а'` — это один и тот же символ).
+3. **Возвращает результат** в виде объекта с тремя полями:
+   - `length` — общая длина строки,
+   - `spaces` — количество пробелов,
+   - `forbiddenCount` — сколько раз встретился запрещённый символ.
+
+### Шаблон для копирования
+```js
+'use strict';
+
+function analyzeText(text, forbiddenChar = '!') {
+  /* Твоё решение: */
+}
+
+console.log(analyzeText('Привет, Мир! Как дела?!', '!'));
+/* Должно вернуть: { length: 23, spaces: 3, forbiddenCount: 2 } */
+
+console.log(analyzeText(null, 'а'));
+/* Должно вернуть: { length: 0, spaces: 0, forbiddenCount: 0 } */
+```
+
+<details>
+<summary>Раскрыть решение</summary>
+
+### Вариант 1 (классический цикл `for`)
+```js
+'use strict';
+
+function analyzeText(text, forbiddenChar = '!') {
+  /* Оператор ?? заменяет только null и undefined на '', не трогая другие значения */
+  const textResult = text ?? '';
+  const textLength = textResult.length;
+
+  /* Выносим приведение к нижнему регистру до цикла, чтобы не делать его на каждом шаге */
+  const targetChar = forbiddenChar.toLowerCase();
+
+  let spaces = 0;
+  let forbiddenCount = 0;
+
+  /* Цикл for проходит по индексам строки от 0 до последнего символа */
+  for (let i = 0; i < textResult.length; i++) {
+    const char = textResult[i];
+
+    if (char === ' ') {
+      spaces += 1;
+    }
+
+    /* Сравниваем текущий символ тоже в нижнем регистре, чтобы 'А' и 'а' совпадали */
+    if (char.toLowerCase() === targetChar) {
+      forbiddenCount += 1;
+    }
+  }
+
+  /* Сокращённая запись свойств: spaces: spaces и forbiddenCount: forbiddenCount */
+  return { length: textLength, spaces, forbiddenCount };
+}
+
+/* Пояснение:
+   1. text ?? '' страхует от ошибки при чтении .length у null/undefined.
+   2. Оба сравниваемых символа (char и forbiddenChar) приводятся к lowerCase,
+      иначе заглавная буква в тексте не совпала бы с маленькой в forbiddenChar. */
+```
+
+### Вариант 2 (через цикл `for..of` и единый нижний регистр)
+```js
+'use strict';
+
+function analyzeText(text, forbiddenChar = '!') {
+  /* Сразу приводим всю строку и искомый символ к нижнему регистру один раз */
+  const normalized = (text ?? '').toLowerCase();
+  const target = forbiddenChar.toLowerCase();
+
+  let spaces = 0;
+  let forbiddenCount = 0;
+
+  /* for..of сразу даёт каждый символ строки без индекса i */
+  for (const char of normalized) {
+    if (char === ' ') {
+      spaces += 1;
+    } else if (char === target) {
+      forbiddenCount += 1;
+    }
+  }
+
+  return {
+    length: normalized.length,
+    spaces,
+    forbiddenCount,
+  };
+}
+
+/* Пояснение:
+   1. Выражение (text ?? '').toLowerCase() сразу безопасно готовит строку.
+   2. else if логично разделяет ветки: если символ — пробел (и target не пробел),
+      второе условие проверять уже не нужно.
+   3. Цикл for..of читается короче, когда индекс i внутри тела не используется. */
+```
+
+</details>
+
+</details>
+
+---
+
 # Урок 15. Массивы в JavaScript
 
 Суть урока: массив ([...]) — упорядоченный список, который под капотом является объектом, хранится по ссылке и изменяем (мутабелен).
@@ -6053,6 +6171,206 @@ console.log(notice instanceof Notification);      /* true */
 
 ---
 
+# Практика 2. Задачи на массивы, Map/Set, JSON и классы (уроки 15–19)
+
+Суть практики: закрепляем работу со структурами данных и ООП — методы массивов (`map`, `filter`, `reduce`), уникализацию через `Set`, группировку через `Map`, сериализацию `JSON` и классы со стрелочными обработчиками.
+
+---
+
+## Задача 1. Сводка заказов по категориям (`filter`, `reduce`)
+
+Дан массив заказов. Напиши функцию `getPaidSummary(orders)`, которая:
+1. Оставляет только оплаченные заказы (`status === 'paid'`).
+2. Считает общую сумму выручки и возвращает объект `{ count, total }`.
+
+```js
+const orders = [
+  { id: 1, total: 1200, status: 'paid' },
+  { id: 2, total: 800, status: 'pending' },
+  { id: 3, total: 2500, status: 'paid' },
+  { id: 4, total: 400, status: 'canceled' },
+];
+
+function getPaidSummary(orders) {
+  // Твой код
+}
+
+console.log(getPaidSummary(orders)); // { count: 2, total: 3700 }
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function getPaidSummary(orders) {
+  /* Сначала отбираем только оплаченные заказы без мутации исходного массива */
+  const paidOrders = orders.filter((order) => order.status === 'paid');
+
+  /* reduce накапливает итоговую сумму с начального значения 0 */
+  const total = paidOrders.reduce((sum, order) => sum + order.total, 0);
+
+  return {
+    count: paidOrders.length,
+    total,
+  };
+}
+```
+
+</details>
+
+---
+
+## Задача 2. Уникальные теги без дублей и в алфавитном порядке (`Set`, `flatMap`, `sort`)
+
+У каждого поста есть массив тегов (иногда с разным регистром и повторами). Напиши функцию `getUniqueTags(posts)`, которая вернёт отсортированный массив уникальных тегов в нижнем регистре.
+
+```js
+const posts = [
+  { title: 'JS', tags: ['JS', 'Frontend', 'React'] },
+  { title: 'CSS', tags: ['css', 'frontend', 'HTML'] },
+];
+
+function getUniqueTags(posts) {
+  // Твой код
+}
+
+console.log(getUniqueTags(posts));
+// ['css', 'frontend', 'html', 'js', 'react']
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function getUniqueTags(posts) {
+  /* flatMap разворачивает вложенные массивы тегов в один плоский список */
+  const normalized = posts.flatMap((post) =>
+    post.tags.map((tag) => tag.toLowerCase().trim())
+  );
+
+  /* Set автоматически удаляет дубликаты, а [...] превращает его обратно в массив */
+  return [...new Set(normalized)].sort((a, b) => a.localeCompare(b));
+}
+```
+
+</details>
+
+---
+
+## Задача 3. Подсчёт частоты слов через `Map`
+
+Напиши функцию `countWords(words)`, которая принимает массив строк и возвращает `Map`, где ключ — слово, а значение — сколько раз оно встретилось.
+
+```js
+const words = ['js', 'html', 'js', 'css', 'html', 'js'];
+
+function countWords(words) {
+  // Твой код
+}
+
+const stats = countWords(words);
+console.log(stats.get('js'));   // 3
+console.log(stats.get('html')); // 2
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function countWords(words) {
+  const counts = new Map();
+
+  for (const word of words) {
+    /* Если слова ещё нет в Map, берём 0 через ?? и увеличиваем на 1 */
+    const prev = counts.get(word) ?? 0;
+    counts.set(word, prev + 1);
+  }
+
+  return counts;
+}
+```
+
+</details>
+
+---
+
+## Задача 4. Безопасный парсинг `JSON` с фоллбэком
+
+Напиши функцию `safeParseJson(raw, fallback = null)`, которая пробует распарсить строку JSON. Если строка битая или пустая — не падает с ошибкой, а возвращает `fallback`.
+
+```js
+console.log(safeParseJson('{"ok":true}'));      // { ok: true }
+console.log(safeParseJson('{broken json', {})); // {}
+console.log(safeParseJson('', []));             // []
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function safeParseJson(raw, fallback = null) {
+  if (!raw) return fallback;
+
+  /* JSON.parse бросает SyntaxError на невалидной строке — ловим через try/catch */
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return fallback;
+  }
+}
+```
+
+</details>
+
+---
+
+## Задача 5. Класс `Cart` с приватным полем `#items`, геттером и стрелочным методом
+
+Реализуй класс `Cart`:
+- приватное поле `#items = []`;
+- метод `add(name, price)` добавляет товар `{ name, price }`;
+- геттер `total` считает общую сумму товаров в корзине;
+- стрелочный метод `logTotal = () => ...` выводит текущую сумму (чтобы его можно было передать в `setTimeout(cart.logTotal, 500)` без потери `this`).
+
+```js
+class Cart {
+  // Твой код
+}
+
+const cart = new Cart();
+cart.add('Книга', 500).add('Мышь', 1500);
+console.log(cart.total); // 2000
+setTimeout(cart.logTotal, 100); // Выведет: Итого: 2000
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+class Cart {
+  #items = [];
+
+  add(name, price) {
+    this.#items.push({ name, price });
+    return this;
+  }
+
+  /* Геттер читается как свойство cart.total без скобок () */
+  get total() {
+    return this.#items.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  /* Стрелка фиксирует this на экземпляре Cart при передаче в setTimeout */
+  logTotal = () => {
+    console.log(`Итого: ${this.total}`);
+  };
+}
+```
+
+</details>
+
+---
+
 # Урок 20. Таймеры в JavaScript: setTimeout, setInterval, clear и вложенный вызов
 
 Суть урока: setTimeout запускает функцию один раз с задержкой в миллисекундах, setInterval повторяет её регулярно; для точной паузы после выполнения используют вложенный setTimeout.
@@ -7609,6 +7927,194 @@ async function handleOpenGallery(shouldLoad) {
 handleOpenGallery(false);
 handleOpenGallery(true);
 ```
+
+</details>
+
+---
+
+# Практика 3. Задачи на таймеры, try/catch, Promise и модули (уроки 20–23)
+
+Суть практики: тренируем асинхронный JavaScript и обработку ошибок — `setTimeout` + `Promise`, параллельный `Promise.all`, `try/catch/finally` и понимание порядка выполнения Event Loop.
+
+---
+
+## Задача 1. Промисификация задержки `delay(ms)`
+
+Напиши функцию `delay(ms)`, которая возвращает `Promise` и переводит его в состояние `fulfilled` через `ms` миллисекунд. Используй её в `async`-функции `runSteps()`.
+
+```js
+function delay(ms) {
+  // Твой код
+}
+
+async function runSteps() {
+  console.log('Шаг 1');
+  await delay(500);
+  console.log('Шаг 2 (через 500 мс)');
+}
+
+runSteps();
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function delay(ms) {
+  /* Передаём resolve напрямую в setTimeout — через ms промис завершится */
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function runSteps() {
+  console.log('Шаг 1');
+  await delay(500);
+  console.log('Шаг 2 (через 500 мс)');
+}
+```
+
+</details>
+
+---
+
+## Задача 2. Параллельная загрузка данных через `Promise.all` (не последовательно!)
+
+Есть две асинхронные функции `loadProfile()` (200 мс) и `loadPosts()` (300 мс). Напиши функцию `loadDashboard()`, которая загружает оба набора данных **параллельно** (за ~300 мс, а не 500 мс) и возвращает `{ profile, posts }`.
+
+```js
+const loadProfile = () => new Promise((res) => setTimeout(() => res({ name: 'Анна' }), 200));
+const loadPosts = () => new Promise((res) => setTimeout(() => res(['Пост 1', 'Пост 2']), 300));
+
+async function loadDashboard() {
+  // Твой код
+}
+
+loadDashboard().then(console.log);
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+async function loadDashboard() {
+  /* Два await подряд ждали бы 200 + 300 = 500 мс.
+     Promise.all запускает оба запроса одновременно и ждёт самый долгий (300 мс) */
+  const [profile, posts] = await Promise.all([
+    loadProfile(),
+    loadPosts(),
+  ]);
+
+  return { profile, posts };
+}
+```
+
+</details>
+
+---
+
+## Задача 3. Валидация с кастомной ошибкой `throw` и `finally`
+
+Напиши функцию `withdraw(balance, amount)`:
+1. Если `amount <= 0` — выбрасывает `Error('Сумма должна быть больше нуля')`.
+2. Если `amount > balance` — выбрасывает `Error('Недостаточно средств')`.
+3. Иначе возвращает новый баланс `balance - amount`.
+Оберни вызов в `try / catch / finally`, чтобы в `finally` всегда выводилось `'Операция завершена'`.
+
+```js
+function withdraw(balance, amount) {
+  // Твой код
+}
+
+// Проверь вызов withdraw(1000, 1500) внутри try/catch/finally
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function withdraw(balance, amount) {
+  if (amount <= 0) {
+    throw new Error('Сумма должна быть больше нуля');
+  }
+  if (amount > balance) {
+    throw new Error('Недостаточно средств');
+  }
+  return balance - amount;
+}
+
+try {
+  const nextBalance = withdraw(1000, 1500);
+  console.log('Остаток:', nextBalance);
+} catch (error) {
+  /* Ловим выброшенную ошибку и читаем понятное сообщение */
+  console.error('Ошибка:', error.message);
+} finally {
+  /* Блок finally выполняется всегда — и при успехе, и при ошибке */
+  console.log('Операция завершена');
+}
+```
+
+</details>
+
+---
+
+## Задача 4. Таймаут для долгого запроса (`Promise.race`)
+
+Напиши функцию `withTimeout(promise, ms)`, которая возвращает результат `promise`, если он успел выполниться быстрее `ms` миллисекунд, иначе отклоняет промис с ошибкой `'Время ожидания истекло'`.
+
+```js
+function withTimeout(promise, ms) {
+  // Твой код
+}
+
+const slowTask = new Promise((res) => setTimeout(() => res('Готово'), 1000));
+withTimeout(slowTask, 300).catch((err) => console.log(err.message));
+// 'Время ожидания истекло'
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```js
+function withTimeout(promise, ms) {
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('Время ожидания истекло')), ms);
+  });
+
+  /* Promise.race завершится тем промисом, который сработает первым */
+  return Promise.race([promise, timeoutPromise]);
+}
+```
+
+</details>
+
+---
+
+## Задача 5. Загадка на Event Loop (в каком порядке выведется в консоль?)
+
+Не запуская код, определи точный порядок цифр в консоли.
+
+```js
+console.log('1');
+
+setTimeout(() => console.log('2'), 0);
+
+Promise.resolve().then(() => console.log('3'));
+
+console.log('4');
+```
+
+<details>
+<summary>Показать решение и разбор</summary>
+
+```text
+Порядок вывода: 1 -> 4 -> 3 -> 2
+```
+
+1. `'1'` и `'4'` — синхронный код в Call Stack, выполняется сразу сверху вниз.
+2. `'3'` — `.then(...)` попадает в очередь **микрозадач** (*Microtasks*), которая полностью очищается сразу после синхронного кода.
+3. `'2'` — `setTimeout(..., 0)` попадает в очередь **макрозадач** (*Macrotasks*) и запускается уже после всех микрозадач.
 
 </details>
 

@@ -608,6 +608,18 @@ svg {
   font-weight: 600;
 }
 
+.lesson-link.is-practice {
+  background: color-mix(in srgb, var(--done-color, #16a34a) 10%, transparent);
+  border-left: 3px solid var(--done-color, #16a34a);
+  font-weight: 500;
+}
+
+.lesson-link.is-practice.active {
+  background: color-mix(in srgb, var(--done-color, #16a34a) 20%, transparent);
+  color: var(--done-color, #15803d);
+  font-weight: 700;
+}
+
 .lesson-dot {
   flex-shrink: 0;
   width: 0.5rem;

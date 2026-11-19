@@ -126,6 +126,38 @@ function wrapPracticeAccordions(container) {
   }
 }
 
+/** Оформляет верхнеуровневые задачи в практических блоках как широкие кнопки-аккордеоны. */
+function enhancePracticeTasks(container) {
+  const topDetails = [...container.children].filter((el) => el.tagName === 'DETAILS');
+  for (const details of topDetails) {
+    const summary = details.querySelector(':scope > summary');
+    if (!summary) continue;
+
+    details.classList.add('lesson-accordion');
+    summary.classList.add('lesson-accordion-summary');
+
+    const titleText = summary.textContent.trim();
+    summary.textContent = '';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.className = 'lesson-accordion-title';
+    titleSpan.textContent = titleText;
+
+    const chevron = document.createElement('span');
+    chevron.className = 'lesson-accordion-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '▾';
+
+    summary.append(titleSpan, chevron);
+
+    const body = document.createElement('div');
+    body.className = 'lesson-accordion-body';
+    const contentNodes = [...details.childNodes].filter((node) => node !== summary);
+    body.append(...contentNodes);
+    details.append(body);
+  }
+}
+
 export async function copyToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     await navigator.clipboard.writeText(text);
@@ -535,7 +567,11 @@ export function renderMarkdownLesson(container, markdownText, meta = {}) {
   container.innerHTML = window.marked.parse(markdownText);
   transformCallouts(container);
   wrapTrapsSection(container);
-  wrapPracticeAccordions(container);
+  if (meta.isPractice) {
+    enhancePracticeTasks(container);
+  } else {
+    wrapPracticeAccordions(container);
+  }
   enhanceCodeBlocks(container, meta);
 }
 
@@ -563,6 +599,9 @@ export function renderSidebar(navElement, subjectId, lessons, activeId, statuses
       const link = document.createElement('a');
       link.href = `#${subjectId}/${lesson.id}`;
       link.className = 'lesson-link';
+      if (lesson.type === 'practice') {
+        link.classList.add('is-practice');
+      }
       link.dataset.lessonId = lesson.id;
       if (lesson.id === activeId) {
         link.classList.add('active');

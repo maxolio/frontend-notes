@@ -381,6 +381,7 @@ async function openLesson(lessonId, scrollToHeading = '') {
     renderMarkdownLesson(dom.lessonArticle, markdown, {
       subjectId: activeSubject.id,
       lessonNumber: lesson.number,
+      isPractice: lesson.type === 'practice',
     });
     document.title = `${lesson.title} — ${activeSubject.title} | Frontend Notes by Maxolio`;
 
