@@ -24,8 +24,8 @@ window.navigator;                  /* сведения о браузере и с
 window.screen;                     /* параметры экрана */
 window.location.href;              /* текущий URL-адрес страницы */
 window.history;                    /* история переходов текущей сессии */
-window.localStorage;               /* хранилище данных браузера (и sessionStorage) */
-window.fetch('https://...');       /* отправка сетевых запросов на сервер */
+window.localStorage;         /* хранилище браузера (и sessionStorage) */
+window.fetch('https://...'); /* отправка сетевых запросов на сервер */
 ```
 
 ## 3. DOM — Document Object Model, children vs childNodes (03:24–07:50)
@@ -33,17 +33,19 @@ window.fetch('https://...');       /* отправка сетевых запро
 [+] Свойство window.document содержит представление всей HTML-страницы в виде DOM-дерева: каждый тег и даже вложенный текст — это JS-объект.
 
 ```js
-console.log(document); /* выводит дерево тегов как во вкладке DevTools -> Elements */
-console.dir(document); /* показывает document как JS-объект со свойствами */
+console.log(document); /* дерево тегов как в DevTools -> Elements */
+console.dir(document); /* document как JS-объект со свойствами */
 
 /* У document.children -> [html], у html.children -> [head, body] */
 console.dir(document.body.children);
 /* children — ТОЛЬКО обычные HTML-элементы (теги: div, p, script и т.д.) */
 
 console.dir(document.body.childNodes);
-/* childNodes — ВСЕ узлы (ноды), ВКЛЮЧАЯ текстовые узлы! */
-/* Переносы строк и пробелы между тегами в HTML тоже становятся текстовыми узлами */
-/* У текстового узла нет children, но есть свойство .data с самим текстом строки */
+/*
+  childNodes — ВСЕ узлы (ноды), ВКЛЮЧАЯ текстовые узлы!
+  Переносы строк и пробелы между тегами в HTML тоже становятся #text.
+  У текстового узла нет children, но есть .data с самим текстом строки.
+*/
 ```
 
 [!] В childNodes попадают также HTML-комментарии <!-- ... -->: всё, что написано в разметке, становится узлом DOM. Узнать тип узла можно через свойство nodeType:
@@ -58,7 +60,7 @@ console.dir(document.body.childNodes);
 /* Быстрые точки входа в DOM: */
 document.documentElement; /* корневой тег <html> */
 document.head;            /* тег <head> */
-document.body;            /* тег <body> (будет null, если скрипт в <head> без module!) */
+document.body;            /* <body> (null, если <script> в <head>!) */
 ```
 
 [!] Автоисправление HTML: при чтении битого файла браузер сам достраивает отсутствующие `<html>` и `<body>`, а внутрь любой `<table>` автоматически вставляет обёртку `<tbody>` — даже если вы не писали её в HTML.
@@ -73,16 +75,18 @@ document.body;            /* тег <body> (будет null, если скрип
 
 ```js
 /* Обычный глобальный <script> (без type="module"): */
-console.log(innerWidth); /* ReferenceError, если ниже в файле объявить const innerWidth! */
-const innerWidth = 100;  /* но window.innerWidth по-прежнему работает без ошибки */
+/* ReferenceError, если ниже в файле объявить const innerWidth! */
+console.log(innerWidth);
+const innerWidth = 100;  /* но window.innerWidth работает без ошибки */
 
-const location = 'home'; /* сразу SyntaxError: 'location' has already been declared */
+/* SyntaxError: 'location' has already been declared: */
+const location = 'home';
 
-/* В <script type="module"> или внутри функции своя область видимости — ошибки нет: */
+/* В <script type="module"> или внутри функции ошибки нет: */
 function test() {
-  const location = 'home';     /* допустимо, но ПЕРЕКРЫВАЕТ глобальный location! */
-  console.log(location.href);  /* undefined (ищет .href у строки "home") */
-  console.log(window.location.href); /* правильно: явное обращение к браузеру */
+  const location = 'home';     /* допустимо, но ПЕРЕКРЫВАЕТ window.location */
+  console.log(location.href);  /* undefined (ищет .href у строки 'home') */
+  console.log(window.location.href); /* явное обращение к браузеру */
 }
 ```
 
@@ -90,8 +94,8 @@ function test() {
 
 ```js
 /* Почему старый JS засорял window (вне type="module"): */
-var oldVar = 1;       /* записывается в window.oldVar (может перетереть чужое) */
-const modernVar = 2;  /* window.modernVar === undefined (остаётся отдельной) */
+var oldVar = 1;      /* попадает в window.oldVar (может перетереть чужое) */
+const modernVar = 2; /* window.modernVar === undefined (отдельно) */
 ```
 
 ## 5. Быстрый ориентир: когда нужен DOM, а когда BOM
@@ -150,8 +154,10 @@ const modernVar = 2;  /* window.modernVar === undefined (остаётся отд
 
 **Задача 1. Почини доступ к `document.body` в `<head>` и конфликт с `window.location`**
 
-1) В HTML исправь тег `<script>` внутри `<head>`, чтобы при запуске файла `app.js` свойство `document.body` уже существовало (не равнялось `null`).
-2) В функции `logPageInfo(location)` параметр перекрывает глобальный `location`. Используя `window`, выведи реальный URL страницы, ширину окна браузера, ширину экрана и сам `document.body`.
+Исправь подключение скрипта и конфликт имён с BOM:
+
+1. В HTML исправь тег `<script>` внутри `<head>`, чтобы при запуске файла `app.js` свойство `document.body` уже существовало (не было `null`).
+2. В функции `logPageInfo(location)` параметр перекрывает глобальный `location`. Используя `window`, выведи реальный URL страницы, ширину окна браузера, ширину экрана и сам `document.body`.
 
 ```html
 <!-- 1) Внутри <head> HTML: -->
@@ -177,7 +183,7 @@ logPageInfo('main');
 <summary>Подсказка и решение</summary>
 
 ```html
-<!-- Добавляем defer (или type="module"), чтобы скрипт запустился ПОСЛЕ чтения всего HTML -->
+<!-- defer (или type="module") запустит скрипт ПОСЛЕ чтения всего HTML -->
 <head>
   <script src="./app.js" defer></script>
 </head>
@@ -206,10 +212,11 @@ logPageInfo('main');
 
 **Задача 2. Подсчёт узлов DOM по `nodeType` (`childNodes` против `children`)**
 
-Напиши функцию `inspectBodyNodes()`, которая перебирает `document.body.childNodes` и возвращает объект со статистикой:
-- `elementsCount` — число HTML-элементов (`node.nodeType === 1`),
-- `commentsCount` — число HTML-комментариев (`node.nodeType === 8`),
-- `texts` — массив **непустых** строк из текстовых узлов (`node.nodeType === 3`, текст лежит в `node.data`, пробелы и переносы строк отфильтруй через `.trim()`).
+Напиши функцию `inspectBodyNodes()`, перебирающую `document.body.childNodes` и возвращающую объект со статистикой:
+
+1. `elementsCount` — число HTML-элементов (`node.nodeType === 1`).
+2. `commentsCount` — число HTML-комментариев (`node.nodeType === 8`).
+3. `texts` — массив непустых строк из текстовых узлов (`node.nodeType === 3`, текст лежит в `node.data`, пробелы и переносы отфильтруй через `.trim()`).
 
 ```js
 'use strict';
@@ -231,14 +238,14 @@ function inspectBodyNodes() {
   let commentsCount = 0;
   const texts = [];
 
-  /* childNodes содержит ВСЕ узлы внутри body, включая пробелы-переносы и комментарии */
+  /* childNodes содержит ВСЕ узлы внутри body (включая пробелы и комм.) */
   for (const node of document.body.childNodes) {
     if (node.nodeType === 1) {
       elementsCount++;
     } else if (node.nodeType === 8) {
       commentsCount++;
     } else if (node.nodeType === 3) {
-      /* У текстовых узлов текст хранится в свойстве .data; отсекаем пустые переносы */
+      /* У текстовых узлов текст лежит в .data; отсекаем пустые переносы */
       const trimmed = node.data.trim();
       if (trimmed) texts.push(trimmed);
     }
@@ -254,11 +261,12 @@ console.log(inspectBodyNodes());
 
 **Задача 3. Универсальный отчёт окружения через `globalThis`, BOM и DOM**
 
-Напиши функцию `getEnvironmentReport()`, которая безопасно собирает информацию об окружении в объект (и не падает с ошибкой, даже если скрипт запустят вне браузера, например в Node.js):
-- `hasDocument`: есть ли глобальный `document` (`typeof globalThis.document !== 'undefined'`),
-- `url`: текущий адрес через `globalThis.location?.href ?? 'none'`,
-- `userAgent`: строка браузера из `globalThis.navigator?.userAgent ?? 'unknown'`,
-- `rootChildrenCount`: сколько прямых дочерних тегов лежит внутри `<html>` (`globalThis.document?.documentElement?.children?.length ?? 0`).
+Напиши функцию `getEnvironmentReport()`, которая безопасно собирает объект с данными окружения (не падая даже вне браузера, например в Node.js):
+
+1. `hasDocument` — есть ли глобальный `document` (`typeof globalThis.document !== 'undefined'`).
+2. `url` — текущий адрес через `globalThis.location?.href ?? 'none'`.
+3. `userAgent` — строка браузера из `globalThis.navigator?.userAgent ?? 'unknown'`.
+4. `rootChildrenCount` — сколько прямых дочерних тегов лежит внутри `<html>` (`globalThis.document?.documentElement?.children?.length ?? 0`).
 
 ```js
 'use strict';
@@ -276,15 +284,17 @@ console.log(getEnvironmentReport());
 
 function getEnvironmentReport() {
   /*
-    globalThis работает и в браузере (указывает на window), и в Node.js —
-    поэтому проверка через него и оператор ?. безопасна в любой среде
+    globalThis работает и в браузере (window), и в Node.js —
+    поэтому проверка через него и ?. безопасна в любой среде
   */
+  const rootChildren = globalThis.document?.documentElement?.children;
+
   return {
     hasDocument: typeof globalThis.document !== 'undefined',
     url: globalThis.location?.href ?? 'none',
     userAgent: globalThis.navigator?.userAgent ?? 'unknown',
-    /* У валидной HTML-страницы внутри <html> ровно 2 ребёнка: <head> и <body> */
-    rootChildrenCount: globalThis.document?.documentElement?.children?.length ?? 0,
+    /* У валидной страницы внутри <html> 2 ребёнка: <head> и <body> */
+    rootChildrenCount: rootChildren?.length ?? 0,
   };
 }
 

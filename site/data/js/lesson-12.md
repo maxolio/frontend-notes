@@ -11,14 +11,15 @@
 [+] В браузере вне объекта (без use strict) this ссылается на window. В методе объекта this — сам объект перед точкой: для вложенного address.fn() это именно address.
 
 ```js
-console.log(this); /* глобально -> Window; а в обычной функции с "use strict" -> undefined! */
+/* Глобально -> Window; а в обычной функции с 'use strict' -> undefined! */
+console.log(this);
 
 const user = {
   name: 'Александр',
   logThis() { console.log(this, this.name); }, /* this === user */
   address: {
     city: 'Москва',
-    logInnerThis() { console.log(this); },     /* this === user.address (не user!) */
+    logInnerThis() { console.log(this); }, /* this === user.address! */
   },
 };
 user.logThis();              /* { name: "Александр", ... }, "Александр" */
@@ -43,14 +44,16 @@ logInfo();       /* '' (window.name по умолчанию пустой) */
 user1.logName(); /* 'Миша' — слева от точки user1 */
 user2.logName(); /* 'Вася' — слева от точки user2 */
 
-/* Зато ВНУТРИ обычного метода стрелка спасает this в колбэках (forEach / setTimeout): */
-/* setTimeout(() => this.logName(), 1000); -> this берётся из родительского метода! */
+/*
+  Зато ВНУТРИ обычного метода стрелка спасает this в колбэках:
+  setTimeout(() => this.logName(), 1000); -> this из родительского метода!
+*/
 
 /* Потеря контекста и явная привязка (call / apply / bind): */
-const detached = user1.logName; /* оторвали от user1: detached() потеряет this! */
-logInfo.call(user1);            /* вызывает СРАЗУ с this = user1 (аргументы через ,) */
-logInfo.apply(user1, []);       /* вызывает СРАЗУ с this = user1 (аргументы массивом) */
-const boundFn = user1.logName.bind(user1); /* НЕ вызывает — возвращает копию с this */
+const detached = user1.logName;      /* detached() потеряет this! */
+logInfo.call(user1);                 /* сразу с this = user1 (арг. через ,) */
+logInfo.apply(user1, []);            /* сразу с this = user1 (массивом) */
+const boundFn = user1.logName.bind(user1); /* копия с привязанным this */
 ```
 
 ## 3. Практика: calculator и цепочка вызовов ladder (06:26–14:11)
@@ -69,11 +72,12 @@ const calculator = {
 
 const ladder = {
   step: 0,
-  up()       { this.step++; return this; }, /* return this возвращает сам ladder */
+  up()       { this.step++; return this; }, /* возвращает сам ladder */
   down()     { this.step--; return this; },
   showStep() { console.log(`Ступенька: ${this.step}`); return this; },
 };
-ladder.up().up().down().showStep(); /* Ступенька: 1 (без return this упало бы!) */
+/* Ступенька: 1 (без return this следующий вызов в цепочке упал бы!) */
+ladder.up().up().down().showStep();
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -151,7 +155,12 @@ user.profile.showOwner();
 
 **Задача 1. Почини метод-стрелку и потерю контекста через `bind`**
 
-Сейчас `account.logBalance` написан стрелкой и не видит `this.balance`, а переменная `show` отрывает метод от объекта и теряет контекст. Исправь объявление метода на сокращённое `logBalance() {}` и привяжи `account` к `show` с помощью `.bind()`, чтобы оба вызова вывели `'Елена: 1500 руб.'`.
+Сейчас `account.logBalance` написан стрелкой и не видит `this.balance`, а переменная `show` теряет контекст при отрыве от объекта. Исправь код:
+
+1. Замени стрелочный метод на обычный сокращённый метод `logBalance() {}`.
+2. При сохранении в `show` привяжи контекст `account` через `.bind(account)`.
+
+Проверка: оба вызова `account.logBalance()` и `show()` должны вывести `'Елена: 1500 руб.'`.
 
 ```js
 'use strict';
@@ -204,7 +213,13 @@ show();               /* Елена: 1500 руб. */
 
 **Задача 2. Одна функция для разных объектов (`call` и `apply`)**
 
-Напиши обычную функцию `formatBadge(prefix, suffix)`, которая возвращает строку `` `${prefix} ${this.name} (${this.role})${suffix}` ``. Не записывая её в сами объекты `dev` и `designer`, вызови её и выведи результат: для `dev` — через `.call(...)` с аргументами `'[DEV]'` и `'!'`, для `designer` — через `.apply(...)` с аргументами `'[UX]'` и `'.'`.
+Напиши общую функцию `formatBadge(prefix, suffix)` и вызови её для двух разных объектов без записи внутрь них:
+
+1. Объяви обычную функцию `formatBadge(prefix, suffix)` (не стрелку), возвращающую `` `${prefix} ${this.name} (${this.role})${suffix}` ``.
+2. Вызови её для `dev` через `.call(...)` с аргументами `'[DEV]'` и `'!'`.
+3. Вызови её для `designer` через `.apply(...)` с массивом `['[UX]', '.']`.
+
+Проверка: в консоль должны вывестись `'[DEV] Иван (Frontend)!'` и `'[UX] Мария (UI/UX).'`.
 
 ```js
 'use strict';
@@ -232,18 +247,24 @@ function formatBadge(prefix, suffix) {
   return `${prefix} ${this.name} (${this.role})${suffix}`;
 }
 
-/* call передаёт контекст первым аргументом, а параметры функции — через запятую */
-console.log(formatBadge.call(dev, '[DEV]', '!'));        /* [DEV] Иван (Frontend)! */
+/* call передаёт контекст первым аргументом, а параметры — через запятую */
+console.log(formatBadge.call(dev, '[DEV]', '!')); /* [DEV] Иван (Frontend)! */
 
 /* apply работает так же, но принимает параметры функции единым массивом */
-console.log(formatBadge.apply(designer, ['[UX]', '.'])); /* [UX] Мария (UI/UX). */
+console.log(formatBadge.apply(designer, ['[UX]', '.'])); /* [UX] Мария ... */
 ```
 
 </details>
 
 **Задача 3. Бонусный кошелёк с цепочкой вызовов (`return this`)**
 
-Создай объект `wallet` со свойством `points: 0` и тремя методами, поддерживающими цепочку вызовов: `add(amount)` (прибавляет `amount` к `this.points`), `spend(amount)` (вычитает `amount`, если `this.points >= amount`, иначе печатает `'Недостаточно баллов'`) и `log()` (печатает `Баланс: <points>`).
+Создай объект `wallet` со свойством `points: 0` и тремя методами, поддерживающими чейнинг (`return this`):
+
+1. `add(amount)` — прибавляет `amount` к `this.points` и возвращает `this`.
+2. `spend(amount)` — вычитает `amount`, если `this.points >= amount`, иначе печатает `'Недостаточно баллов'`; в любом исходе возвращает `this`.
+3. `log()` — печатает `` `Баланс: ${this.points}` `` и возвращает `this`.
+
+Проверка: первая цепочка выведет `'Баланс: 120'`, вторая — `'Недостаточно баллов'` и `'Баланс: 120'`.
 
 ```js
 'use strict';
@@ -251,7 +272,7 @@ console.log(formatBadge.apply(designer, ['[UX]', '.'])); /* [UX] Мария (UI/
 /* Твоё решение: */
 
 wallet.add(100).spend(30).add(50).log(); /* Баланс: 120 */
-wallet.spend(200).log();                 /* Недостаточно баллов, затем Баланс: 120 */
+wallet.spend(200).log(); /* Недостаточно баллов, затем Баланс: 120 */
 ```
 
 <details>
@@ -265,7 +286,7 @@ const wallet = {
 
   add(amount) {
     this.points += amount;
-    /* Возвращаем this (сам объект wallet), чтобы сразу вызывать следующий метод */
+    /* Возвращаем сам объект wallet, чтобы вызывать следующий метод */
     return this;
   },
 
@@ -289,7 +310,7 @@ const wallet = {
 };
 
 wallet.add(100).spend(30).add(50).log(); /* Баланс: 120 */
-wallet.spend(200).log();                 /* Недостаточно баллов -> Баланс: 120 */
+wallet.spend(200).log(); /* Недостаточно баллов -> Баланс: 120 */
 ```
 
 </details>

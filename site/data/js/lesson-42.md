@@ -266,7 +266,7 @@ if (filterForm) {
 
 Реализуй переключение вкладок с сохранением активной вкладки в URL (`?tab=...`) так, чтобы работали и прямой переход по ссылке, и кнопки браузера «Назад» / «Вперёд»:
 1) Напиши функцию `renderActiveTab(tabName)`: если панели с `data-tab-panel` для `tabName` нет, берётся имя первой панели (`'profile'`). У кнопок `[data-tab-btn]` и панелей `[data-tab-panel]` переключается класс `'is-active'`, а функция возвращает реально активированное имя вкладки.
-2) При старте страницы прочитай `tab` из `window.location.search`, вызови `renderActiveTab(...)` и запиши стартовое состояние через `window.history.replaceState({ tab: initialTab }, '', window.location.href)`, чтобы при возврате назад в `event.state` не было `null`.
+2. При старте страницы прочитай `tab` из `window.location.search`, вызови `renderActiveTab(...)`, синхронизируй параметр `startUrl.searchParams.set('tab', initialTab)` и запиши стартовое состояние через `window.history.replaceState({ tab: initialTab }, '', startUrl.toString())` (чтобы при битом `?tab=` в URL сразу стояла реальная вкладка, а в `event.state` не было `null`).
 3) По делегированию на `[data-tabs]` обрабатывай клик по `[data-tab-btn]`: если вкладка изменилась — обнови `?tab=` через `new URL(window.location.href)`, добавь запись через `window.history.pushState({ tab: nextTab }, '', nextUrl.toString())` и вызови `renderActiveTab(nextTab)`.
 4) На `window` слушай событие `'popstate'` и синхронизируй вкладку через `renderActiveTab(event.state?.tab ?? new URLSearchParams(window.location.search).get('tab'))`.
 
@@ -323,7 +323,9 @@ if (tabsRoot) {
   /* 1. Инициализация при открытии страницы (учитываем переданный ?tab=... в URL): */
   const startUrl = new URL(window.location.href);
   const initialTab = renderActiveTab(startUrl.searchParams.get('tab'));
-  /* Сохраняем state для первой записи истории, чтобы кнопка Назад всегда знала вкладку: */
+  /* Синхронизируем ?tab= на случай пустого или битого параметра в URL: */
+  startUrl.searchParams.set('tab', initialTab);
+  /* Сохраняем state для первой записи истории, чтобы кнопка Назад знала вкладку: */
   window.history.replaceState({ tab: initialTab }, '', startUrl.toString());
 
   /* 2. Переключение по клику (делегирование на контейнере вкладок): */

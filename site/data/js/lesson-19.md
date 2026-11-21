@@ -8,67 +8,72 @@
 ## 1. Синтаксис class, constructor, свойства, методы и экземпляры (00:56 – 06:42)
 
 ```js
-/* Имя класса пишется с ЗАГЛАВНОЙ буквы. Внутри класса запятые между полями/методами НЕ ставят! */
+/* Имя класса — с заглавной. Запятые между полями и методами НЕ ставят! */
 class Student {
-  /* 1. Свойства в теле класса (без let/const!): если значение известно заранее для всех: */
+  /* 1. Поля в теле класса (без let/const), если значение общее для всех: */
   planet = 'Земля';
-  region; // Без присвоения будет undefined
+  region; /* Без присвоения будет undefined */
 
-  /* 2. constructor — запускается АВТОМАТИЧЕСКИ при каждом вызове new Student(...): */
+  /* 2. constructor запускается автоматически при каждом new Student(...): */
   constructor(name, age) {
-    /* this указывает на конкретный создаваемый экземпляр (firstStudent или secondStudent): */
+    /* this указывает на конкретный создаваемый экземпляр: */
     this.name = name;
     this.age = age;
   }
 
   /* 3. Методы класса (пишутся без слова function): */
   logAge() {
-    /* Внутри методов к свойствам экземпляра ОБЯЗАТЕЛЬНО обращаемся через this: */
-    console.log(this.age); // Просто age даст ошибку: age is not defined!
+    /* Внутри методов к свойствам экземпляра обращаемся через this: */
+    console.log(this.age); /* Просто age даст ReferenceError! */
   }
 
-  /* 4. Потеря this в колбэках (setTimeout/клик): обычный метод потеряет this (undefined!).
-     Стрелка в теле класса НАМЕРТВО привязывает this к экземпляру: */
+  /*
+    4. Потеря this в колбэках (таймер/клик): обычный метод потеряет this.
+       Стрелка в теле класса намертво привязывает this к экземпляру:
+  */
   logAgeBound = () => console.log(this.age);
 }
 
-/* Под капотом: typeof Student === 'function'; класс не всплывает (TDZ), без new не вызвать,
-   а внутри класса ВСЕГДА автоматически включён строгий режим ('use strict'). */
+/*
+  Под капотом: typeof Student === 'function'; класс в TDZ, без new нельзя,
+  а внутри класса всегда автоматически включён строгий режим 'use strict'.
+*/
 const firstStudent = new Student('Вася', 20);
 const secondStudent = new Student('Петя', 22);
-firstStudent.logAge(); // 20  |  secondStudent.name -> 'Петя'
+firstStudent.logAge(); /* 20 | secondStudent.name -> 'Петя' */
 ```
 
 ## 2. Геттеры/сеттеры (get / set) и приватность: _ против # (06:43 – 13:57)
 
 ```js
-/* Геттер (get) перехватывает чтение, сеттер (set) — запись, чтобы добавить свою логику.
-   Внутри класса данные хранят в приватном поле, а снаружи работают через имя геттера/сеттера.
-   - Префикс '_' (_city) — просто старое соглашение ('не трогай снаружи', но доступ открыт).
-   - Префикс '#' (#city) — ЖЁСТКАЯ приватность: JS запретит доступ снаружи (выбросит ошибку)! */
+/*
+  get перехватывает чтение, set — запись. Данные хранят в приватном поле:
+  - '_' (_city) — старое соглашение (снаружи всё ещё доступно);
+  - '#' (#city) — жёсткая приватность: доступ снаружи даёт SyntaxError!
+*/
 class Profile {
-  #city = null; // Приватное поле с # ОБЯЗАТЕЛЬНО объявить в теле класса заранее!
+  #city = null; /* Приватное поле # ОБЯЗАТЕЛЬНО объявить в классе заранее */
 
   constructor(city) {
-    this.city = city;        // Вызовет сеттер set city()
-    this.#someSecretAction(); // Вызвать приватный метод # внутри класса — можно
+    this.city = city;         /* Вызовет сеттер set city() */
+    this.#someSecretAction(); /* Вызвать приватный метод внутри можно */
   }
 
-  set city(value) { // Срабатывает при присвоении: profile.city = 'москва'
+  set city(value) { /* Срабатывает при записи: profile.city = 'москва' */
     const firstLetter = value[0].toUpperCase();
     const restLetters = value.slice(1).toLowerCase();
-    this.#city = `${firstLetter}${restLetters}`; // 'Москва'
+    this.#city = `${firstLetter}${restLetters}`; /* 'Москва' */
   }
 
-  get city() {      // Срабатывает при чтении: profile.city (вызывается БЕЗ скобок ()!)
+  get city() { /* Срабатывает при чтении profile.city (БЕЗ скобок ()!) */
     return `г. ${this.#city}`;
   }
 
   #someSecretAction() { /* Скрытый внутренний метод */ }
 }
 const p = new Profile('москва');
-p.city; // 'г. Москва'  |  p.#city или p.#someSecretAction() снаружи -> SyntaxError!
-/* Важно: #поля и #методы скрыты даже от дочерних классов-наследников (доступ лишь в Profile). */
+p.city; /* 'г. Москва' | p.#city снаружи -> SyntaxError! */
+/* #поля и #методы скрыты даже от наследников (доступ лишь в Profile). */
 ```
 
 ## 3. Статические свойства и методы — static (13:58 – 15:18)
@@ -77,13 +82,13 @@ p.city; // 'г. Москва'  |  p.#city или p.#someSecretAction() снар�
 class Helper {
   static country = 'Россия';
   static logInfo() {
-    /* Внутри static-метода НЕЛЬЗЯ использовать this экземпляра (this.name/this.age -> ошибка)! */
-    console.log('Общий метод класса, без привязки к конкретному экземпляру');
+    /* В static-методе нет this экземпляра (this.name -> undefined)! */
+    console.log('Общий метод класса без привязки к экземпляру');
   }
 }
-/* К static обращаются НАПРЯМУЮ через ИмяКласса, а НЕ через экземпляр (new Helper()): */
-Helper.country;   // 'Россия' (static-свойства и методы также наследуются через extends!)
-Helper.logInfo(); // Работает  |  (new Helper()).logInfo() -> TypeError (не функция!)
+/* К static обращаются через ИмяКласса, а НЕ через new Helper(): */
+Helper.country;   /* 'Россия' (static также наследуются через extends!) */
+Helper.logInfo(); /* Работает | (new Helper()).logInfo() -> TypeError */
 ```
 
 ## 4. Наследование (extends), переопределение методов и super (15:19 – 21:11)
@@ -95,39 +100,41 @@ class Person {
   sleep() { console.log(`${this.name} спит`); }
 }
 
-/* extends наследует ВСЕ свойства и методы родителя Person (можно строить цепочки A -> B -> C): */
+/* extends наследует свойства и методы родителя Person: */
 class Developer extends Person {
-  /* Если переопределяем constructor у наследника — ПЕРВОЙ строкой ОБЯЗАТЕЛЕН super(...)! */
+  /* В constructor наследника ПЕРВОЙ строкой ОБЯЗАТЕЛЕН super(...)! */
   constructor(name, age, experience) {
-    super(name, age); // Вызывает constructor родителя Person (БЕЗ него this выдаст ошибку!)
+    super(name, age); /* Без него обращение к this выдаст ReferenceError! */
     this.experience = experience;
   }
 
-  writeCode() { console.log(`${this.name} пишет код`); } // Новый метод (у Person его нет)
-  sleep()     { console.log('Не спит, кодит!'); }         // Полное переопределение sleep()
+  writeCode() { console.log(`${this.name} пишет код`); } /* Новый метод */
+  sleep()     { console.log('Не спит, кодит!'); }        /* Переопределение */
 
-  eat() { // Расширение родительского метода без копирования его кода:
-    super.eat(); // Вызывает eat() из Person
+  eat() { /* Расширение родительского метода без копирования кода: */
+    super.eat(); /* Вызывает eat() из Person */
     console.log('...и смотрит уроки по JS');
   }
 }
 const dev = new Developer('Саша', 28, 5);
-dev.eat(); // 'Саша кушает' -> '...и смотрит уроки по JS'
-/* Оператор instanceof проверяет, принадлежит ли объект классу (и любому его родителю!): */
-dev instanceof Developer; // true  |  dev instanceof Person -> тоже true!
+dev.eat(); /* 'Саша кушает' -> '...и смотрит уроки по JS' */
+/* instanceof проверяет принадлежность классу и любому его родителю: */
+dev instanceof Developer; /* true | dev instanceof Person -> тоже true! */
 ```
 
 ## 5. Практика во фронтенде: классы для структуры и запуск без переменной (21:12)
 
 ```js
-/* Во фронтенде классы используют не только как 'штамповку' объектов, но и для порядка в коде
-   (FormValidation, Modals, Gallery — каждый компонент отвечает за свой блок интерфейса): */
+/*
+  Во фронтенде классы часто используют для порядка в UI-модулях
+  (FormValidation, Modals, Gallery — каждый отвечает за свой блок):
+*/
 class Modals {
-  constructor() { /* Автоматически находит модалки и вешает события при старте страницы */ }
+  constructor() { /* Находит модалки и вешает события при старте */ }
   static closeAllModals() { /* Закрывает все открытые модалки */ }
 }
-new Modals();            // Иногда экземпляр даже не сохраняют в переменную — нужен лишь запуск!
-Modals.closeAllModals(); // А вспомогательные действия вызывают напрямую через static-метод
+new Modals();            /* Иногда экземпляр даже не сохраняют в const */
+Modals.closeAllModals(); /* Вспомогательное действие через static-метод */
 ```
 
 ## 6. Когда методу в классе нужна стрелка `=>`, а когда нет
@@ -156,13 +163,13 @@ class HeaderScroll {
     new ResizeObserver(this.onResize).observe(document.body);
   }
 
-  /* Стрелка намертво привязывает this к экземпляру + удобно для removeEventListener: */
+  /* Стрелка привязывает this к экземпляру + удобно для removeEventListener */
   onButtonClick = () => {
     this.expand(); /* Внутри стрелки this — наш экземпляр HeaderScroll */
   };
 
   onResize = () => {
-    setTimeout(this.syncWidth, 100); /* В setTimeout тоже передаём без () -> стрелка! */
+    setTimeout(this.syncWidth, 100); /* Передаём без () -> стрелка! */
   };
 
   syncWidth = () => { /* ... */ };
@@ -252,10 +259,13 @@ const item = new Item(100);
 
 **Задача 1. Класс `BankAccount` с приватным полем `#balance` и `get / set`**
 
-Создай класс `BankAccount` с приватным полем `#balance = 0`. В `constructor(owner, initialBalance = 0)` сохрани `this.owner` и запиши начальную сумму через сеттер `this.balance = initialBalance`. Добавь:
-- `set balance(value)`: принимает только число `>= 0` (и не `NaN`), иначе печатает `'Некорректная сумма'` и не меняет `#balance`.
-- `get balance()`: возвращает `#balance`.
-- `deposit(amount)`: если `amount > 0`, увеличивает `this.balance += amount`.
+Создай класс `BankAccount` с защищённым балансом:
+
+1. Объяви приватное поле `#balance = 0`, а в `constructor(owner, initialBalance = 0)` сохрани `this.owner` и запиши сумму через сеттер `this.balance = initialBalance`.
+2. Добавь `set balance(value)`: принимает только конечное число (`Number.isFinite(value)`) `>= 0` (не `NaN` и не `Infinity`), иначе печатает `'Некорректная сумма'` и не меняет `#balance`.
+3. Добавь `get balance()` (возвращает `#balance`) и `deposit(amount)` (если `amount > 0`, делает `this.balance += amount`).
+
+Проверка: после `acc.deposit(500)` и `acc.balance = -200` в консоли появятся `'Некорректная сумма'` и `1500`.
 
 ```js
 'use strict';
@@ -275,21 +285,22 @@ console.log(acc.balance); /* 1500 */
 'use strict';
 
 class BankAccount {
-  /* Приватное поле #balance обязательно объявляется в теле класса заранее */
+  /* Приватное поле #balance объявляется в теле класса заранее */
   #balance = 0;
 
   constructor(owner, initialBalance = 0) {
     this.owner = owner;
-    /* Запись в this.balance сразу прогонит начальную сумму через проверку в set */
+    /* Запись в this.balance прогонит сумму через проверку в set */
     this.balance = initialBalance;
   }
 
   set balance(value) {
-    if (typeof value !== 'number' || Number.isNaN(value) || value < 0) {
+    /* Number.isFinite отсекает не-числа, NaN и Infinity / -Infinity */
+    if (!Number.isFinite(value) || value < 0) {
       console.log('Некорректная сумма');
       return;
     }
-    /* Пишем строго в приватное #balance, а не в this.balance (иначе рекурсия!) */
+    /* Пишем строго в #balance, а не в this.balance (иначе рекурсия!) */
     this.#balance = value;
   }
 
@@ -299,7 +310,7 @@ class BankAccount {
 
   deposit(amount) {
     if (amount > 0) {
-      /* Сначала сработает get balance(), затем сумма запишется через set balance() */
+      /* Сработает get balance(), затем запись через set balance() */
       this.balance += amount;
     }
   }
@@ -315,7 +326,12 @@ console.log(acc.balance); /* 1500 */
 
 **Задача 2. Почини потерю `this` в колбэке и добавь `static` в `Counter`**
 
-Сейчас `runTwice(counter.inc)` падает из-за потери `this`. Перепиши `inc` на стрелочное свойство в теле класса (чтобы `this` не терялся при передаче функции как колбэка), а также добавь в `Counter` статическое свойство `static MAX = 10` и статический метод `static isAllowed(value)`, возвращающий `value <= Counter.MAX`.
+Сейчас `runTwice(counter.inc)` падает из-за потери `this`. Доработай класс `Counter`:
+
+1. Перепиши `inc` на стрелочное свойство в теле класса (`inc = () => ...`), чтобы `this` не терялся при передаче колбэком.
+2. Добавь статическое свойство `static MAX = 10` и статический метод `static isAllowed(value)`, возвращающий `value <= Counter.MAX`.
+
+Проверка: `counter.count` -> `2`, `Counter.isAllowed(5)` -> `true`, `Counter.isAllowed(15)` -> `false`.
 
 ```js
 'use strict';
@@ -354,7 +370,7 @@ function runTwice(callback) {
 }
 
 class Counter {
-  /* Статические члены принадлежат самому классу Counter, а не экземплярам */
+  /* Статические члены принадлежат самому классу Counter */
   static MAX = 10;
 
   static isAllowed(value) {
@@ -364,8 +380,8 @@ class Counter {
   count = 0;
 
   /*
-    Стрелочное поле класса при создании объекта навсегда привязывает this
-    к конкретному counter — при вызове без точки (callback()) контекст не теряется
+    Стрелочное поле при создании объекта навсегда привязывает this
+    к конкретному counter — при вызове без точки контекст не теряется
   */
   inc = () => {
     this.count++;
@@ -384,7 +400,13 @@ console.log(Counter.isAllowed(15)); /* false */
 
 **Задача 3. Наследование `extends`, `super(...)` и расширение метода `format()`**
 
-Создай класс `Notification(title)` с методом `format()`, возвращающим строку `` `[Уведомление] ${this.title}` ``. Затем создай наследника `EmailNotification extends Notification(title, email)`: вызови `super(title)` до записи `this.email = email` и расширь `format()` через `super.format()`, чтобы он возвращал `` `[Уведомление] ${this.title} -> ${this.email}` ``.
+Построй иерархию классов уведомлений:
+
+1. Создай класс `Notification(title)` с методом `format()`, возвращающим `` `[Уведомление] ${this.title}` ``.
+2. Создай наследника `EmailNotification extends Notification(title, email)`: первой строкой вызови `super(title)` до записи `this.email = email`.
+3. Расширь метод `format()` через `super.format()`, чтобы он возвращал `` `[Уведомление] ${this.title} -> ${this.email}` ``.
+
+Проверка: `notice.format()` -> `'[Уведомление] Заказ оплачен -> user@mail.ru'`, оба `instanceof` -> `true`.
 
 ```js
 'use strict';
@@ -393,7 +415,8 @@ console.log(Counter.isAllowed(15)); /* false */
 
 const notice = new EmailNotification('Заказ оплачен', 'user@mail.ru');
 
-console.log(notice.format());                     /* [Уведомление] Заказ оплачен -> user@mail.ru */
+/* '[Уведомление] Заказ оплачен -> user@mail.ru' */
+console.log(notice.format());
 console.log(notice instanceof EmailNotification); /* true */
 console.log(notice instanceof Notification);      /* true */
 ```
@@ -422,14 +445,15 @@ class EmailNotification extends Notification {
   }
 
   format() {
-    /* Переиспользуем базовый вывод через super.format() без дублирования кода */
+    /* Переиспользуем базовый вывод через super.format() без дублирования */
     return `${super.format()} -> ${this.email}`;
   }
 }
 
 const notice = new EmailNotification('Заказ оплачен', 'user@mail.ru');
 
-console.log(notice.format());                     /* [Уведомление] Заказ оплачен -> user@mail.ru */
+/* '[Уведомление] Заказ оплачен -> user@mail.ru' */
+console.log(notice.format());
 console.log(notice instanceof EmailNotification); /* true */
 console.log(notice instanceof Notification);      /* true */
 ```

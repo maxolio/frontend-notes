@@ -13,7 +13,7 @@
 ```js
 const greeting = 'Привет';
 const name = 'Александр';
-const message = `${greeting}, ${name}!`; /* интерполяция вместо склейки через + */
+const message = `${greeting}, ${name}!`; /* интерполяция вместо склейки + */
 
 const a = 5;
 const b = 10;
@@ -30,14 +30,15 @@ const multiLine = `Первая строка
 ```js
 console.log('текст' / 2); /* NaN (typeof NaN === 'number'!) */
 console.log(NaN + 5);     /* NaN — заразен в любых арифметических операциях */
-console.log(NaN === NaN); /* false! NaN не равен сам себе -> проверяют Number.isNaN() */
+console.log(NaN === NaN); /* false! Проверяют через Number.isNaN() */
 
 console.log(1 / 0);       /* Infinity; а -1 / 0 -> -Infinity */
-console.log(0.1 + 0.2);   /* 0.30000000000000004 (особенность дробной памяти IEEE 754) */
+console.log(0.1 + 0.2);   /* 0.30000000000000004 (память IEEE 754) */
 
-const bigNum = 9007199254740991n + 2n; /* BigInt: суффикс n обязателен у обоих чисел! */
-/* 10n + 5;                            -> TypeError: смешивать BigInt и number нельзя */
-const price = 1_000_000;               /* подчёркивание _ для удобного чтения разрядов */
+/* BigInt: суффикс n обязателен у обоих чисел! */
+const bigNum = 9007199254740991n + 2n;
+/* 10n + 5; -> TypeError: смешивать BigInt и number нельзя */
+const price = 1_000_000;  /* _ для удобного чтения разрядов */
 ```
 
 ## 3. `boolean`, `null`, `undefined`, `symbol`, `object` и оператор `typeof` (04:46–08:28)
@@ -46,20 +47,23 @@ const price = 1_000_000;               /* подчёркивание _ для у
 
 ```js
 const isChild = 11 < 18;      /* boolean: true или false */
-let userData = null;          /* null — намеренная пустота (например, до ответа сервера) */
-let notAssigned;              /* undefined — переменная объявлена без значения */
-const id = Symbol('id');      /* symbol — уникальный идентификатор (8-й тип данных) */
+let userData = null;          /* null — намеренная пустота */
+let notAssigned;              /* undefined — объявлена без значения */
+const id = Symbol('id');      /* symbol — уникальный идентификатор */
 
 console.log(typeof 100);         /* 'number' */
 console.log(typeof 100n);        /* 'bigint' */
 console.log(typeof id);          /* 'symbol' */
 console.log(typeof undefined);   /* 'undefined' */
-console.log(typeof null);        /* 'object' — исторический БАГ языка! Проверяют: x === null */
-console.log(typeof [1, 2]);      /* 'object' — массивы тоже объекты. Проверяют: Array.isArray(x) */
-console.log(typeof console.log); /* 'function' — спец. удобство typeof (на деле object) */
+/* 'object' — исторический БАГ языка! Проверяют: x === null */
+console.log(typeof null);
+/* 'object' — массивы тоже объекты. Проверяют: Array.isArray(x) */
+console.log(typeof [1, 2]);
+/* 'function' — спец. удобство typeof (на деле функция — это объект) */
+console.log(typeof console.log);
 
 console.log(typeof 100 + '5');   /* 'number5' — typeof сработал раньше +! */
-console.log(typeof (100 + '5')); /* 'string' — со скобками проверяем тип результата */
+console.log(typeof (100 + '5')); /* 'string' — скобки проверяют сумму */
 ```
 
 ## 4. Неявное и явное преобразование типов (08:29–13:32)
@@ -68,18 +72,19 @@ console.log(typeof (100 + '5')); /* 'string' — со скобками пров�
 
 ```js
 /* Неявное приведение (источник частых багов): */
-console.log(111 + '222');  /* '111222' (string) — при + число стало строкой */
-console.log('16' / '8');   /* 2 (number) — деление превратило строки в числа */
+console.log(111 + '222');  /* '111222' (string) — число стало строкой */
+console.log('16' / '8');   /* 2 (number) — деление привело строки к числам */
 
 /* Явное приведение: */
-console.log(String(11));   /* '11'; обычный объект {} -> '[object Object]', а [1, 2] -> '1,2' */
+/* '11'; объект {} -> '[object Object]', а массив [1, 2] -> '1,2' */
+console.log(String(11));
 console.log(Number('10')); /* 10; строка с буквой '10px' -> NaN */
-console.log(Number('   '));/* 0! пробелы по краям обрезаются, пустая строка -> 0 */
+console.log(Number('   '));/* 0! пробелы обрезаются, пустая строка -> 0 */
 console.log(Number(null), Number(undefined)); /* ВНИМАНИЕ: 0 и NaN! */
 
-/* Все 8 Falsy-значений: false, 0, -0, 0n, '', null, undefined, NaN (всё остальное -> true!) */
-console.log(Boolean('0'), Boolean(' ')); /* true! непустая строка всегда true */
-console.log(Boolean([]), Boolean({}));   /* true! пустой массив и пустой объект — это truthy! */
+/* Все 8 Falsy: false, 0, -0, 0n, '', null, undefined, NaN */
+console.log(Boolean('0'), Boolean(' ')); /* true! непустая строка -> true */
+console.log(Boolean([]), Boolean({}));   /* true! пустые [] и {} — truthy! */
 console.log(Boolean(0), Boolean(''));    /* false */
 ```
 
@@ -153,7 +158,13 @@ console.log(typeof 100 + '5');
 
 **Задача 1. Подсчёт суммы и шаблонная строка**
 
-Из формы пришли две строковые цены `firstPrice` и `secondPrice`. Исправь расчёт так, чтобы вместо склейки строк числа честно сложились, и выведи в консоль через обратные кавычки строку `Итого: 3100 руб.`, а отдельной строкой — тип переменной `total`.
+Из формы пришли две строковые цены `firstPrice` и `secondPrice`, из-за чего оператор `+` склеивает их в `'1200350'` вместо сложения. Почини расчёт:
+
+1. Явно приведи `firstPrice` и `secondPrice` к числу через `Number(...)`, сложи их и умножь на `count`.
+2. Выведи итоговую строку `'Итого: 3100 руб.'` с помощью обратных кавычек и интерполяции `${total}` вместо склейки через `+`.
+3. Отдельной строкой выведи тип переменной `total` через `typeof`.
+
+Проверка: в консоли должны появиться `'Итого: 3100 руб.'` и `'number'`.
 
 ```js
 'use strict';
@@ -179,7 +190,7 @@ const count = 2;
 
 /*
   Оператор + со строкой склеивает их ('1200350'), а не складывает.
-  Приводим обе строки к числу явно через Number(), чтобы получить 1550 * 2 = 3100
+  Приводим обе строки к числу явно через Number(): 1550 * 2 = 3100
 */
 const total = (Number(firstPrice) + Number(secondPrice)) * count;
 
@@ -192,7 +203,13 @@ console.log(typeof total); /* 'number' */
 
 **Задача 2. Почини `BigInt`, сложение и проверку на `NaN`**
 
-Сейчас этот код падает при сложении большого числа, склеивает строку вместо математики и неправильно проверяет `NaN`. Исправь три выражения после комментария так, чтобы в консоль вывелись `10000000000000005n`, `50` и `true`.
+Сейчас код падает с `TypeError` при сложении `BigInt`, склеивает строку `'428'` вместо `50` и неверно проверяет `NaN`. Исправь три выражения после комментария:
+
+1. В `totalBig` добавь суффикс `n` ко второму числу, чтобы оба операнда были типа `bigint`.
+2. В `sum` явно приведи `rawInput` к числу через `Number(...)` перед сложением с `8`.
+3. В `isBroken` замени `brokenResult === NaN` на надёжную проверку `Number.isNaN(...)`.
+
+Проверка: в консоль должны вывестись `10000000000000005n`, `50` и `true`.
 
 ```js
 'use strict';
@@ -219,13 +236,13 @@ console.log(isBroken);
 const rawInput = '42';
 const brokenResult = 'abc' / 2;
 
-/* BigInt нельзя смешивать с обычным number (будет TypeError): суффикс n нужен обоим */
+/* BigInt нельзя смешивать с обычным number (TypeError): суффикс n у обоих */
 const totalBig = 10_000_000_000_000_000n + 5n;
 
-/* Явно переводим '42' в число через Number(), чтобы + сложил числа, а не склеил '428' */
+/* Явно переводим '42' в число через Number(), чтобы + сложил, а не склеил */
 const sum = Number(rawInput) + 8;
 
-/* NaN никогда не равен сам себе (NaN === NaN -> false), проверяем через Number.isNaN() */
+/* NaN никогда не равен сам себе (NaN === NaN -> false), берём Number.isNaN */
 const isBroken = Number.isNaN(brokenResult);
 
 console.log(totalBig); /* 10000000000000005n */

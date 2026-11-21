@@ -14,8 +14,8 @@
 const buttonElement = document.getElementById('myButton');
 /* Найдёт первый элемент с таким id; если не найден — вернёт null */
 
-/* АНТИПАТТЕРН: браузер создаёт глобальную переменную с именем id (если без дефиса) */
-console.log(myButton); /* сработает, но сломается при id='my-button' или своей myButton */
+/* АНТИПАТТЕРН: браузер создаёт глобальную переменную с именем id */
+console.log(myButton); /* сломается при id='my-button' или своей myButton */
 ```
 
 ## 2. Универсальный поиск: querySelector и querySelectorAll (03:14–07:30, 08:48)
@@ -28,19 +28,19 @@ const btnElement = document.querySelector('button');
 const byId = document.querySelector('#myButton');
 const byClass = document.querySelector('.my-button');
 
-/* querySelectorAll — возвращает ВСЕ подходящие элементы в виде NodeList */
+/* querySelectorAll — возвращает ВСЕ подходящие в виде NodeList */
 const listItemElements = document.querySelectorAll('.list-item');
-listItemElements.forEach((el) => console.log(el)); /* у NodeList есть forEach! */
+listItemElements.forEach((el) => console.log(el)); /* есть forEach! */
 
-/* Сужение контекста (ищем не по всей странице, а только внутри wrapperElement) */
+/* Сужение контекста (ищем только внутри wrapperElement): */
 const wrapperElement = document.querySelector('#wrapper');
 const listElement = wrapperElement.querySelector('.list');
 
 /* Несколько селекторов за раз — одной строкой через запятую */
 const mixedElements = document.querySelectorAll('.box-1, .box-3');
 
-/* Псевдоклассы тоже работают; querySelector быстрее querySelectorAll[0] (стоп на 1-м) */
-const activeField = document.querySelector(':focus'); /* кто в фокусе прямо сейчас */
+/* Псевдоклассы тоже работают; querySelector быстрее querySelectorAll[0] */
+const activeField = document.querySelector(':focus'); /* кто в фокусе */
 ```
 
 ## 3. Поиск предка и проверка: closest, matches, contains (07:31–08:47)
@@ -49,12 +49,12 @@ const activeField = document.querySelector(':focus'); /* кто в фокусе 
 
 ```js
 const thirdBoxElement = document.querySelector('.box-3');
-const firstBoxElement = thirdBoxElement.closest('.box-1'); /* поднимется до .box-1 */
-thirdBoxElement.closest('.box-3'); /* вернёт сам thirdBoxElement, т.к. он подходит */
+const firstBoxElement = thirdBoxElement.closest('.box-1'); /* до .box-1 */
+thirdBoxElement.closest('.box-3'); /* вернёт сам thirdBoxElement */
 
 /* Похожие полезные проверки (возвращают true / false): */
-thirdBoxElement.matches('.box-3:hover'); /* подходит ли САМ элемент под CSS-селектор */
-firstBoxElement.contains(thirdBoxElement); /* лежит ли thirdBoxElement внутри firstBox */
+thirdBoxElement.matches('.box-3:hover'); /* подходит ли САМ под селектор */
+firstBoxElement.contains(thirdBoxElement); /* лежит ли внутри firstBox */
 ```
 
 ## 4. Живые getElementsBy* против статического querySelectorAll (09:12–11:15)
@@ -63,15 +63,17 @@ firstBoxElement.contains(thirdBoxElement); /* лежит ли thirdBoxElement в
 
 ```js
 const formElements = document.getElementsByTagName('form');    /* по тегу */
-const groupElements = document.getElementsByClassName('group'); /* по классу */
-const inputElements = document.getElementsByName('email');      /* по атрибуту name */
+const groupElements = document.getElementsByClassName('group'); /* класс */
+const inputElements = document.getElementsByName('email');     /* name */
 
 /* Статический аналог через querySelectorAll с селектором атрибута name: */
 const staticInputs = document.querySelectorAll('[name="email"]');
 
-/* Живая HTMLCollection сама обновится после добавления нового тега в DOM, */
-/* но для forEach её надо перевести в массив: [...formElements].forEach(...) */
-/* Статический NodeList от querySelectorAll НЕ меняется при правках DOM */
+/*
+  Живая HTMLCollection сама обновится после добавления тега в DOM,
+  но для forEach нужен массив: [...formElements].forEach(...).
+  Статический NodeList от querySelectorAll НЕ меняется при правках DOM.
+*/
 ```
 
 ## 5. Нейминг переменных и разделение CSS / JS через data-js-* (11:16–15:30)
@@ -80,17 +82,21 @@ const staticInputs = document.querySelectorAll('[name="email"]');
 
 [+] Правило выбора селектора: class — только для CSS-стилей, id — должен быть уникальным. Чтобы изменение стилей не ломало скрипты, для JS в HTML добавляют специальные атрибуты с префиксом data-js-*.
 
-```js
+```html
 <!-- В HTML отделяем стилизацию (class) от логики (data-js-*) -->
 <div class="slider" data-js-slider>
   <ul class="slider__list" data-js-slider-list>
     <li class="slider__item" data-js-slider-slide>Слайд 1</li>
   </ul>
 </div>
+```
 
+```js
 /* В JS ищем через квадратные скобки (селектор по атрибуту): */
 const sliderElement = document.querySelector('[data-js-slider]');
-const sliderSlideElements = sliderElement.querySelectorAll('[data-js-slider-slide]');
+const sliderSlideElements = sliderElement.querySelectorAll(
+  '[data-js-slider-slide]'
+);
 ```
 
 ## 6. Защита от null, проверка пустого NodeList и шпаргалка выбора
@@ -99,12 +105,12 @@ const sliderSlideElements = sliderElement.querySelectorAll('[data-js-slider-slid
 
 ```js
 const sliderElement = document.querySelector('[data-js-slider]');
-if (!sliderElement) return; /* защита: если блока нет на странице, не упадём ниже */
+if (!sliderElement) return; /* защита: если блока нет, не упадём ниже */
 
-/* Или через опциональную цепочку (?.) при поиске внутри найденного блока: */
+/* Или через опциональную цепочку (?.) при поиске внутри блока: */
 const slides = sliderElement?.querySelectorAll('[data-js-slider-slide]');
 
-/* ВАЖНО: пустой NodeList [] в if (slides) даст true! Проверяем длину .length: */
+/* ВАЖНО: пустой NodeList [] в if (slides) даст true! Проверяем .length: */
 if (!slides.length) {
   console.log('Слайды не найдены');
 }
@@ -170,21 +176,21 @@ const closeBtn = modal.querySelector('.close');
 
 **Задача 1. Безопасный поиск по `data-js-*` внутри контекста**
 
-Напиши функцию `inspectOrderForm()`:
-1) Найди на странице форму по атрибуту `[data-js-order-form]` в переменную `orderFormElement` (если не найдена — сразу верни `null`).
-2) Не делая повторный поиск по всему `document`, найди **внутри `orderFormElement`** все поля по `[data-js-field]` в `fieldElements`.
-3) Верни объект `{ form: orderFormElement, fieldsCount: fieldElements.length }`.
+Напиши функцию `inspectOrderForm()` с сужением области поиска:
+
+1. Найди на странице форму по `[data-js-order-form]` в `orderFormElement` (если не найдена — сразу верни `null`).
+2. Не делая повторный поиск по всему `document`, найди **внутри `orderFormElement`** все поля по `[data-js-field]` в `fieldElements`.
+3. Верни объект `{ form: orderFormElement, fieldsCount: fieldElements.length }`.
+
+```html
+<form class="form" data-js-order-form>
+  <input class="form__input" data-js-field>
+  <input class="form__input" data-js-field>
+</form>
+```
 
 ```js
 'use strict';
-
-/*
-  Ожидаемый HTML на странице:
-  <form class="form" data-js-order-form>
-    <input class="form__input" data-js-field>
-    <input class="form__input" data-js-field>
-  </form>
-*/
 
 /* Твоё решение: */
 function inspectOrderForm() {
@@ -204,7 +210,7 @@ function inspectOrderForm() {
   /* Ищем по data-js-* атрибуту, чтобы смена CSS-классов не сломала JS */
   const orderFormElement = document.querySelector('[data-js-order-form]');
 
-  /* Ранний выход при null: защищаемся от TypeError при поиске внутри формы */
+  /* Ранний выход при null: защищаемся от TypeError при поиске внутри */
   if (!orderFormElement) return null;
 
   /* Сужаем область поиска: ищем поля только внутри уже найденной формы */
@@ -223,20 +229,20 @@ console.log(inspectOrderForm());
 
 **Задача 2. Поиск родителя вверх (`closest`) и проверки `matches` / `contains`**
 
-Напиши функцию `getCardMeta(actionButtonElement)`:
-1) Если `actionButtonElement` пустой (`null`/`undefined`) — верни `null`.
-2) С помощью `.closest('[data-js-card]')` найди родительскую карточку `cardElement` (если карточки вокруг кнопки нет — тоже верни `null`).
-3) С помощью `.matches('[data-js-primary]')` проверь, главная ли это кнопка (`isPrimary`), а через `cardElement.contains(...)` убедись, что кнопка лежит внутри карточки (`isInsideCard`), и верни `{ cardElement, isPrimary, isInsideCard }`.
+Напиши функцию `getCardMeta(actionButtonElement)` для анализа кнопки внутри карточки:
+
+1. Если `actionButtonElement` пустой (`null`/`undefined`) — верни `null`.
+2. С помощью `.closest('[data-js-card]')` найди родительскую карточку `cardElement` (если не найдена — тоже верни `null`).
+3. Через `.matches('[data-js-primary]')` проверь, главная ли кнопка (`isPrimary`), через `cardElement.contains(...)` убедись, что кнопка внутри карточки (`isInsideCard`), и верни `{ cardElement, isPrimary, isInsideCard }`.
+
+```html
+<article class="card" data-js-card>
+  <button type="button" data-js-action data-js-primary>Купить</button>
+</article>
+```
 
 ```js
 'use strict';
-
-/*
-  Ожидаемый HTML на странице:
-  <article class="card" data-js-card>
-    <button type="button" data-js-action data-js-primary>Купить</button>
-  </article>
-*/
 
 /* Твоё решение: */
 function getCardMeta(actionButtonElement) {
@@ -256,11 +262,11 @@ console.log(getCardMeta(btnElement));
 function getCardMeta(actionButtonElement) {
   if (!actionButtonElement) return null;
 
-  /* closest шагает от самой кнопки вверх по родителям до первого совпадения */
+  /* closest шагает от самой кнопки вверх по родителям до совпадения */
   const cardElement = actionButtonElement.closest('[data-js-card]');
   if (!cardElement) return null;
 
-  /* matches проверяет, подходит ли сама кнопка под селектор [data-js-primary] */
+  /* matches проверяет, подходит ли сама кнопка под селектор */
   const isPrimary = actionButtonElement.matches('[data-js-primary]');
 
   /* contains проверяет, является ли кнопка потомком найденной карточки */
@@ -277,11 +283,14 @@ console.log(getCardMeta(btnElement));
 
 **Задача 3. Живая коллекция `getElementsByTagName` против статического `querySelectorAll`**
 
-Напиши функцию `compareLiveAndStatic(listElement)`:
-1) Если `!listElement`, верни `null`.
-2) Получи пункты списка `<li>` внутри `listElement` двумя способами: в `liveItemElements` через `listElement.getElementsByTagName('li')` и в `staticItemElements` через `listElement.querySelectorAll('li')`.
-3) Создай новый тег `<li>` (`document.createElement('li')`) и добавь его в конец `listElement` через `.append(...)`.
-4) Верни объект с итоговыми длинами обеих коллекций (`liveCount` и `staticCount`), чтобы увидеть разницу после мутации DOM.
+Напиши функцию `compareLiveAndStatic(listElement)`, показывающую разницу коллекций после мутации DOM:
+
+1. Если `!listElement`, верни `null`.
+2. Получи пункты `<li>` внутри `listElement` двумя способами: в `liveItemElements` (`getElementsByTagName('li')`) и в `staticItemElements` (`querySelectorAll('li')`).
+3. Создай новый тег `<li>` (`document.createElement('li')`) и добавь его в конец `listElement` через `.append(...)`.
+4. Верни `{ liveCount: liveItemElements.length, staticCount: staticItemElements.length }`.
+
+Проверка: если в `<ul>` было 2 `<li>`, вернётся `{ liveCount: 3, staticCount: 2 }`.
 
 ```js
 'use strict';
@@ -305,7 +314,7 @@ console.log(compareLiveAndStatic(listElement));
 function compareLiveAndStatic(listElement) {
   if (!listElement) return null;
 
-  /* Живая HTMLCollection — автоматически пересчитается при добавлении нового <li> */
+  /* Живая HTMLCollection — пересчитается при добавлении нового <li> */
   const liveItemElements = listElement.getElementsByTagName('li');
 
   /* Статический NodeList — навсегда сохранит снимок на момент поиска */
@@ -315,7 +324,7 @@ function compareLiveAndStatic(listElement) {
   const newItemElement = document.createElement('li');
   listElement.append(newItemElement);
 
-  /* Перебор живой коллекции через forEach возможен только после разворота в массив */
+  /* Перебор живой коллекции через forEach — после разворота в массив */
   [...liveItemElements].forEach((el) => console.log(el));
 
   return {

@@ -12,15 +12,17 @@
 
 ```js
 const price = 99.984;
-console.log(price.toFixed(2));     /* '99.98' (СТРОКА! без аргумента -> 0 знаков) */
-console.log((100).toFixed(2));     /* '100.00' или 100..toFixed(2) — допишет нули */
-console.log(price.toPrecision(4)); /* '99.98' — 4 значащих цифры с начала числа */
+console.log(price.toFixed(2));     /* '99.98' (СТРОКА! без арг. -> 0 зн.) */
+console.log((100).toFixed(2));     /* '100.00' или 100..toFixed(2) */
+console.log(price.toPrecision(4)); /* '99.98' — 4 значащих цифры с начала */
 
 const num = 255;
 console.log(num.toString());       /* '255' */
-console.log(num.toString(2));      /* '11111111' — система счисления от 2 до 36 */
-/* У null и undefined НЕТ обёрток/методов (TypeError). НЕ пишите new Number(0) — в if */
-/* объект всегда true! Подвох IEEE 754: (6.35).toFixed(1) === "6.3" (лечат Math.round). */
+console.log(num.toString(2));      /* '11111111' — основание от 2 до 36 */
+/*
+  У null и undefined нет обёрток (TypeError). НЕ пишите new Number(0) —
+  в if объект всегда true! (6.35).toFixed(1) === '6.3' -> лечат Math.round.
+*/
 ```
 
 ## 2. Объект Math и 4 способа округления чисел (05:25–08:36)
@@ -28,13 +30,14 @@ console.log(num.toString(2));      /* '11111111' — система счисле
 [+] Math хранит математические константы (Math.PI) и методы. В Math.min / Math.max массив передают только со спредом (...nums), иначе будет NaN.
 
 ```js
-console.log(Math.random());          /* случайная дробь от 0 (вкл.) до 1 (не вкл.) */
-const randInt = (min, max) => Math.floor(min + Math.random() * (max + 1 - min));
-/* Случайное целое [min..max] с равной вероятностью (Math.round сбивает края в 2 раза!) */
-console.log(Math.abs(-5));           /* 5 (модуль числа), Math.pow(2, 10) === 1024 */
-console.log(Math.sqrt(16), Math.cbrt(27)); /* 4 (кв. корень) и 3 (куб. корень) */
+console.log(Math.random()); /* случайная дробь от 0 (вкл.) до 1 (не вкл.) */
+/* Случайное целое [min..max] с равными шансами (Math.round сбивает края!): */
+const randInt = (min, max) =>
+  Math.floor(min + Math.random() * (max + 1 - min));
+console.log(Math.abs(-5));  /* 5 (модуль), Math.pow(2, 10) === 1024 */
+console.log(Math.sqrt(16), Math.cbrt(27)); /* 4 (кв.) и 3 (куб. корень) */
 const nums = [10, -5, 42];
-console.log(Math.max(...nums));      /* 42 (без ... будет NaN!) */
+console.log(Math.max(...nums)); /* 42 (без ... будет NaN!) */
 
 /* 4 округления (пример на положительном 3.6 и отрицательном -3.6): */
 Math.round(3.6);  /* 4  — к ближайшему целому (0.5 вверх) */
@@ -48,14 +51,14 @@ Math.trunc(-3.6); /* -3 — просто отрезает дробную час�
 [+] Обычный Number("100px") даст NaN, а parseInt / parseFloat считывают число слева направо до первого нечислового символа (пробелы в начале игнорируются).
 
 ```js
-console.log(parseInt('100px'));     /* 100 — отбросил 'px' (2-й арг. — основание 2..36) */
+console.log(parseInt('100px'));     /* 100 — 2-й аргумент: основание 2..36 */
 console.log(parseInt('100.5px'));   /* 100 — точку считает остановкой */
 console.log(parseFloat('100.5px')); /* 100.5 — читает и дробную часть */
-console.log(parseInt('a100px'));    /* NaN — нечисловой символ стоит в самом начале! */
+console.log(parseInt('a100px'));    /* NaN — нечисловой символ в начале! */
 
-/* Строгие проверки чисел (НЕ приводят аргумент к числу, в отличие от глобальных!): */
-console.log(Number.isNaN('str'));    /* false (глобальный isNaN('str') вернёт true!) */
-console.log(Number.isFinite('123')); /* false (глобальный isFinite('123') вернёт true!) */
+/* Строгие проверки (НЕ приводят тип, в отличие от глобальных): */
+console.log(Number.isNaN('str'));    /* false (глоб. isNaN -> true!) */
+console.log(Number.isFinite('123')); /* false (глоб. isFinite -> true!) */
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -102,7 +105,13 @@ console.log(Number.isFinite('123')); /* false (глобальный isFinite('12
 
 **Задача 1. Почини парсинг `px`, математику после `toFixed` и округление `6.35`**
 
-Сейчас `widthNumber` отбрасывает дробную часть, `totalSum` склеивает строку `'10.505.25'` вместо `15.75`, а `roundedRating` возвращает строку `'6.3'` вместо числа `6.4`. Исправь все три расчёта, используя инструменты урока.
+Сейчас в коде ниже три ошибки работы с числами. Исправь их:
+
+1. В `widthNumber` используй `parseFloat`, чтобы не терять дробную часть у `'45.8px'`.
+2. В `totalSum` явно приведи строку `rawPrice1` (после `toFixed`) к числу через `Number(...)`, чтобы получить `15.75` вместо `'10.505.25'`.
+3. В `roundedRating` округли `6.35` до десятых через `Math.round(rating * 10) / 10`, чтобы обойти погрешность IEEE 754 и получить число `6.4`.
+
+Проверка: в консоль должны вывестись `45.8`, `15.75` и `6.4`.
 
 ```js
 'use strict';
@@ -154,7 +163,11 @@ console.log(roundedRating); /* 6.4 */
 
 **Задача 2. Надёжный ввод числа `readNumber()`**
 
-Напиши функцию `readNumber()`, которая в цикле запрашивает ввод через `prompt('Введите число:', '')`, пока пользователь не введёт корректное конечное число (проверку строй на строгом `Number.isFinite`). Если пользователь нажал Cancel (`null`) или оставил пустую строку (`''`), функция должна вернуть `null`, иначе — введённое число типа `number`.
+Напиши функцию `readNumber()` для безопасного запроса числа у пользователя:
+
+1. В цикле `do..while` запрашивай ввод через `prompt('Введите число:', '')`.
+2. Если пользователь нажал Cancel (`null`) или оставил пустую строку (`''`), сразу верни `null`.
+3. Повторяй запрос, пока `!Number.isFinite(+raw)` истинно; после выхода из цикла верни `+raw`.
 
 ```js
 'use strict';
@@ -197,20 +210,22 @@ console.log(`Результат: ${readNumber()}`);
 
 **Задача 3. Равномерный бросок кубика `randomInteger(min, max)` и поиск минимума/максимума**
 
-Напиши функцию `randomInteger(min, max)`, возвращающую случайное целое число от `min` до `max` включительно с равной вероятностью для каждого числа (через `Math.floor` и `Math.random`). Сделай 3 броска кубика (`1..6`) в массив `rolls` и выведи сам массив, минимальное и максимальное значения через `Math.min` / `Math.max`.
+Симулируй три броска шестигранного кубика и найди крайние результаты:
+
+1. Напиши функцию `randomInteger(min, max)`, возвращающую случайное целое от `min` до `max` включительно с равной вероятностью (через `Math.floor` и `Math.random`).
+2. Сохрани 3 броска (`1..6`) в переменные `roll1`, `roll2`, `roll3`.
+3. Выведи все три значения, а также минимум и максимум через `Math.min` и `Math.max`.
 
 ```js
 'use strict';
 
 /* Твоё решение: */
 
-const rolls = [
-  randomInteger(1, 6),
-  randomInteger(1, 6),
-  randomInteger(1, 6),
-];
+const roll1 = randomInteger(1, 6);
+const roll2 = randomInteger(1, 6);
+const roll3 = randomInteger(1, 6);
 
-/* Выведи rolls, минимум и максимум: */
+/* Выведи roll1, roll2, roll3, минимум и максимум: */
 ```
 
 <details>
@@ -223,18 +238,16 @@ const rolls = [
   Формула с (max + 1 - min) и Math.floor даёт каждому целому числу
   равный интервал шириной 1 (Math.round урезал бы шансы крайних чисел вдвое)
 */
-const randomInteger = (min, max) => Math.floor(min + Math.random() * (max + 1 - min));
+const randomInteger = (min, max) =>
+  Math.floor(min + Math.random() * (max + 1 - min));
 
-const rolls = [
-  randomInteger(1, 6),
-  randomInteger(1, 6),
-  randomInteger(1, 6),
-];
+const roll1 = randomInteger(1, 6);
+const roll2 = randomInteger(1, 6);
+const roll3 = randomInteger(1, 6);
 
-/* Разворачиваем массив спредом ...rolls, иначе Math.min / Math.max вернут NaN */
-console.log(rolls);
-console.log('Минимум:', Math.min(...rolls));
-console.log('Максимум:', Math.max(...rolls));
+console.log('Броски:', roll1, roll2, roll3);
+console.log('Минимум:', Math.min(roll1, roll2, roll3));
+console.log('Максимум:', Math.max(roll1, roll2, roll3));
 ```
 
 </details>

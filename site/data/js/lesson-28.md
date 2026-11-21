@@ -16,9 +16,9 @@ const boxElement = document.querySelector('.box');
 /* Точечное изменение (добавляется в атрибут style="...") */
 boxElement.style.position = 'absolute';
 boxElement.style.top = '10px'; /* число 10 без 'px' проигнорируется! */
-boxElement.style.top = '';     /* пустая строка СБРАСЫВАЕТ стиль обратно к CSS-файлу */
+boxElement.style.top = '';     /* '' сбрасывает стиль обратно к CSS */
 
-/* Перезапись сразу группой свойств (СТИРАЕТ прошлые инлайн-стили, например height!) */
+/* Перезапись группой свойств (СТИРАЕТ прошлые инлайн-стили!) */
 boxElement.style.cssText = `
   position: absolute;
   top: 20px;
@@ -33,18 +33,18 @@ boxElement.style.cssText += 'left: 30px;';
 [!] Свойство elem.style видит ТОЛЬКО инлайновые стили из атрибута style="...". Если ширина задана в отдельном CSS-файле, boxElement.style.width вернёт пустую строку "". Реальные итоговые стили читают через getComputedStyle().
 
 ```js
-console.log(boxElement.style.width); /* "" если ширина задана в .css файле */
+console.log(boxElement.style.width); /* "" если ширина задана в .css */
 
-/* getComputedStyle(elem) — итоговые стили со всех CSS (как DevTools -> Computed) */
-const boxStyles = getComputedStyle(boxElement); /* объект ТОЛЬКО для чтения */
+/* getComputedStyle(elem) — итоговые стили (как DevTools -> Computed) */
+const boxStyles = getComputedStyle(boxElement); /* только для чтения */
 console.log(boxStyles.width);     /* например, "200px" */
-console.log(boxStyles.marginTop); /* просите ПОЛНЫЕ свойства, а не просто "margin"! */
+console.log(boxStyles.marginTop); /* бери полные свойства, не "margin"! */
 
-/* Для расчётов снимаем "px" через parseFloat, потом доклеиваем "px" обратно: */
+/* Для расчётов снимаем "px" через parseFloat, затем доклеиваем "px": */
 const newWidth = parseFloat(boxStyles.width) + 50;
 boxElement.style.width = `${newWidth}px`;
 
-/* 2-й аргумент читает стили псевдоэлемента (обязательно с двумя двоеточиями "::") */
+/* 2-й аргумент читает стили псевдоэлемента (с двумя двоеточиями "::") */
 const afterStyles = getComputedStyle(boxElement, '::after');
 console.log(afterStyles.textDecoration);
 ```
@@ -57,20 +57,20 @@ console.log(afterStyles.textDecoration);
 boxElement.className = 'red'; /* ПЛОХО: сотрёт исходный класс 'box'! */
 
 /* ПРАВИЛЬНО — через classList: */
-boxElement.classList.add('red', 'big');    /* добавит 1 или несколько классов */
-boxElement.classList.remove('red', 'big'); /* удалит 1 или несколько классов */
+boxElement.classList.add('red', 'big');    /* добавит классы */
+boxElement.classList.remove('red', 'big'); /* удалит классы */
 
 /* toggle: если класса нет — добавит; если есть — удалит */
 boxElement.classList.toggle('red');
 
-/* Супер-фишка toggle: 2-й аргумент-условие (boolean) для принудительного состояния */
+/* Супер-фишка toggle: 2-й булев аргумент для принудительного состояния */
 const hasError = true;
-boxElement.classList.toggle('is-invalid', hasError); /* true -> добавит, false -> уберёт */
+boxElement.classList.toggle('is-invalid', hasError); /* true +, false - */
 
 /* contains: проверяет наличие класса (true / false) */
 console.log(boxElement.classList.contains('box'));
-boxElement.classList.replace('old', 'new'); /* заменяет старый класс на новый */
-for (const cls of boxElement.classList) { console.log(cls); } /* перебор классов */
+boxElement.classList.replace('old', 'new'); /* заменяет старый на новый */
+for (const cls of boxElement.classList) { console.log(cls); } /* перебор */
 ```
 
 ## 4. Управление CSS-переменными в JS: setProperty (10:28–11:50)
@@ -85,7 +85,9 @@ boxElement.style.setProperty('--border-color', 'blue', 'important');
 /* setProperty("--border-color", "blue !important") — НЕ сработает! */
 
 /* Чтение CSS-переменной (включая заданные во внешнем CSS-файле): */
-const color = getComputedStyle(boxElement).getPropertyValue('--border-color').trim();
+const color = getComputedStyle(boxElement)
+  .getPropertyValue('--border-color')
+  .trim();
 ```
 
 ## 5. Правило каскада и шпаргалка выбора: classList vs style
@@ -153,15 +155,21 @@ console.log(getComputedStyle(boxElement).margin);
 
 **Задача 1. Управление состояниями через `classList` вместо `className`**
 
-Сейчас функция `setCardState` затирает исходный класс `'card'` через `className = ...`. Перепиши её на методы `classList`: замени `'is-loading'` на `'is-ready'` (`.replace`), включи или сними класс `'is-error'` по булеву флагу `hasError` одним вызовом `.toggle`, и выведи в консоль результат проверки наличия `'card'` через `.contains`.
+Сейчас функция `setCardState` затирает исходный класс `'card'` через `className = ...`. Перепиши её на `classList`:
+
+1. Замени `'is-loading'` на `'is-ready'` с помощью `.replace(...)`.
+2. Включи или сними класс `'is-error'` по булеву флагу `hasError` одним вызовом `.toggle('is-error', Boolean(hasError))`.
+3. Выведи в консоль результат проверки наличия класса `'card'` через `.contains('card')`.
+
+Проверка: после `setCardState(cardElement, true)` у карточки классы `'card'`, `'is-ready'`, `'is-error'`, а в консоли — `true`.
+
+```html
+<div class="card is-loading" data-js-card></div>
+```
 
 ```js
 'use strict';
 
-/*
-  HTML на странице:
-  <div class="card is-loading" data-js-card></div>
-*/
 function setCardState(cardElement, hasError) {
   if (!cardElement) return;
 
@@ -184,13 +192,14 @@ function setCardState(cardElement, hasError) {
   if (!cardElement) return;
 
   /*
-    classList.replace меняет 'is-loading' на 'is-ready', не трогая остальные классы ('card').
-    2-й аргумент toggle гарантирует: true -> добавить 'is-error', false -> убрать
+    replace меняет 'is-loading' на 'is-ready', не трогая 'card'.
+    2-й аргумент toggle гарантирует: true -> добавить, false -> убрать
   */
   cardElement.classList.replace('is-loading', 'is-ready');
   cardElement.classList.toggle('is-error', Boolean(hasError));
 
-  console.log('Есть класс card:', cardElement.classList.contains('card')); /* true */
+  const hasCard = cardElement.classList.contains('card');
+  console.log('Есть класс card:', hasCard); /* true */
 }
 
 const cardElement = document.querySelector('[data-js-card]');
@@ -201,10 +210,11 @@ setCardState(cardElement, true);
 
 **Задача 2. Чтение ширины через `getComputedStyle` и CSS-переменная `setProperty`**
 
-Напиши функцию `expandPanel(panelElement, extraPx, accentColor)`:
-1) Если `!panelElement`, сразу выйди.
-2) Получи текущие вычисленные стили через `getComputedStyle(panelElement)`, вытащи числовую ширину (`parseFloat`), прибавь `extraPx` и запиши новое значение в `panelElement.style.width` с единицами `'px'`.
-3) Установи CSS-переменную `--panel-accent` в `accentColor` с приоритетом `'important'` (третьим аргументом `setProperty`) и выведи её прочитанное через `getComputedStyle(...).getPropertyValue(...)` значение.
+Напиши функцию `expandPanel(panelElement, extraPx, accentColor)` для изменения стилей и CSS-переменной:
+
+1. Если `!panelElement`, сразу выйди.
+2. Получи вычисленные стили через `getComputedStyle(panelElement)`, извлеки числовую ширину (`parseFloat`), прибавь `extraPx` и запиши в `panelElement.style.width` с `'px'`.
+3. Установи `--panel-accent` в `accentColor` с приоритетом `'important'` (3-м аргументом `setProperty`) и выведи прочитанное значение через `getComputedStyle(...).getPropertyValue(...)`.
 
 ```js
 'use strict';
@@ -227,14 +237,14 @@ expandPanel(panelElement, 40, '#2563eb');
 function expandPanel(panelElement, extraPx, accentColor) {
   if (!panelElement) return;
 
-  /* getComputedStyle читает итоговую ширину, даже если она задана в внешнем .css файле */
+  /* getComputedStyle читает итоговую ширину даже из внешнего .css файла */
   const computedStyles = getComputedStyle(panelElement);
   const currentWidth = parseFloat(computedStyles.width) || 0;
 
   /* Инлайновому style обязательно дописываем единицы 'px' */
   panelElement.style.width = `${currentWidth + extraPx}px`;
 
-  /* Меняем CSS-переменную и передаём 'important' строго 3-м аргументом без '!' */
+  /* Меняем CSS-переменную и передаём 'important' 3-м аргументом без '!' */
   panelElement.style.setProperty('--panel-accent', accentColor, 'important');
 
   /* Проверяем итоговое значение переменной с обрезкой лишних пробелов */
@@ -252,14 +262,23 @@ expandPanel(panelElement, 40, '#2563eb');
 
 **Задача 3. Всплывающий тост `showToast(options)` на `classList`, `style` и таймере**
 
-Напиши функцию `showToast({ top = 16, right = 16, extraClass = '', duration = 1500 } = {})`, которая создаёт новый элемент `<div>` (`document.createElement`), задаёт ему класс `'toast'` и при наличии — `extraClass` через `classList.add`, выставляет `position = 'fixed'`, отступы `top` и `right` в пикселях через `style`, добавляет элемент в `document.body` (`.append`) и удаляет его по таймеру `setTimeout` через `duration` миллисекунд.
+Напиши функцию `showToast({ top = 16, right = 16, extraClass = '', duration = 1500 } = {})`:
+
+1. Создай `<div>` через `document.createElement('div')`, добавь класс `'toast'` и при наличии — `extraClass` через `classList.add`.
+2. Выстави `position = 'fixed'`, отступы `top` и `right` в `'px'` через `style`.
+3. Добавь элемент в `document.body` (`.append`) и удали его по таймеру `setTimeout` через `duration` мс.
 
 ```js
 'use strict';
 
 /* Твоё решение: */
 
-showToast({ top: 20, right: 24, extraClass: 'toast--success', duration: 2000 });
+showToast({
+  top: 20,
+  right: 24,
+  extraClass: 'toast--success',
+  duration: 2000,
+});
 ```
 
 <details>
@@ -268,8 +287,13 @@ showToast({ top: 20, right: 24, extraClass: 'toast--success', duration: 2000 });
 ```js
 'use strict';
 
-/* Деструктуризация с дефолтами и '= {}' на случай вызова showToast() без аргументов */
-function showToast({ top = 16, right = 16, extraClass = '', duration = 1500 } = {}) {
+/* Деструктуризация с дефолтами и '= {}' на случай вызова без аргументов */
+function showToast({
+  top = 16,
+  right = 16,
+  extraClass = '',
+  duration = 1500,
+} = {}) {
   const toastElement = document.createElement('div');
 
   /* Базовый и дополнительный модификатор вешаем через classList */
@@ -291,7 +315,12 @@ function showToast({ top = 16, right = 16, extraClass = '', duration = 1500 } = 
   }, duration);
 }
 
-showToast({ top: 20, right: 24, extraClass: 'toast--success', duration: 2000 });
+showToast({
+  top: 20,
+  right: 24,
+  extraClass: 'toast--success',
+  duration: 2000,
+});
 ```
 
 </details>

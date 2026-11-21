@@ -9,90 +9,100 @@
 
 ```js
 const user = { name: 'Александр', age: 28, city: 'Москва' };
-/* Классический for..in перебирает имена ключей (значение получаем через user[key]): */
+/* Классический for..in перебирает имена ключей (значение — user[key]): */
 for (const key in user) { console.log(key, user[key]); }
 
-/* Чтобы работать с объектом методами массивов (forEach, map, filter), получаем массивы: */
-Object.keys(user);    // ['name', 'age', 'city']        — массив ключей (строк)
-Object.values(user);  // ['Александр', 28, 'Москва']    — массив значений
-Object.entries(user); // [['name','Александр'], ['age',28], ['city','Москва']] — массив пар
+/* Чтобы работать с объектом методами массивов, получаем массивы: */
+Object.keys(user);    /* ['name', 'age', 'city'] — ключи */
+Object.values(user);  /* ['Александр', 28, 'Москва'] — значения */
+Object.entries(user); /* [['name', 'Александр'], ['age', 28], ...] */
 
-/* Перебор пар через forEach + деструктуризация [key, value] из [0] и [1] индексов: */
+/* Перебор пар через forEach + деструктуризация [key, value]: */
 Object.entries(user).forEach(([key, value]) => console.log(key, value));
-/* Все 3 метода возвращают НАСТОЯЩИЕ массивы и игнорируют скрытые ключи типа Symbol. */
+/* Все 3 метода возвращают массивы и игнорируют скрытые ключи Symbol. */
 ```
 
 ## 2. Трансформация объекта и обратная сборка — Object.fromEntries (02:42)
 
 ```js
-/* Object.fromEntries делает обратное: превращает массив пар [ключ, значение] в объект. */
+/* Object.fromEntries собирает массив пар [ключ, значение] обратно в объект */
 const entries = Object.entries(user);
-const formattedEntries = entries.map(([key, val]) => [key.toUpperCase(), `--${val}--`]);
+const formattedEntries = entries.map(
+  ([key, val]) => [key.toUpperCase(), `--${val}--`]
+);
 const formattedUser = Object.fromEntries(formattedEntries);
-// { NAME: '--Александр--', AGE: '--28--', CITY: '--Москва--' }
+/* { NAME: '--Александр--', AGE: '--28--', CITY: '--Москва--' } */
 ```
 
 ## 3. Коллекция Map: зачем нужна и базовые методы (03:51 – 06:55)
 
 ```js
-/* В обычном объекте {} все ключи становятся строками ({ 1: 'a', '1': 'b' } -> останется 'b').
-   В Map ключом может быть ЛЮБОЙ тип (число 1 !== строка '1', boolean, даже целый объект!). */
+/*
+  В обычном {} все ключи становятся строками ({ 1: 'a', '1': 'b' } -> 'b').
+  В Map ключом может быть ЛЮБОЙ тип (1 !== '1', boolean, даже объект!).
+*/
 const data = new Map([
-  [1, 'Один как число'],     // Начальные пары можно передать массивом массивов (как entries)
+  [1, 'Один как число'], /* пары можно передать массивом массивов */
   ['1', 'Один как строка'],
 ]);
 
 /* Основные операции с Map (через [] напрямую к Map НЕ обращаются!): */
-data.set('name', undefined); // Добавляет или перезаписывает пару (ключ, значение)
-data.get(1);                 // 'Один как число' | data.get('1') -> 'Один как строка'
-data.has('name');            // true — проверяет наличие САМОГО КЛЮЧА (даже если там undefined!)
-data.size;                   // 3 — СВОЙСТВО (без скобок ()!), количество пар в коллекции
-data.delete('name');         // Удаляет пару по ключу  |  data.clear() — полностью очищает Map
+data.set('name', undefined); /* добавляет или перезаписывает пару */
+data.get(1);                 /* 'Один как число' | get('1') -> строка */
+data.has('name');            /* true — есть ли КЛЮЧ (даже при undefined!) */
+data.size;                   /* 3 — СВОЙСТВО (без скобок ()!) */
+data.delete('name');         /* удаляет пару | clear() — чистит весь Map */
 
-/* Объект в роли ключа + цепочка вызовов + сохранение порядка вставки + NaN: */
+/* Объект в роли ключа + цепочка вызовов + NaN === NaN: */
 const john = { name: 'John' };
-data.set(john, 123).set(NaN, 'не число'); // set возвращает сам Map -> можно писать цепочкой!
-data.get(john); // 123 (ищет по ссылке на объект) | data.get(NaN) -> 'не число' (NaN === NaN!)
+data.set(john, 123).set(NaN, 'не число'); /* set возвращает сам Map */
+data.get(john); /* 123 (по ссылке) | data.get(NaN) -> 'не число' */
 ```
 
 ## 4. Перебор Map и преобразование Object <-> Map (07:11 – 08:30)
 
 ```js
-/* Методы keys(), values(), entries() возвращают перебираемые объекты (итераторы, НЕ массивы!).
-   Перебираем через for..of (или делаем массив через [...data.keys()]): */
+/*
+  keys(), values(), entries() возвращают итераторы (НЕ массивы!).
+  Перебираем через for..of (или делаем массив через [...data.keys()]):
+*/
 for (const key of data.keys()) { console.log(key); }
 for (const val of data.values()) { console.log(val); }
-for (const [key, val] of data.entries()) { console.log(key, val); } // Или сразу: of data
+for (const [key, val] of data.entries()) { console.log(key, val); }
 
-/* ВАЖНО: в собственном data.forEach порядок параметров ИНОЙ, чем у массива и entries: */
-data.forEach((value, key, map) => console.log(key, value)); // Сначала VALUE, потом KEY!
+/* ВАЖНО: в data.forEach порядок параметров ИНОЙ — сначала VALUE, потом KEY */
+data.forEach((value, key, map) => console.log(key, value));
 
 /* Преобразование Object <-> Map: */
-const mapFromObj = new Map(Object.entries(user)); // Объект -> Map
-const objFromMap = Object.fromEntries(data);      // Map -> Объект
-/* Подвох: объект не хранит разные типы ключей (1 и '1' сольются, выживет последний!). */
+const mapFromObj = new Map(Object.entries(user)); /* Объект -> Map */
+const objFromMap = Object.fromEntries(data);      /* Map -> Объект */
+/* Подвох: в объекте ключи 1 и '1' сольются в '1' (выживет последний!). */
 ```
 
 ## 5. Коллекция Set: уникальные значения, методы и перебор (09:05 – 10:41)
 
 ```js
-/* Set хранит только ЗНАЧЕНИЯ (без ключей) в единственном экземпляре и в порядке вставки.
-   Дубликаты при передаче массива или добавлении через add() молча игнорируются! */
-const set = new Set([1, 2, 2, 3, 3, 3]); // Set(3) { 1, 2, 3 }
-/* Главный приём на практике — очистить массив от дублей обратно в массив одной строкой: */
-const unique = [...new Set([1, 2, 2, 3])]; // [1, 2, 3] (или Array.from(new Set(...)))
+/*
+  Set хранит только уникальные ЗНАЧЕНИЯ (без ключей) в порядке вставки.
+  Дубликаты при создании или добавлении через add() молча игнорируются!
+*/
+const set = new Set([1, 2, 2, 3, 3, 3]); /* Set(3) { 1, 2, 3 } */
+/* Главный приём — очистить массив от дублей одной строкой: */
+const unique = [...new Set([1, 2, 2, 3])]; /* [1, 2, 3] */
 
-/* Методы и свойства Set (всё как у Map, только вместо set() -> add()): */
-set.add(4).add(5); // Добавляет значения (тоже работает цепочкой, дубли игнорируются)
-set.has(2);       // true — проверяет наличие значения
-set.delete(2);    // Удаляет значение  |  set.clear() — полностью очищает Set
-set.size;         // Свойство (без скобок ()!) — количество элементов
+/* Методы и свойства Set (как у Map, только вместо set() -> add()): */
+set.add(4).add(5); /* добавляет значения цепочкой (дубли игнорируются) */
+set.has(2);        /* true — проверяет наличие значения */
+set.delete(2);     /* удаляет значение | set.clear() — чистит Set */
+set.size;          /* свойство (без скобок ()!) — число элементов */
 
 /* Перебор Set (for..of и forEach): */
 for (const val of set) { console.log(val); }
 set.forEach((val, val2, setRef) => console.log(val));
-/* Особенность для совместимости с Map: keys() и values() дают одно и то же (значения),
-   а entries() на каждом шаге возвращает массив из двух одинаковых значений [val, val]! */
+/*
+  Для совместимости с Map: keys() и values() дают значения,
+  а entries() возвращает пары из двух одинаковых значений [val, val]!
+*/
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -144,7 +154,7 @@ console.log(map.size, map.get('level'));
 
 </details>
 
-**3. Почему у `map.values().filter(...)` возникнет ошибка `TypeError`, и чему равен `uniqueSet.size`?**
+**3. Почему у `map.values().sort()` возникнет ошибка `TypeError`, а `map.values().length` вернёт `undefined`? Чему равен `uniqueSet.size`?**
 
 ```js
 const uniqueSet = new Set(['А', 'Б', 'А', { x: 1 }, { x: 1 }]);
@@ -154,7 +164,7 @@ console.log(uniqueSet.size);
 <details>
 <summary>Показать ответ</summary>
 
-1. Методы `keys()`, `values()` и `entries()` у `Map` и `Set` возвращают **итераторы, а не массивы**, поэтому методы массивов вроде `.filter` или `.map` у них напрямую вызывать нельзя (`TypeError`). Сначала их преобразуют в массив: `[...map.values()]`.
+1. Методы `keys()`, `values()` и `entries()` у `Map` и `Set` возвращают **итераторы, а не массивы**: у итератора нет свойства `.length` (`undefined`) и нет методов массива вроде `.sort()`, `.includes()` или `.join()` (`TypeError`). Сначала итератор преобразуют в массив: `[...map.values()]`.
 2. `uniqueSet.size` выведет **`4`**: дубль строки `'А'` отбросился, а два литерала `{ x: 1 }` имеют разные ссылки в памяти и считаются разными элементами.
 
 </details>
@@ -163,7 +173,13 @@ console.log(uniqueSet.size);
 
 **Задача 1. Трансформация объекта через `Object.entries` и `Object.fromEntries`**
 
-Напиши функцию `doublePrices(pricesObj)`, которая не мутирует исходный объект, а возвращает новый объект с теми же ключами, где каждая цена умножена на `2`. Используй связку `Object.entries`, `.map` (с деструктуризацией `[key, value]`) и `Object.fromEntries`.
+Напиши функцию `doublePrices(pricesObj)`, которая возвращает новый объект с удвоенными ценами, не меняя исходный:
+
+1. Разбери объект `pricesObj` в массив пар через `Object.entries(...)`.
+2. Удвой каждую цену через `.map(([product, price]) => [product, price * 2])`.
+3. Собери пары обратно в новый объект через `Object.fromEntries(...)`.
+
+Проверка: `doublePrices(prices)` -> `{ apple: 200, banana: 120, coffee: 500 }`, при этом `prices.apple` остаётся `100`.
 
 ```js
 'use strict';
@@ -176,7 +192,7 @@ const prices = {
 
 /* Твоё решение: */
 
-console.log(doublePrices(prices)); /* { apple: 200, banana: 120, coffee: 500 } */
+console.log(doublePrices(prices)); /* { apple: 200, banana: 120, ... } */
 console.log(prices.apple);         /* 100 (оригинал не тронут) */
 ```
 
@@ -203,7 +219,7 @@ function doublePrices(pricesObj) {
   );
 }
 
-console.log(doublePrices(prices)); /* { apple: 200, banana: 120, coffee: 500 } */
+console.log(doublePrices(prices)); /* { apple: 200, banana: 120, ... } */
 console.log(prices.apple);         /* 100 */
 ```
 
@@ -211,9 +227,12 @@ console.log(prices.apple);         /* 100 */
 
 **Задача 2. Удаление дублей через `Set` и подсчёт частоты слов через `Map`**
 
-Напиши две функции:
-1) `getUniqueTags(tags)` — возвращает новый массив только уникальных значений (через `Set` и спред `[...]`).
-2) `countWords(words)` — принимает массив строк и возвращает коллекцию `Map`, где ключ — слово, а значение — сколько раз оно встретилось (удобно читать текущее число через `(map.get(word) ?? 0) + 1`).
+Напиши две функции для работы с коллекциями `Set` и `Map`:
+
+1. `getUniqueTags(tags)` — возвращает новый массив только уникальных значений через `Set` и спред `[...]`.
+2. `countWords(words)` — принимает массив строк и возвращает `Map`, где ключ — слово, а значение — количество вхождений (`(map.get(word) ?? 0) + 1`).
+
+Проверка: `unique` -> `['js', 'css', 'html', 'react']`, `freqMap.get('js')` -> `2`, `freqMap.size` -> `4`.
 
 ```js
 'use strict';
@@ -239,14 +258,14 @@ console.log(freqMap.size);         /* 4 */
 
 const tags = ['js', 'css', 'js', 'html', 'css', 'react'];
 
-/* Оборачиваем массив в Set (удалит дубли) и спредом разворачиваем обратно в массив */
+/* Оборачиваем массив в Set (уберёт дубли) и разворачиваем обратно в [] */
 const getUniqueTags = (list) => [...new Set(list)];
 
 function countWords(words) {
   const map = new Map();
 
   for (const word of words) {
-    /* Если слова ещё нет, get вернёт undefined — подставляем 0 через ?? и прибавляем 1 */
+    /* Если слова ещё нет, get вернёт undefined — подставляем 0 через ?? */
     const currentCount = map.get(word) ?? 0;
     map.set(word, currentCount + 1);
   }
@@ -267,12 +286,20 @@ console.log(freqMap.size);         /* 4 */
 
 **Задача 3. Очистка от анаграмм `aclean(words)` через `Map`**
 
-Анаграммы — это слова из одних и тех же букв в разном порядке (`'nap'` и `'PAN'`, `'ear'` и `'era'`). Напиши функцию `aclean(words)`, которая оставляет в массиве ровно по одному слову из каждой группы анаграмм: приведи каждое слово к единому «ключу» из отсортированных букв в нижнем регистре, сохрани в `Map` и верни массив значений (`[...map.values()]`).
+Анаграммы — это слова из одних и тех же букв в разном порядке (`'nap'` и `'PAN'`). Напиши функцию `aclean(words)`, оставляющую по одному слову из каждой группы:
+
+1. Для каждого слова сделай общий ключ: переведи в нижний регистр, разбей на буквы, отсортируй и склей обратно.
+2. Сохраняй пары `map.set(sortedKey, word)` в коллекцию `Map`.
+3. Верни массив значений через `[...map.values()]`.
+
+Проверка: `aclean(words)` -> `['PAN', 'hectares', 'era']`.
 
 ```js
 'use strict';
 
-const words = ['nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares'];
+const words = [
+  'nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares',
+];
 
 /* Твоё решение: */
 
@@ -285,20 +312,22 @@ console.log(aclean(words)); /* ['PAN', 'hectares', 'era'] */
 ```js
 'use strict';
 
-const words = ['nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares'];
+const words = [
+  'nap', 'teachers', 'cheaters', 'PAN', 'ear', 'era', 'hectares',
+];
 
 function aclean(arr) {
   const map = new Map();
 
   for (const word of arr) {
     /*
-      Делаем общий ключ для всех анаграмм: переводим в нижний регистр,
-      делим на буквы, сортируем по алфавиту и склеиваем обратно ('PAN' -> 'anp')
+      Делаем общий ключ для анаграмм: нижний регистр -> буквы ->
+      сортировка по алфавиту -> склейка обратно ('PAN' -> 'anp')
     */
     const sortedKey = word.toLowerCase().split('').sort().join('');
 
     /*
-      Если такой sortedKey уже есть в Map, новое слово перезапишет старое —
+      Если sortedKey уже есть в Map, новое слово перезапишет старое —
       в итоге под каждым ключом останется ровно 1 слово из группы
     */
     map.set(sortedKey, word);

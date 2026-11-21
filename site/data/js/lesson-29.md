@@ -14,11 +14,11 @@ const box = document.querySelector('.box');
 
 /* Полные внешние габариты (контент + padding + border + scrollbar) */
 console.log(box.offsetWidth, box.offsetHeight);
-/* Координаты относительно ближайшего позиционированного предка (offsetParent): */
+/* Координаты относительно позиционированного предка (offsetParent): */
 console.log(box.offsetParent, box.offsetLeft, box.offsetTop);
 
-/* Отступ от левого/верхнего внешнего края до контентной зоны (padding) */
-console.log(box.clientLeft, box.clientTop); /* обычно ширина левого и верхнего border */
+/* Отступ от левого/верхнего края до контента (обычно ширина border) */
+console.log(box.clientLeft, box.clientTop);
 /* При direction: rtl скроллбар уезжает влево и добавляется к clientLeft! */
 ```
 
@@ -30,7 +30,7 @@ console.log(box.clientLeft, box.clientTop); /* обычно ширина лев�
 
 ```js
 /* Например: offsetHeight 200, border по 20 сверху/снизу, scrollbar 15 */
-console.log(box.clientHeight); /* 200 - 20 - 20 - 15 = 145 (без scroll -> 160) */
+console.log(box.clientHeight); /* 200 - 40 - 15 = 145 (без scroll -> 160) */
 console.log(box.clientWidth);
 ```
 
@@ -46,7 +46,7 @@ const hiddenPart = box.scrollHeight - box.clientHeight;
 box.scroll(10, 50); /* вправо на 10px, вниз на 50px */
 box.scroll({ left: 10, top: 50, behavior: 'smooth' }); /* плавный вариант */
 
-/* scrollLeft / scrollTop — единственные метрики, куда можно ЗАПИСЫВАТЬ значения: */
+/* scrollLeft / scrollTop — единственные метрики, куда можно записывать: */
 box.scrollLeft = 10;
 box.scrollTop = 50;
 console.log(box.scrollLeft, box.scrollTop); /* сколько уже прокручено */
@@ -64,17 +64,17 @@ console.log(box.scrollLeft, box.scrollTop); /* сколько уже прокр�
 const rect = box.getBoundingClientRect();
 
 /* Координаты левого верхнего угла и всех сторон относительно ОКНА: */
-console.log(rect.x, rect.y);          /* левый верхний угол (как left и top) */
-console.log(rect.width, rect.height); /* точные (дробные) с учётом CSS transform: scale */
-/* offsetWidth всегда целое и ИГНОРИРУЕТ CSS-масштабирование transform: scale(...) */
+console.log(rect.x, rect.y);          /* левый верхний угол (left и top) */
+console.log(rect.width, rect.height); /* точные, с учётом transform: scale */
+/* offsetWidth всегда целое и ИГНОРИРУЕТ CSS-масштабирование scale(...) */
 console.log(rect.top, rect.right, rect.bottom, rect.left);
 
-/* Координаты относительно НАЧАЛА ВСЕЙ СТРАНИЦЫ (постоянны при скролле): */
-const pageX = rect.left + window.scrollX; /* подходят для position: absolute */
-const pageY = rect.top + window.scrollY;  /* rect.top/left — для position: fixed */
+/* Координаты относительно НАЧАЛА СТРАНИЦЫ (постоянны при скролле): */
+const pageX = rect.left + window.scrollX; /* для position: absolute */
+const pageY = rect.top + window.scrollY;  /* rect.top/left -> fixed */
 
-/* Обратная задача: какой самый глубокий элемент лежит в окне в точке (x, y)? */
-const elAtPoint = document.elementFromPoint(100, 200); /* или null за экраном */
+/* Какой самый глубокий элемент лежит в окне в точке (x, y)? */
+const elAtPoint = document.elementFromPoint(100, 200); /* или null */
 ```
 
 ## 6. Шпаргалка-матрёшка размеров и 2 главные формулы практики
@@ -85,7 +85,7 @@ const elAtPoint = document.elementFromPoint(100, 200); /* или null за эк�
 - scroll* -> вся простыня целиком (видимое + всё спрятанное за скроллом).
 
 ```js
-/* Формула 1: пользователь доскроллил блок до самого низа? (-1 от дробного зума) */
+/* Формула 1: блок доскроллен до самого низа? (-1 от дробного зума) */
 const isAtBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 1;
 
 /* Формула 2: элемент сейчас виден хотя бы частично в окне браузера? */
@@ -146,9 +146,10 @@ box.scroll(0, 50);
 
 **Задача 1. Остаток прокрутки снизу и ширина системного скроллбара**
 
-Напиши две функции:
-1) `getScrollBottom(boxElement)` — вычисляет, сколько пикселей ещё осталось проскроллить до самого конца элемента `boxElement` (используй `scrollHeight`, `scrollTop` и `clientHeight`).
-2) `getScrollbarWidth()` — вычисляет ширину стандартной полосы прокрутки: создаёт `<div>` размером `50px` на `50px` с `overflowY = 'scroll'`, временно добавляет в `document.body` (иначе метрики будут `0`), считает разницу `offsetWidth - clientWidth` и сразу удаляет элемент через `.remove()`.
+Напиши две утилиты на основе DOM-метрик:
+
+1. `getScrollBottom(boxElement)` — вычисляет, сколько пикселей ещё осталось проскроллить до самого конца `boxElement` (через `scrollHeight`, `scrollTop` и `clientHeight`).
+2. `getScrollbarWidth()` — создаёт `<div>` `50px` x `50px` с `overflowY = 'scroll'`, временно вставляет в `document.body`, считает `offsetWidth - clientWidth` и сразу удаляет элемент через `.remove()`.
 
 ```js
 'use strict';
@@ -178,7 +179,9 @@ function getScrollBottom(boxElement) {
     scrollHeight (вся высота) минус уже прокрученное сверху (scrollTop)
     и видимое окно блока (clientHeight) = остаток снизу
   */
-  return boxElement.scrollHeight - boxElement.scrollTop - boxElement.clientHeight;
+  return (
+    boxElement.scrollHeight - boxElement.scrollTop - boxElement.clientHeight
+  );
 }
 
 function getScrollbarWidth() {
@@ -187,10 +190,10 @@ function getScrollbarWidth() {
   probeElement.style.width = '50px';
   probeElement.style.height = '50px';
 
-  /* Пока элемент не вставлен в DOM, браузер не вычисляет ему размеры (все = 0) */
+  /* Пока элемент не в DOM, браузер не вычисляет размеры (все = 0) */
   document.body.append(probeElement);
 
-  /* Разница между полной шириной и внутренней видимой зоной — толщина скроллбара */
+  /* Разница полной ширины и внутренней видимой зоны — толщина скроллбара */
   const scrollbarWidth = probeElement.offsetWidth - probeElement.clientWidth;
 
   /* Обязательно убираем временный элемент со страницы */
@@ -206,16 +209,26 @@ console.log('Ширина скроллбара (px):', getScrollbarWidth());
 
 **Задача 2. Помести мяч точно в центр поля (`client*` против `offset*`)**
 
-Напиши функцию `centerBallInField(fieldElement, ballElement)`, которая выставляет инлайновые `left` и `top` для абсолютно спозиционированного мяча внутри поля так, чтобы его центр совпал с центром внутренней области поля (рамка `border` поля не должна сбивать расчёт). Не забудь единицы `'px'` и округление через `Math.round`.
+Напиши функцию `centerBallInField(fieldElement, ballElement)` для точного центрирования:
+
+1. Вычисли `left` и `top` так, чтобы центр мяча совпал с центром **внутренней** области поля (рамка `border` поля не должна сбивать расчёт — используй `clientWidth` / `clientHeight` поля и `offsetWidth` / `offsetHeight` мяча).
+2. Округли координаты через `Math.round` и запиши их в `ballElement.style.left` / `top` с единицами `'px'`.
+
+```html
+<div
+  data-js-field
+  style="position: relative; border: 10px solid #000;
+         width: 300px; height: 200px;"
+>
+  <div
+    data-js-ball
+    style="position: absolute; width: 40px; height: 40px;"
+  ></div>
+</div>
+```
 
 ```js
 'use strict';
-
-/*
-  Вёрстка на странице:
-  #field — position: relative; border: 10px solid black; width: 300px; height: 200px;
-  #ball  — position: absolute; width: 40px; height: 40px;
-*/
 
 /* Твоё решение: */
 function centerBallInField(fieldElement, ballElement) {
@@ -237,12 +250,16 @@ function centerBallInField(fieldElement, ballElement) {
   if (!fieldElement || !ballElement) return;
 
   /*
-    left/top у position: absolute считаются от ВНУТРЕННЕГО края поля (после border),
-    поэтому берём clientWidth/clientHeight поля. А у мяча берём полные внешние
-    размеры offsetWidth/offsetHeight и сдвигаем его назад на половину
+    left/top у position: absolute считаются от ВНУТРЕННЕГО края поля
+    (после border), поэтому берём clientWidth/clientHeight поля.
+    У мяча берём полные offsetWidth/offsetHeight и сдвигаем на половину
   */
-  const left = Math.round(fieldElement.clientWidth / 2 - ballElement.offsetWidth / 2);
-  const top = Math.round(fieldElement.clientHeight / 2 - ballElement.offsetHeight / 2);
+  const left = Math.round(
+    fieldElement.clientWidth / 2 - ballElement.offsetWidth / 2
+  );
+  const top = Math.round(
+    fieldElement.clientHeight / 2 - ballElement.offsetHeight / 2
+  );
 
   ballElement.style.left = `${left}px`;
   ballElement.style.top = `${top}px`;
@@ -257,9 +274,10 @@ centerBallInField(fieldElement, ballElement);
 
 **Задача 3. Координаты на странице и проверка видимости элемента в окне**
 
-Напиши функцию `getTargetMetrics(targetElement)`, которая с помощью `getBoundingClientRect()` возвращает объект:
-- `pageTop` и `pageLeft` — координаты верхнего левого угла **относительно всей страницы** (с учётом `window.scrollY` / `window.scrollX`, округлённые через `Math.round`),
-- `isVisible` — виден ли элемент прямо сейчас хотя бы частично в окне браузера (и не скрыт через `display: none`).
+Напиши функцию `getTargetMetrics(targetElement)` на основе `getBoundingClientRect()`, возвращающую объект:
+
+1. `pageTop` и `pageLeft` — координаты верхнего левого угла **относительно всей страницы** (с учётом `window.scrollY` / `window.scrollX`, округлённые через `Math.round`).
+2. `isVisible` — виден ли элемент прямо сейчас хотя бы частично в окне браузера (и не скрыт через `display: none`).
 
 ```js
 'use strict';
@@ -285,11 +303,11 @@ function getTargetMetrics(targetElement) {
   /* Координаты относительно видимого окна браузера (viewport) */
   const rect = targetElement.getBoundingClientRect();
 
-  /* Переводим координаты окна в координаты документа, прибавляя текущую прокрутку */
+  /* Переводим координаты окна в координаты документа через scrollY/X */
   const pageTop = Math.round(rect.top + window.scrollY);
   const pageLeft = Math.round(rect.left + window.scrollX);
 
-  /* Проверяем, что элемент не скрыт (offsetWidth > 0) и пересекается с видимым окном */
+  /* Проверяем, что блок не скрыт (offsetWidth > 0) и пересекается с окном */
   const isInViewport =
     targetElement.offsetWidth > 0 &&
     rect.top < window.innerHeight &&

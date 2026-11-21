@@ -24,7 +24,7 @@ console.log('Сообщение 1');
 wait(5000, () => console.log('Сообщение 2')); /* выполнится через 5 секунд */
 console.log('Сообщение 3');                  /* выведется сразу после 1 */
 
-/* Вывод в консоли: "Сообщение 1" -> "Сообщение 3" -> (через 5 сек) "Сообщение 2" */
+/* Вывод: 'Сообщение 1' -> 'Сообщение 3' -> (через 5 сек) 'Сообщение 2' */
 ```
 
 ## 2. Событийный цикл (Event Loop) и очередь задач (03:29–05:40)
@@ -34,15 +34,17 @@ console.log('Сообщение 3');                  /* выведется ср
 ```js
 console.log('Начало программы');
 
-/* setTimeout регистрирует таймер вне основного потока и не тормозит код ниже */
+/* setTimeout регистрирует таймер вне основного потока и не тормозит код */
 setTimeout(() => {
   console.log('Асинхронная задача выполнена');
 }, 2000);
 
 console.log('Конец программы');
 
-/* Порядок: 1) "Начало программы", 2) "Конец программы" — основной поток пуст,
-   3) через 2 сек колбэк из очереди задач попадает в поток -> "Асинхронная задача..." */
+/*
+  Порядок: 1) 'Начало программы', 2) 'Конец программы' — поток пуст,
+  3) через 2 сек колбэк из очереди попадает в поток -> 'Асинхронная...'
+*/
 ```
 
 [!] В Event Loop есть две разные очереди: микрозадачи (.then/.catch/.finally, код после await) и макрозадачи (setTimeout, клики). После синхронного кода движок сначала полностью очищает очередь микрозадач и только потом берёт 1 макрозадачу.
@@ -64,7 +66,7 @@ console.log('2. Синхронный финиш');
 const makeRequest = (url, onSuccess) => { /* имитация запроса на сервер */ };
 const sellerId = 154;
 
-/* Задача: продавец -> его первый товар -> первый отзыв -> имя автора отзыва */
+/* Задача: продавец -> 1-й товар -> 1-й отзыв -> имя автора отзыва */
 makeRequest(`/api/sellers/${sellerId}`, (seller) => {
   const firstProductId = seller.productIds[0];
 
@@ -101,7 +103,7 @@ const promise = new Promise((fulfill, reject) => {
   }, 3000);
 });
 
-/* Обработка результата: then (успех), catch (ошибка), finally (в любом случае) */
+/* Обработка: then (успех), catch (ошибка), finally (в любом случае) */
 promise
   .then((successData) => {
     console.log('Успех:', successData);
@@ -113,7 +115,7 @@ promise
     console.log('Выполняется всегда: и при успехе, и при ошибке');
   });
 
-/* Альтернатива (менее наглядная): 2 аргумента в then — (onFulfilled, onRejected) */
+/* Альтернатива (менее наглядная): 2 аргумента в then (ok, err) */
 promise.then(
   (successData) => console.log(successData),
   (errorData) => console.log(errorData)
@@ -128,14 +130,14 @@ new Promise(() => {
   throw new Error('Синхронный сбой');
 }).catch((err) => console.log(err.message)); /* "Синхронный сбой" */
 
-/* ОШИБКА: throw внутри setTimeout вылетит мимо .catch в глобальную ошибку! */
+/* ОШИБКА: throw внутри setTimeout вылетит мимо .catch! Нужен reject: */
 new Promise((fulfill, reject) => {
   setTimeout(() => {
-    reject(new Error('Правильный способ для таймера')); /* вместо throw */
+    reject(new Error('Правильный способ для таймера'));
   }, 500);
 }).catch((err) => console.log(err.message));
 
-/* Если у отклонённого промиса нет .catch(), в браузере сработает unhandledrejection */
+/* Если у отклонённого промиса нет .catch(), будет unhandledrejection */
 ```
 
 ## 5. Избавляемся от Callback Hell цепочкой .then().catch() (16:00–17:11)
@@ -150,7 +152,8 @@ const makeRequest = (url) => new Promise((fulfill) => {
 makeRequest(`/api/sellers/${sellerId}`)
   .then((seller) => {
     const firstProductId = seller.productIds[0];
-    return makeRequest(`/api/products/${firstProductId}`); /* возвращаем новый Promise */
+    /* Возвращаем новый Promise, чтобы следующий .then его дождался: */
+    return makeRequest(`/api/products/${firstProductId}`);
   })
   .then((product) => {
     const firstReviewId = product.reviewsIds[0];
@@ -169,10 +172,10 @@ makeRequest(`/api/sellers/${sellerId}`)
 ```js
 makeRequest(`/api/sellers/${sellerId}`)
   .then((seller) => {
-    makeRequest(`/api/products/${seller.productIds[0]}`); /* ЗАБЫЛИ return! */
+    makeRequest(`/api/products/${seller.productIds[0]}`); /* НЕТ return! */
   })
   .then((product) => {
-    console.log(product); /* выведет undefined, не дожидаясь загрузки товара */
+    console.log(product); /* undefined — не дождался загрузки товара */
   });
 ```
 
@@ -181,22 +184,24 @@ makeRequest(`/api/sellers/${sellerId}`)
 [+] Ключевое слово async перед функцией гарантирует, что она всегда вернёт Promise (даже если внутри return обычного значения). Оператор await ждёт завершения промиса и сразу достаёт из него результат.
 
 ```js
-/* Обычное объявление и стрелочная функция (async пишется перед круглыми скобками) */
+/* Обычное объявление и стрелка (async ставится перед скобками): */
 async function getSomething() {
-  return 'Привет!'; /* JS автоматически обернёт строку в fulfilled Promise */
+  return 'Привет!'; /* JS обернёт строку в fulfilled Promise */
 }
 const getAsyncArrow = async () => {
-  return new Promise((fulfill) => setTimeout(() => fulfill('Привет!'), 3000));
+  return new Promise((fulfill) => {
+    setTimeout(() => fulfill('Привет!'), 3000);
+  });
 };
 
-/* Не забываем скобки вызова getSomething(), иначе получим ошибку отсутствия .then */
+/* Не забываем скобки getSomething(), иначе нет метода .then */
 getSomething().then((value) => console.log(value));
 
-/* await без async снаружи даст SyntaxError (кроме <script type="module">) */
+/* await без async снаружи даст SyntaxError (кроме type="module") */
 async function run() {
   console.log('Начало');
-  const result = await getAsyncArrow(); /* ждёт 3 сек и достаёт строку, а не Promise */
-  console.log(result);                  /* выведет "Привет!" только после ожидания */
+  const result = await getAsyncArrow(); /* ждёт 3 сек, достаёт строку */
+  console.log(result);                  /* 'Привет!' после ожидания */
   console.log('Конец');
 }
 run();
@@ -226,8 +231,8 @@ async function showFirstReviewAuthor(sellerId) {
 ```js
 async function testAwait() {
   console.log('2. Внутри функции до await'); /* выполнится синхронно */
-  await Promise.resolve();                  /* пауза функции, хвост -> в микрозадачи */
-  console.log('4. После await');             /* продолжение из очереди микрозадач */
+  await Promise.resolve();                   /* пауза, хвост -> микрозадачи */
+  console.log('4. После await');             /* из очереди микрозадач */
 }
 
 console.log('1. До вызова');
@@ -241,22 +246,27 @@ console.log('3. Код снаружи не ждёт!');
 [+] Если запросы не зависят друг от друга, писать await подряд невыгодно — запросы будут ждать друг друга. Статические методы Promise запускают их одновременно:
 
 ```js
-/* Promise.all: ждёт ВСЕ промисы. Если упадёт хотя бы один — весь all уйдёт в catch */
+/* Promise.all: ждёт ВСЕ. Если упадёт хоть 1 — весь all уйдёт в catch: */
 const [user, orders] = await Promise.all([
   makeRequest('/api/user'),
   makeRequest('/api/orders'),
 ]);
 
-/* Promise.allSettled: ждёт ВСЕ, НЕ падает при ошибке, даёт статус каждого */
+/* Promise.allSettled: ждёт ВСЕ, НЕ падает, даёт статус каждого: */
 const results = await Promise.allSettled([
   Promise.resolve('ОК'),
   Promise.reject('Сбой'),
 ]);
-/* results[0] -> { status: "fulfilled", value: "ОК" }
-   results[1] -> { status: "rejected", reason: "Сбой" } */
+/*
+  results[0] -> { status: 'fulfilled', value: 'ОК' }
+  results[1] -> { status: 'rejected', reason: 'Сбой' }
+*/
 
-/* Promise.race: возвращает результат (или ошибку) того, кто финишировал ПЕРВЫМ */
-const fastest = await Promise.race([makeRequest('/mirror1'), makeRequest('/mirror2')]);
+/* Promise.race: возвращает итог (или ошибку) того, кто финишировал ПЕРВЫМ */
+const fastest = await Promise.race([
+  makeRequest('/mirror1'),
+  makeRequest('/mirror2'),
+]);
 ```
 
 ## 8. Связка с практикой: готовые промисы (fetch), циклы и шпаргалка выбора
@@ -264,14 +274,14 @@ const fastest = await Promise.race([makeRequest('/mirror1'), makeRequest('/mirro
 [+] В реальной работе new Promise пишут редко — в 95% случаев ты получаешь уже готовый Promise от браузера или библиотеки (например, fetch). Конструктор new Promise нужен, чтобы обернуть старый callback-API (вроде setTimeout) под удобный await.
 
 ```js
-/* Ручной new Promise нужен для обёртки колбэков ("промисификация" таймера) */
+/* Ручной new Promise для обёртки колбэков ("промисификация" таймера): */
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/* Готовый Promise от браузера (fetch): await распаковывает ответ и JSON */
+/* Готовый Promise от браузера (fetch): await распаковывает ответ и JSON: */
 async function loadPost(id) {
   await delay(500); /* пауза на полсекунды без блокировки интерфейса */
   const response = await fetch(`https://example.com/posts/${id}`);
-  const data = await response.json(); /* response.json() тоже возвращает Promise */
+  const data = await response.json(); /* .json() тоже возвращает Promise */
   return data;
 }
 ```
@@ -281,7 +291,7 @@ async function loadPost(id) {
 ```js
 const ids = [1, 2, 3];
 
-/* НЕПРАВИЛЬНО: forEach игнорирует async/await и не ждёт завершения запросов */
+/* НЕПРАВИЛЬНО: forEach игнорирует async/await и не ждёт завершения: */
 ids.forEach(async (id) => { await loadPost(id); });
 
 /* ПРАВИЛЬНО (строго по очереди, один за другим): */
@@ -365,7 +375,12 @@ new Promise(() => {
 
 **Задача 1. Промисификация таймера `delay(ms, value)` и обработка `reject`**
 
-Напиши функцию `delay(ms, value = 'Готово')`, возвращающую `Promise`: если `ms < 0`, промис должен сразу отклоняться через `reject(new Error('Отрицательная задержка'))`; иначе спустя `ms` мс — успешно завершаться через `resolve(value)`.
+Напиши функцию `delay(ms, value = 'Готово')`, оборачивающую `setTimeout` в `Promise`:
+
+1. Если `ms < 0`, сразу отклони промис через `reject(new Error('Отрицательная задержка'))` и выйди через `return`, чтобы таймер не ставился.
+2. Иначе через `ms` мс вызови `resolve(value)`.
+
+Проверка: `test()` выведет `'Шаг 1 выполнен'`, а затем `'Ошибка: Отрицательная задержка'`.
 
 ```js
 'use strict';
@@ -394,7 +409,7 @@ test();
 function delay(ms, value = 'Готово') {
   return new Promise((resolve, reject) => {
     /*
-      Проверяем некорректную задержку сразу: вызываем reject с объектом Error
+      Проверяем некорректную задержку сразу: вызываем reject с Error
       и делаем return, чтобы setTimeout уже не ставился
     */
     if (ms < 0) {
@@ -402,7 +417,7 @@ function delay(ms, value = 'Готово') {
       return;
     }
 
-    /* Когда таймер сработает, промис перейдёт в fulfilled с переданным value */
+    /* Когда таймер сработает, промис перейдёт в fulfilled с value */
     setTimeout(() => resolve(value), ms);
   });
 }
@@ -413,7 +428,7 @@ async function test() {
     console.log(msg);
     await delay(-50);
   } catch (err) {
-    console.log('Ошибка:', err.message); /* 'Ошибка: Отрицательная задержка' */
+    console.log('Ошибка:', err.message); /* Отрицательная задержка */
   }
 }
 
@@ -424,7 +439,13 @@ test();
 
 **Задача 2. Перепиши `.then()`-цепочку на `async / await` + `try / catch`**
 
-В коде ниже цепочка `.then()` ломается (забыт `return` перед `fetchOrders`, и нет перехвата ошибок). Перепиши функцию `loadUserReport(userId)` полностью на `async / await` с `try...catch`, чтобы она возвращала строку вида `'Алиса: заказов 2'`, а при ошибке печатала её текст и возвращала `null`.
+В коде ниже цепочка `.then()` ломается из-за забытого `return` и отсутствия обработки ошибок. Перепиши `loadUserReport(userId)`:
+
+1. Сделай функцию `async`, внутри `try` дождись `user = await fetchUser(userId)` и `orders = await fetchOrders(user.id)`.
+2. Верни строку `` `${user.name}: заказов ${orders.length}` ``.
+3. В `catch (err)` выведи `'Ошибка:', err.message` и верни `null`.
+
+Проверка: `loadUserReport(1)` -> `'Алиса: заказов 2'`, `loadUserReport(-1)` -> лог ошибки и `null`.
 
 ```js
 'use strict';
@@ -447,8 +468,8 @@ function loadUserReport(userId) {
     });
 }
 
-loadUserReport(1).then((report) => console.log(report));  /* 'Алиса: заказов 2' */
-loadUserReport(-1).then((report) => console.log(report)); /* 'Ошибка...' -> null */
+loadUserReport(1).then((res) => console.log(res));  /* 'Алиса: заказов 2' */
+loadUserReport(-1).then((res) => console.log(res)); /* 'Ошибка...' -> null */
 ```
 
 <details>
@@ -466,7 +487,7 @@ const fetchOrders = (userId) =>
 
 async function loadUserReport(userId) {
   try {
-    /* await распаковывает Promise и приостанавливает только эту async-функцию */
+    /* await распаковывает Promise и ставит на паузу только эту функцию */
     const user = await fetchUser(userId);
     const orders = await fetchOrders(user.id);
 
@@ -478,15 +499,20 @@ async function loadUserReport(userId) {
   }
 }
 
-loadUserReport(1).then((report) => console.log(report));  /* 'Алиса: заказов 2' */
-loadUserReport(-1).then((report) => console.log(report)); /* 'Ошибка: Некорректный ID' -> null */
+loadUserReport(1).then((res) => console.log(res));  /* 'Алиса: заказов 2' */
+loadUserReport(-1).then((res) => console.log(res)); /* Ошибка -> null */
 ```
 
 </details>
 
 **Задача 3. Параллельная загрузка профилей (`Promise.allSettled` вместо `forEach`)**
 
-Сейчас `loadAllProfiles` использует `forEach`, поэтому не ждёт `await` и сразу возвращает `[]`, а при замене на `Promise.all` она целиком упадёт из-за профиля с `id = 2`. Перепиши функцию через `Promise.allSettled` и `ids.map(...)`, чтобы загрузить все профили параллельно и вернуть массив только успешно загруженных объектов.
+Сейчас `loadAllProfiles` не ждёт `await` внутри `forEach` и сразу возвращает `[]`, а при замене на `Promise.all` целиком упадёт на `id = 2`. Исправь функцию:
+
+1. Запусти все запросы параллельно через `await Promise.allSettled(ids.map((id) => loadProfile(id)))`.
+2. Отфильтруй только успешные результаты (`item.status === 'fulfilled'`) и верни массив их значений (`item.value`).
+
+Проверка: `loadAllProfiles([1, 2, 3])` вернёт массив из двух профилей (`id: 1` и `id: 3`).
 
 ```js
 'use strict';
@@ -524,11 +550,11 @@ const loadProfile = (id) => {
 async function loadAllProfiles(ids) {
   /*
     ids.map запускает все запросы одновременно и возвращает массив промисов.
-    Promise.allSettled дожидается каждого, даже если один из них упал в reject
+    Promise.allSettled ждёт каждый, даже если один из них упал в reject
   */
   const results = await Promise.allSettled(ids.map((id) => loadProfile(id)));
 
-  /* Отбираем только успешные результаты (status === 'fulfilled') и достаём их value */
+  /* Отбираем только успешные (status === 'fulfilled') и достаём их value */
   return results
     .filter((item) => item.status === 'fulfilled')
     .map((item) => item.value);

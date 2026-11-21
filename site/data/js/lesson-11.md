@@ -25,7 +25,8 @@ const areObjectsEqual = (object1, object2) => {
     const areObjects = value1 !== null && value2 !== null
       && typeof value1 === 'object' && typeof value2 === 'object';
     if (areObjects) {
-      if (!areObjectsEqual(value1, value2)) return false; /* не прерывать на 1-м true! */
+      /* Важно: не прерываем на 1-м true, выходим только при false! */
+      if (!areObjectsEqual(value1, value2)) return false;
       continue;
     }
     if (value1 !== value2) return false;
@@ -41,12 +42,12 @@ const areObjectsEqual = (object1, object2) => {
 ```js
 const a = { name: 'Alex', addr: { city: 'Москва' } };
 const b = { age: 28 };
-const copy = { ...a };                  /* поверхностная копия (addr общий по ссылке!) */
-const merged = Object.assign({}, a, b); /* или { ...a, ...b }; дубли затрёт правый */
-const deepCopy = structuredClone(a);    /* нативное ГЛУБОКОЕ клонирование (без функций) */
+const copy = { ...a };                  /* поверхностно (addr общий!) */
+const merged = Object.assign({}, a, b); /* или { ...a, ...b }; дубли правый */
+const deepCopy = structuredClone(a);    /* глубокий клон (без функций) */
 
-/* Безопасное чтение вложенных данных (например, пришедших с сервера): */
-const dateTo = guest.orderInfo?.stayDates?.to ?? 'Не указана'; /* вместо TypeError */
+/* Безопасное чтение вложенных данных без TypeError: */
+const dateTo = guest.orderInfo?.stayDates?.to ?? 'Не указана';
 ```
 
 ## 3. Деструктуризация, переименование, дефолт и ...rest (19:06–29:10)
@@ -56,13 +57,16 @@ const dateTo = guest.orderInfo?.stayDates?.to ?? 'Не указана'; /* вм�
 ```js
 const user = { name: 'Alex', age: 28, company: 'VK', role: 'Front' };
 
-/* Переименование (name -> userName), дефолт для city и сбор остатка в ...otherInfo: */
+/* Переименование (name -> userName), дефолт и остаток в ...otherInfo: */
 const { name: userName, city: userCity = 'Не указано', ...otherInfo } = user;
-/* otherInfo === { company: "VK", role: "Front" }; ...rest ОБЯЗАН быть последним! */
+/* otherInfo -> { company: 'VK', role: 'Front' }; ...rest всегда последний */
 
-/* Деструктуризация в параметрах (= {} защитит от вызова без аргумента) и вложенная: */
-/* const { addr: { city } = {} } = a; -> достанет city, а переменная addr не создастся */
-const logAddress = ({ city, street, house = 1 } = {}) => console.log(city, street, house);
+/*
+  Деструктуризация в параметрах (= {} защитит от вызова без аргумента).
+  Вложенная: const { addr: { city } = {} } = a; (создаст только city)
+*/
+const logAddress = ({ city, street, house = 1 } = {}) =>
+  console.log(city, street, house);
 logAddress({ street: 'Пушкина', city: 'Москва', house: 10 });
 ```
 
@@ -136,7 +140,12 @@ const printUser = ({ name: userName = 'Гость' }) => console.log(userName);
 
 **Задача 1. Глубокое клонирование `structuredClone` и слияние через `{ ... }`**
 
-Создай независимую глубокую копию `defaultConfig` в переменную `clonedConfig` через `structuredClone` и измени в ней `clonedConfig.limits.maxItems = 50` (оригинал должен остаться `10`). Затем с помощью спред-синтаксиса `{ ... }` объедини `defaultConfig` и `userOverrides` в новый объект `finalConfig`, чтобы настройки пользователя перезаписали базовые.
+Потренируй разницу между глубоким копированием и слиянием объектов:
+
+1. Создай независимую глубокую копию `defaultConfig` в `clonedConfig` через `structuredClone` и поменяй `clonedConfig.limits.maxItems = 50` (оригинал должен остаться `10`).
+2. Объедини `defaultConfig` и `userOverrides` в новый объект `finalConfig` через спред `{ ... }`, чтобы поля пользователя перезаписали базовые.
+
+Проверка: в консоли должны появиться `10`, `50` и `'dark' true`.
 
 ```js
 'use strict';
@@ -190,7 +199,13 @@ console.log(finalConfig.theme, finalConfig.notifications); /* 'dark' true */
 
 **Задача 2. Деструктуризация параметров и опциональная цепочка `?.`**
 
-Напиши стрелочную функцию `formatCity`, которая принимает объект заказа: в параметрах деструктурируй `customerName` с переименованием в `clientName` и значением по умолчанию `'Аноним'`, а также свойство `shipping` (добавь `= {}` на случай вызова без аргументов). Внутри безопасно достань город `shipping?.address?.city ?? 'Самовывоз'` и верни строку вида `'Иван: Москва'`.
+Напиши стрелочную функцию `formatCity`, которая безопасно форматирует город доставки из заказа:
+
+1. В параметрах деструктурируй `customerName` с переименованием в `clientName` и значением по умолчанию `'Аноним'`, а также свойство `shipping`.
+2. Добавь `= {}` к объекту параметров, чтобы вызов `formatCity()` без аргументов не падал.
+3. Внутри достань город через `shipping?.address?.city ?? 'Самовывоз'` и верни строку вида `'Иван: Москва'`.
+
+Проверка: `formatCity(order1)` -> `'Иван: Москва'`, `formatCity(order2)` -> `'Анна: Самовывоз'`, `formatCity()` -> `'Аноним: Самовывоз'`.
 
 ```js
 'use strict';
@@ -218,9 +233,11 @@ console.log(formatCity());       /* Аноним: Самовывоз */
   = {} защищает от вызова formatCity() без аргумента;
   customerName переименовали в clientName и задали дефолт 'Аноним'
 */
-const formatCity = ({ customerName: clientName = 'Аноним', shipping } = {}) => {
+const formatCity = (
+  { customerName: clientName = 'Аноним', shipping } = {}
+) => {
   /*
-    Опциональная цепочка ?. спасает от TypeError при shipping === null/undefined,
+    Опциональная цепочка ?. спасает от TypeError при null/undefined,
     а ?? подставляет 'Самовывоз', если в итоге получился undefined или null
   */
   const city = shipping?.address?.city ?? 'Самовывоз';
@@ -242,7 +259,13 @@ console.log(formatCity());       /* Аноним: Самовывоз */
 
 **Задача 3. Рекурсивное сравнение вложенных объектов `areObjectsEqual`**
 
-Напиши функцию `areObjectsEqual(obj1, obj2)`, которая глубоко сравнивает два объекта по содержимому: сверь количество ключей через `Object.keys`, перебери ключи в `for..in`, проверь наличие ключа во втором объекте через `in`, а если оба значения — не-`null` объекты (`typeof ... === 'object'`), сравни их рекурсивно.
+Напиши функцию `areObjectsEqual(obj1, obj2)`, которая глубоко сравнивает два объекта по содержимому:
+
+1. Если `obj1 === obj2`, сразу верни `true`; если хотя бы один из аргументов не является не-`null` объектом (`!obj1 || !obj2 || typeof obj1 !== 'object' || typeof obj2 !== 'object'`), верни `false`.
+2. Сверь количество ключей через `Object.keys(obj).length` (подсказка: `Object.keys(obj)` возвращает список собственных ключей объекта, у которого есть свойство `.length`).
+3. Перебери ключи в `for..in`, проверь наличие ключа во втором объекте через `in`, а если оба значения — вложенные объекты, сравни их рекурсивным вызовом `areObjectsEqual`.
+
+Проверка: `areObjectsEqual(a, b)` -> `true`, `areObjectsEqual(a, c)` -> `false`, `areObjectsEqual(a, null)` -> `false`.
 
 ```js
 'use strict';
@@ -253,8 +276,9 @@ const c = { name: 'Алекс', meta: { level: 3, active: true } };
 
 /* Твоё решение: */
 
-console.log(areObjectsEqual(a, b)); /* true */
-console.log(areObjectsEqual(a, c)); /* false */
+console.log(areObjectsEqual(a, b));    /* true */
+console.log(areObjectsEqual(a, c));    /* false */
+console.log(areObjectsEqual(a, null)); /* false */
 ```
 
 <details>
@@ -270,6 +294,14 @@ const c = { name: 'Алекс', meta: { level: 3, active: true } };
 const areObjectsEqual = (obj1, obj2) => {
   /* Если ссылки ведут на один и тот же объект — сразу true */
   if (obj1 === obj2) return true;
+
+  /* Защита от null и примитивов (иначе Object.keys(null) даст TypeError) */
+  if (
+    !obj1 || !obj2 ||
+    typeof obj1 !== 'object' || typeof obj2 !== 'object'
+  ) {
+    return false;
+  }
 
   /* Быстрая проверка: при разном количестве ключей объекты точно не равны */
   if (Object.keys(obj1).length !== Object.keys(obj2).length) return false;
@@ -287,7 +319,7 @@ const areObjectsEqual = (obj1, obj2) => {
       typeof val1 === 'object' && typeof val2 === 'object';
 
     if (areBothObjects) {
-      /* Если вложенные объекты не равны — сразу false; при true идём проверять дальше */
+      /* Если вложенные объекты не равны — false; при true идём дальше */
       if (!areObjectsEqual(val1, val2)) return false;
       continue;
     }
@@ -298,8 +330,9 @@ const areObjectsEqual = (obj1, obj2) => {
   return true;
 };
 
-console.log(areObjectsEqual(a, b)); /* true */
-console.log(areObjectsEqual(a, c)); /* false */
+console.log(areObjectsEqual(a, b));    /* true */
+console.log(areObjectsEqual(a, c));    /* false */
+console.log(areObjectsEqual(a, null)); /* false */
 ```
 
 </details>

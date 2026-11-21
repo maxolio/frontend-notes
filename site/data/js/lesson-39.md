@@ -188,7 +188,7 @@ new FormsValidation(); /* автозапуск компонента валида
 Напиши функцию `validateField(fieldElement)`:
 1) Проверь флаги объекта `fieldElement.validity` по словарю сообщений (`valueMissing`, `typeMismatch`, `tooShort` с `minLength`, `patternMismatch` с `title`).
 2) Найди блок вывода ошибки **не через `parentElement`**, а по ID из атрибута `aria-errormessage` (через `document.getElementById`).
-3) Выведи собранные ошибки через `.textContent` (объединив через `', '`), обнови `fieldElement.ariaInvalid = !isValid` и верни `isValid` (`boolean`).
+3. Выведи собранные ошибки через `.textContent` (объединив через `', '`), обнови `fieldElement.ariaInvalid = String(!isValid)` (или `setAttribute('aria-invalid', String(!isValid))`) и верни `isValid` (`boolean`).
 
 ```js
 'use strict';
@@ -246,7 +246,8 @@ function validateField(fieldElement) {
   }
 
   const isValid = messages.length === 0;
-  fieldElement.ariaInvalid = !isValid;
+  /* ariaInvalid принимает строку 'true' или 'false' */
+  fieldElement.ariaInvalid = String(!isValid);
   return isValid;
 }
 

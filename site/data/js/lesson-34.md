@@ -274,7 +274,7 @@ initTooltips();
 Напиши функцию `initRangeSlider(trackElement, thumbElement)` для перетаскивания бегунка строго по горизонтали внутри шкалы:
 1) На `pointerdown` по `thumbElement`: захвати указатель (`setPointerCapture(event.pointerId)`), вычисли смещение `shiftX = event.clientX - thumbElement.getBoundingClientRect().left` и включи `isDragging = true`.
 2) На `pointermove` по `thumbElement`: если `isDragging`, рассчитай `newLeft = event.clientX - shiftX - trackElement.getBoundingClientRect().left`, ограничь его в диапазоне `[0 .. trackElement.clientWidth - thumbElement.offsetWidth]` через `Math.max` / `Math.min` и обнови `thumbElement.style.left` в `'px'`.
-3) На `pointerup`: выключи `isDragging = false`.
+3. На `pointerup` и `pointercancel`: выключи `isDragging = false` (`pointercancel` спасает от залипания ползунка на планшете/телефоне при системном жесте или звонке).
 
 ```js
 'use strict';
@@ -328,9 +328,13 @@ function initRangeSlider(trackElement, thumbElement) {
     thumbElement.style.left = `${Math.round(newLeft)}px`;
   });
 
-  thumbElement.addEventListener('pointerup', () => {
+  const stopDragging = () => {
     isDragging = false;
-  });
+  };
+
+  thumbElement.addEventListener('pointerup', stopDragging);
+  /* pointercancel сбрасывает перетаскивание, если жест прерван системой */
+  thumbElement.addEventListener('pointercancel', stopDragging);
 }
 
 const trackElement = document.querySelector('[data-js-track]');

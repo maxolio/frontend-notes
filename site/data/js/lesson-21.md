@@ -8,33 +8,37 @@
 ## 1. Конструкция try...catch: перехват ошибок (00:22 – 03:04)
 
 ```js
-/* Без try...catch любая ошибка обрушит скрипт и код после неё не выполнится.
-   В try пишем опасный код; в catch (error) — что делать, если возникла ошибка: */
+/*
+  Без try...catch любая ошибка обрушит скрипт и код ниже не выполнится.
+  В try пишем опасный код; в catch (error) — обработку сбоя:
+*/
 console.log('Начало кода');
 
 try {
   const names = undefined;
-  names.forEach((n) => console.log(n)); // Здесь возникнет TypeError!
-  console.log('Эта строка НЕ выполнится'); // При ошибке try сразу прерывается!
-} catch (error) { // Параметр (error) опционален — если детали не нужны, можно просто catch {}
+  names.forEach((n) => console.log(n)); /* Здесь возникнет TypeError! */
+  console.log('Эта строка НЕ выполнится'); /* try сразу прерывается! */
+} catch (error) { /* Параметр (error) опционален — можно просто catch {} */
   console.log('Возникла ошибка:', error);
 }
 
-console.log('Конец кода'); // Выполнится в ЛЮБОМ случае — скрипт не упал!
+console.log('Конец кода'); /* Выполнится в любом случае — скрипт жив! */
 ```
 
 ## 2. Что try...catch НЕ ловит: синтаксис и асинхронный код (03:05 – 04:43)
 
 ```js
-/* 1. ОШИБКИ ПАРСИНГА (SyntaxError в самом JS-коде):
-   Если в файле есть невалидный JS (например, сломанная скобка), движок не сможет даже
-   прочитать файл до запуска — весь скрипт не выполнится, try...catch не спасёт! */
+/*
+  1. ОШИБКИ ПАРСИНГА (SyntaxError в самом JS-коде):
+     Если в файле невалидный JS (сломана скобка), движок не сможет даже
+     прочитать файл до запуска — try...catch не спасёт!
 
-/* 2. АСИНХРОННЫЙ КОД (например, setTimeout):
-   Снаружи НЕ поймает, т.к. к срабатыванию таймера через 3 сек try...catch уже завершится: */
-// try { setTimeout(() => noSuchFn(), 3000); } catch (e) {}  <- НЕ СРАБОТАЕТ!
+  2. АСИНХРОННЫЙ КОД (например, setTimeout):
+     Снаружи НЕ поймает, т.к. к срабатыванию таймера try...catch уже вышел!
+     НЕ СРАБОТАЕТ: try { setTimeout(() => noSuchFn(), 3000); } catch (e) {}
+*/
 
-/* ПРАВИЛЬНО — поместить try...catch ВНУТРЬ колбэка асинхронной функции: */
+/* ПРАВИЛЬНО — поместить try...catch ВНУТРЬ асинхронного колбэка: */
 setTimeout(() => {
   try {
     noSuchFn();
@@ -48,31 +52,35 @@ setTimeout(() => {
 
 ```js
 try {
-  JSON.parse('{ "age": 28, }'); // Ошибка JSON (висячая запятая)
+  JSON.parse('{ "age": 28, }'); /* Ошибка JSON (висячая запятая) */
 } catch (error) {
   /* error — это объект с 3 главными свойствами: */
-  console.log(error.name);    // Имя/тип ошибки: 'SyntaxError' (или TypeError, ReferenceError)
-  console.log(error.message); // Пояснение: причина ошибки текстом
-  console.log(error.stack);   // Стек вызовов: файл, строка, колонка и цепочка вызовов
+  console.log(error.name);    /* Тип ошибки: 'SyntaxError', 'TypeError'... */
+  console.log(error.message); /* Пояснение: причина ошибки текстом */
+  console.log(error.stack);   /* Стек вызовов: файл, строка и цепочка */
 }
 ```
 
 ## 4. Свои ошибки через throw и классы Error (06:03 – 09:47)
 
 ```js
-/* Бывают ситуации, когда синтаксически всё чисто, но данных нет (логическая ошибка).
-   Оператор throw ('бросить') вручную перебрасывает выполнение в catch: */
-const userJson = '{ "age": 28 }'; // С сервера пришло без обязательного поля name!
+/*
+  Если синтаксически всё чисто, но данных не хватает (логический сбой),
+  оператор throw вручную перебрасывает выполнение в catch:
+*/
+const userJson = '{ "age": 28 }'; /* Пришло без обязательного поля name */
 
 try {
   const user = JSON.parse(userJson);
   if (!user.name) {
-    /* Можно throw 'строка', но ПРАВИЛЬНО бросать экземпляр класса Error (или TypeError,
-       SyntaxError, RangeError) — тогда у ошибки будут все 3 поля: name, message, stack! */
+    /*
+      Бросай экземпляр Error (или TypeError / SyntaxError / RangeError),
+      чтобы у ошибки были все 3 поля: name, message и stack:
+    */
     throw new Error('Имя пользователя не заполнено');
   }
 } catch (error) {
-  console.log(error.name, error.message); // 'Error' 'Имя пользователя не заполнено'
+  console.log(error.name, error.message); /* 'Error' 'Имя...' */
 }
 
 /* Свой класс ошибки + Проброс неизвестной ошибки (Rethrowing): */
@@ -83,7 +91,7 @@ try {
   throw new ValidationError('Неверный email');
 } catch (err) {
   if (err instanceof ValidationError) { console.log(err.message); }
-  else { throw err; } // Чужую/неизвестную ошибку (напр. опечатку) пробрасываем дальше!
+  else { throw err; } /* Чужую ошибку (например, опечатку) пробрасываем! */
 }
 ```
 
@@ -95,13 +103,17 @@ try {
 } catch (error) {
   console.log('Обработали ошибку:', error.message);
 } finally {
-  /* Опциональный блок: выполнится ВСЕГДА самым последним (даже перед return внутри try!).
-     Можно писать и try...finally (без catch), если ошибку ловить не нужно, а уборку — надо. */
+  /*
+    Выполнится ВСЕГДА самым последним (даже перед return внутри try!).
+    Можно писать и try...finally без catch, если нужна только уборка.
+  */
   console.log('Блок finally выполнился');
 }
 
-/* Глобальный перехват всех непойманных ошибок в браузере (для логов на сервер): */
-window.onerror = (message, url, line, col, error) => console.log('Глобально:', message);
+/* Глобальный перехват всех непойманных ошибок в браузере: */
+window.onerror = (message, url, line, col, error) => {
+  console.log('Глобально:', message);
+};
 ```
 
 ## 6. Смысл отлова ошибок: когда нужен, когда вреден и как всплывает
@@ -178,7 +190,12 @@ try {
 
 **Задача 1. Безопасный парсер `safeParseJson` и перехват ошибки внутри таймера**
 
-Напиши функцию `safeParseJson(jsonString, fallback = null)`, которая в `try...catch` парсит строку через `JSON.parse`: при успехе возвращает данные, при ошибке выводит `err.name` и `err.message` в консоль и возвращает `fallback`. Ниже также исправь таймер `setTimeout`, чтобы ошибка `'Ошибка внутри таймера'` реально перехватывалась.
+Реализуй безопасный разбор JSON и почини перехват ошибки в таймере:
+
+1. Напиши `safeParseJson(jsonString, fallback = null)`: в `try...catch` парси строку через `JSON.parse`; при успехе возвращай результат, при ошибке выводи `err.name` и `err.message` и возвращай `fallback`.
+2. Перенеси `try...catch` внутрь колбэка `setTimeout`, чтобы ошибка `'Ошибка внутри таймера'` реально перехватывалась.
+
+Проверка: `safeParseJson('{"ok":true}')` -> `{ ok: true }`, `safeParseJson('{bad json}', {})` -> `{}`.
 
 ```js
 'use strict';
@@ -205,7 +222,7 @@ console.log(safeParseJson('{bad json}', {})); /* {} + сообщение об о
 
 function safeParseJson(jsonString, fallback = null) {
   try {
-    /* На границе с внешними данными JSON.parse всегда оборачиваем в try...catch */
+    /* На границе с внешними данными JSON.parse оборачиваем в try...catch */
     return JSON.parse(jsonString);
   } catch (err) {
     console.log(`Ошибка JSON (${err.name}): ${err.message}`);
@@ -233,7 +250,13 @@ console.log(safeParseJson('{bad json}', {})); /* {} */
 
 **Задача 2. Свой класс `FormatError extends SyntaxError` и гарантия `finally`**
 
-Создай класс ошибки `FormatError`, унаследованный от `SyntaxError` (в конструкторе вызови `super(message)` и задай `this.name = 'FormatError'`). Затем напиши функцию `parsePrice(raw)` с блоком `try...catch...finally`: если строка `raw` не начинается со знака `'$'`, выброси `new FormatError('Цена должна начинаться с $')`; иначе извлеки число после `'$'` и верни его (при `NaN` или `<= 0` выброси `new Error('Некорректное число')`). В `catch` выведи ошибку и верни `null`, а в `finally` всегда печатай `'Проверка цены завершена'`.
+Создай свой класс ошибки и функцию разбора цены с гарантированным `finally`:
+
+1. Объяви класс `FormatError extends SyntaxError`: в конструкторе вызови `super(message)` и задай `this.name = 'FormatError'`.
+2. В `parsePrice(raw)` внутри `try`: если `raw` не строка или не начинается с `'$'`, выброси `new FormatError('Цена должна начинаться с $')`; иначе извлеки число после `'$'` (если `!Number.isFinite(num) || num <= 0`, выброси `new Error('Некорректное число')`) и верни его.
+3. В `catch` выведи ошибку и верни `null`, а в `finally` всегда печатай `'Проверка цены завершена'`.
+
+Проверка: `parsePrice('$120')` -> лог `finally`, затем `120`; `parsePrice('120')` -> лог ошибки, лог `finally`, затем `null`.
 
 ```js
 'use strict';
@@ -256,7 +279,7 @@ console.log(parsePrice('120'));  /* лог ошибки, лог finally -> null 
 
 class FormatError extends SyntaxError {
   constructor(message) {
-    /* super(message) передаёт текст в SyntaxError/Error и формирует stack */
+    /* super(message) передаёт текст в SyntaxError/Error и строит stack */
     super(message);
     this.name = 'FormatError';
   }
@@ -288,16 +311,20 @@ console.log(errSample instanceof FormatError); /* true */
 console.log(errSample instanceof SyntaxError); /* true */
 
 console.log(parsePrice('$120')); /* 'Проверка цены завершена' -> 120 */
-console.log(parsePrice('120'));  /* 'FormatError: ...' -> 'Проверка...' -> null */
+console.log(parsePrice('120'));  /* FormatError -> finally -> null */
 ```
 
 </details>
 
 **Задача 3. Фильтрация и проброс неизвестной ошибки (`Rethrowing`)**
 
-Реализуй функцию `readUserAge(json, simulateBug = false)`:
-1) Внутри `try` распарси JSON и проверь, что `user.age` — число (иначе выброси `new ValidationError('Некорректный возраст')`); при `simulateBug === true` вызови несуществующую функцию `noSuchFn()` для имитации бага в коде.
-2) В `catch (err)` обработай только ожидаемые ошибки данных (`err instanceof ValidationError || err instanceof SyntaxError`) — выведи сообщение и верни `null`. **Любую другую ошибку** пробрось дальше через `throw err` и поймай её во внешнем `try...catch`.
+Реализуй функцию `readUserAge(json, simulateBug = false)` с пробросом чужих ошибок:
+
+1. Внутри `try`: при `simulateBug === true` вызови несуществующую функцию `noSuchFn()`; распарси JSON и проверь, что `user.age` — число (иначе выброси `new ValidationError('Поле age должно быть числом')`).
+2. В `catch (err)`: обработай только ожидаемые ошибки (`err instanceof ValidationError || err instanceof SyntaxError`) — выведи сообщение и верни `null`.
+3. Любую другую ошибку пробрось дальше через `throw err` и перехвати её во внешнем `try...catch`.
+
+Проверка: `'{"age": 25}'` -> `25`, `'{"name": "A"}'` -> `null`, а `readUserAge('{"age": 25}', true)` поймается во внешнем `catch`.
 
 ```js
 'use strict';
@@ -335,7 +362,7 @@ class ValidationError extends Error {
 
 function readUserAge(json, simulateBug = false) {
   try {
-    if (simulateBug) noSuchFn(); /* вызовет ReferenceError (баг кода, не данных) */
+    if (simulateBug) noSuchFn(); /* вызовет ReferenceError (баг кода) */
 
     const user = JSON.parse(json);
     if (typeof user.age !== 'number' || Number.isNaN(user.age)) {
@@ -350,7 +377,7 @@ function readUserAge(json, simulateBug = false) {
       return null;
     }
 
-    /* Чужую/неизвестную ошибку не прячем — пробрасываем наверх через throw */
+    /* Чужую/неизвестную ошибку не прячем — пробрасываем наверх */
     throw err;
   }
 }
@@ -359,10 +386,10 @@ console.log(readUserAge('{"age": 25}'));   /* 25 */
 console.log(readUserAge('{"name": "A"}')); /* Ошибка данных -> null */
 
 try {
-  /* Ошибка изнутри readUserAge пролетит через её catch во внешний перехватчик */
+  /* Ошибка из readUserAge пролетит через её catch во внешний перехватчик */
   readUserAge('{"age": 25}', true);
 } catch (err) {
-  console.log(`Критическая ошибка программы (${err.name}): ${err.message}`);
+  console.log(`Критическая ошибка (${err.name}): ${err.message}`);
 }
 ```
 

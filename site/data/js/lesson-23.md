@@ -12,7 +12,7 @@
 [!] Просто разрезать код на `<script src="...">` — ещё НЕ модули: все файлы сидят в одной глобальной области видимости, перезаписывают чужие переменные и падают с ReferenceError, если порядок тегов `<script>` перепутан. Атрибут type="module" изолирует каждый файл.
 
 ```html
-<!-- Без type="module": общая область видимости, критичен порядок подключения -->
+<!-- Без type="module": общая область, критичен порядок подключения -->
 <script src="tabs.js"></script>
 <script src="modals.js"></script>
 
@@ -29,14 +29,14 @@
 /* --- Файл tabs.js: способ 1 — export сразу при объявлении --- */
 export const tabsSelectors = { root: '.tabs' };
 
-/* --- Файл tabs.js: способ 2 — единый список в конце файла (чаще удобнее) --- */
+/* --- Файл tabs.js: способ 2 — единый список в конце файла --- */
 const tabsSelectors = { root: '.tabs' };
 const tabsData = [1, 2, 3];
 export { tabsSelectors, tabsData };
 
 /* --- Файл modals.js: импорт в самом начале файла --- */
 import { tabsSelectors, tabsData } from './tabs.js';
-/* Для браузерных JS-модулей обязательны "./" в начале и расширение ".js" в конце */
+/* В браузерных модулях обязательны "./" в начале и ".js" в конце */
 ```
 
 [!] Импортированная сущность — не копия, а «живая ссылка» (live binding) только для чтения. Если переменная поменяется внутри исходного файла, она обновится и у получателя, но напрямую перезаписать импорт снаружи нельзя (будет TypeError).
@@ -48,11 +48,11 @@ import { tabsSelectors, tabsData } from './tabs.js';
 ```js
 /* Вариант 1: переименование при экспорте (только в списке в конце файла!) */
 const selectors = {};
-export { selectors as tabsSelectors }; /* нельзя: export const selectors as ... */
+export { selectors as tabsSelectors }; /* нельзя: export const a as b */
 
 /* Вариант 2 (лучше): переименование при импорте в файле-получателе */
 import { selectors as tabsSelectors } from './tabs.js';
-const selectors = {}; /* локальная переменная этого файла больше не конфликтует */
+const selectors = {}; /* локальная переменная больше не конфликтует */
 ```
 
 ## 4. Точка входа script.js и export default (13:05–18:38)
@@ -62,13 +62,13 @@ const selectors = {}; /* локальная переменная этого фа
 ```js
 /* --- Файл tabs.js --- */
 export const tabsSelectors = { root: '.tabs' }; /* именованный экспорт */
-export default function initTabs() {            /* экспорт по умолчанию (1 на файл) */
+export default function initTabs() { /* export default (1 на файл) */
   console.log('Табы запущены');
 }
 
-/* Особенность со стрелочной функцией: export default const fn = ... даст ошибку! */
+/* Особенность со стрелкой: export default const fn = ... даст ошибку! */
 const initSliders = () => {};
-export default initSliders;   /* выносим отдельно или пишем: export default () => {} */
+export default initSliders; /* или анонимно: export default () => {} */
 
 /* --- Файл script.js (главная точка входа) --- */
 /* default импортируется БЕЗ фигурных скобок и под ЛЮБЫМ именем */
@@ -86,20 +86,22 @@ anyTabsName();
 /* --- Файл constants.js --- */
 export const a = 1;
 export const b = 2;
-const hiddenD = 4;               /* без export НЕ попадёт в объект импорта * */
+const hiddenD = 4; /* без export НЕ попадёт в объект импорта * */
 export default function logCat() { console.log("Кот"); }
 
 /* --- Импорт всего файла в объект --- */
 import * as constants from './constants.js';
-console.log(constants.a);        /* 1 */
-constants.default();             /* default-экспорт лежит в свойстве .default */
+console.log(constants.a); /* 1 */
+constants.default();      /* default-экспорт лежит в свойстве .default */
 
 /* --- Реэкспорт в файле constants/index.js --- */
 export * from './folder1/folder2/constants.js';
-export { default as logCat } from './folder1/folder2/constants.js'; /* явный реэкспорт */
-/* Звёздочка забирает только именованные экспорты; default пробрасывают строкой выше */
-/* В сборщиках (Vite/Webpack) путь сокращается до "./constants", но в чистом браузере
-   без сборщика короткий путь даст 404 — нужно явно писать "./constants/index.js" */
+/* Звёздочка забирает только именованные; default пробрасываем явно: */
+export { default as logCat } from './folder1/folder2/constants.js';
+/*
+  В сборщиках (Vite/Webpack) путь сокращают до "./constants", но в чистом
+  браузере без сборщика он даст 404 — пишем "./constants/index.js".
+*/
 ```
 
 ## 6. Неочевидные особенности модулей в браузере (23:52–31:40)
@@ -121,9 +123,9 @@ cart.push('Товар 1'); /* изменение сразу увидят все 
 
 ```html
 <!-- Порядок в браузере при подключении скриптов -->
-<script src="before.js"></script>                <!-- 1. Выполнится первым -->
-<script src="script.js" type="module"></script>  <!-- 3. Модуль выполнится ПОСЛЕДНИМ! -->
-<script src="after.js"></script>                 <!-- 2. Выполнится вторым -->
+<script src="before.js"></script>               <!-- 1. Первым -->
+<script src="script.js" type="module"></script> <!-- 3. ПОСЛЕДНИМ! -->
+<script src="after.js"></script>                <!-- 2. Вторым -->
 ```
 
 [+] Визуальная разница между обычным `<script>`, `defer` и `type="module"` (в `type="module"` поведение `defer` уже встроено по умолчанию, поэтому писать `defer` рядом с ним избыточно):
@@ -138,14 +140,14 @@ cart.push('Товар 1'); /* изменение сразу увидят все 
 2) Только с defer: <script src="./scripts/main.js" defer>
    HTML: [============= парсинг всего HTML =============]
    Сеть:        [скачивает в фоне]
-   JS:                                                 [main.js] -> DOMContentLoaded
-   Итог: HTML не тормозит; видит весь DOM; import/export всё ещё запрещены.
+   JS:                                  [main.js] -> DOMContentLoaded
+   Итог: HTML не тормозит; видит весь DOM; import/export запрещены.
 
 3) С модулем: <script src="./scripts/main.js" type="module">
    HTML: [============= парсинг всего HTML =============]
    Сеть:        [main.js] -> [import A] -> [import B]
-   JS:                                                 [граф модулей] -> DOMContentLoaded
-   Итог: defer уже встроен в type="module"; изолированная область; есть import/export.
+   JS:                                  [модули] -> DOMContentLoaded
+   Итог: defer встроен в type="module"; изоляция; есть import/export.
 ```
 
 | Вариант подключения | Тормозит HTML? | Когда запускается JS? | Как читает код? | Область видимости |
@@ -173,8 +175,8 @@ async function openModal() {
 [!] Если файл A импортирует B, а B импортирует обратно A, в момент старта одна из сущностей окажется ещё не создана (ошибка ReferenceError или undefined). Связи модулей должны идти деревом сверху вниз, а всё общее выносят в отдельный файл.
 
 ```js
-/* ПЛОХО (круг):   tabs.js <-> modals.js (модули тянут друг друга напрямую) */
-/* ХОРОШО (дерево): script.js -> tabs.js, modals.js -> оба импортируют utils.js */
+/* ПЛОХО (круг): tabs.js <-> modals.js (тянут друг друга напрямую) */
+/* ХОРОШО (дерево): script.js -> tabs.js, modals.js -> оба из utils.js */
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -231,7 +233,12 @@ export const items = [];
 
 **Задача 1. Почини `export default`, пути и конфликт имён через `as`**
 
-В коде двух модулей допущены 4 ошибки: неверный `export default const`, забытый экспорт `CURRENCY`, неполный браузерный путь в `import` и конфликт локального имени `CURRENCY`. Исправь оба файла так, чтобы они работали в браузере, а `console.log` вывел `500 ₽`, `'USD'` и `'RUB'`.
+В коде двух модулей допущены 4 ошибки. Исправь оба файла так, чтобы они работали в браузере:
+
+1. В `utils.js` вынеси объявление стрелочной функции `formatPrice` отдельно от `export default` и добавь именованный `export` для `CURRENCY`.
+2. В `script.js` исправь путь импорта на `./utils.js`, импортируй `default`-экспорт без фигурных скобок и переименуй `CURRENCY` в `mainCurrency` через `as`.
+
+Проверка: `console.log` должен вывести `500 ₽`, `'USD'` и `'RUB'`.
 
 ```js
 /* --- Файл utils.js --- */
@@ -253,8 +260,8 @@ console.log(formatPrice(500), CURRENCY, mainCurrency);
 ```js
 /* --- Файл utils.js --- */
 /*
-  Выносим объявление стрелочной функции отдельно: писать export default const
-  запрещено синтаксисом; для CURRENCY добавляем именованный export
+  Выносим стрелку отдельно: export default const запрещён синтаксисом;
+  для CURRENCY добавляем именованный export
 */
 const formatPrice = (val) => `${val} ₽`;
 export default formatPrice;
@@ -263,7 +270,7 @@ export const CURRENCY = 'RUB';
 /* --- Файл script.js --- */
 /*
   1. default-экспорт импортируем БЕЗ фигурных скобок
-  2. Именованный CURRENCY переименовываем через as в mainCurrency против конфликта
+  2. Именованный CURRENCY переименовываем через as в mainCurrency
   3. Для браузера обязательно пишем './' в начале пути и '.js' в конце
 */
 import formatPrice, { CURRENCY as mainCurrency } from './utils.js';
@@ -276,7 +283,10 @@ console.log(formatPrice(500), CURRENCY, mainCurrency); /* 500 ₽ 'USD' 'RUB' */
 
 **Задача 2. Сборщик реэкспортов `index.js` и импорт в объект `import * as`**
 
-Сделай файл-агрегатор `ui/index.js`: реэкспортируй из `./modals.js` все именованные экспорты через `export *` и отдельно пробрось его `default`-экспорт под именем `initModals`. Затем в `script.js` импортируй весь `ui/index.js` в один объект `ui` через `import * as` и вызови оба метода.
+Настрой реэкспорт через индексный файл и импортируй всё в один объект:
+
+1. В `ui/index.js` реэкспортируй из `./modals.js` все именованные экспорты через `export *` и отдельно пробрось `default`-экспорт под именем `initModals`.
+2. В `script.js` импортируй `./ui/index.js` в объект `ui` через `import * as ui` и вызови `ui.initModals()`, `ui.openModal()` и `console.log(ui.modalSelector)`.
 
 ```js
 /* --- Файл ui/modals.js (менять не нужно) --- */
@@ -296,7 +306,7 @@ export default function () { console.log('Модалки инициализир�
 
 ```js
 /* --- Файл ui/index.js --- */
-/* Звёздочка * реэкспортирует ТОЛЬКО именованные сущности (modalSelector, openModal) */
+/* Звёздочка * реэкспортирует ТОЛЬКО именованные экспорты */
 export * from './modals.js';
 /* default-экспорт пробрасываем отдельно с явным именем initModals */
 export { default as initModals } from './modals.js';
@@ -317,8 +327,10 @@ console.log(ui.modalSelector); /* '.modal' */
 
 **Задача 3. Единая точка входа в HTML и ленивый динамический `import()`**
 
-1) В HTML оставь подключение только главного файла `./script.js` с правильным атрибутом `type="module"` (зависимости браузер догрузит сам).
-2) В `script.js` напиши асинхронную функцию `handleOpenGallery(shouldLoad)`: если `shouldLoad` истинно, динамически подгрузи модуль `'./gallery.js'` через `await import(...)` внутри `try...catch` и вызови его экспорт по умолчанию (`.default()`).
+Настрой ленивую загрузку тяжёлого модуля галереи по условию:
+
+1. В HTML оставь подключение только главного файла `./script.js` с атрибутом `type="module"` (зависимости браузер догрузит сам).
+2. В `script.js` напиши асинхронную функцию `handleOpenGallery(shouldLoad)`: при `shouldLoad === true` динамически подгрузи `'./gallery.js'` через `await import(...)` внутри `try...catch` и вызови `.default()`.
 
 ```html
 <!-- 1) Внутри <head> HTML: -->
@@ -339,7 +351,7 @@ handleOpenGallery(true);  /* подгрузит модуль и вызовет �
 <summary>Подсказка и решение</summary>
 
 ```html
-<!-- Подключаем только точку входа с type="module" — зависимости загрузятся по import -->
+<!-- Подключаем только точку входа с type="module" -->
 <script src="./script.js" type="module"></script>
 ```
 
@@ -350,7 +362,7 @@ async function handleOpenGallery(shouldLoad) {
 
   try {
     /*
-      Динамический import() возвращает Promise и грузит файл только в момент вызова —
+      Динамический import() возвращает Promise и грузит файл при вызове —
       так тяжёлые модули не замедляют первый запуск страницы
     */
     const galleryModule = await import('./gallery.js');

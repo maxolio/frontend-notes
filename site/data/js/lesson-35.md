@@ -253,7 +253,7 @@ initDigitsOnlyCodeField(codeInputElement);
 Напиши функцию `runOnKeys(callback, codes)`, которая запускает `callback()`, как только пользователь **одновременно** зажал все физические клавиши из массива `codes` (в любой раскладке, по `event.code`):
 1) Храни зажатые сейчас клавиши в коллекции `Set`.
 2) На `'keydown'` на `document`: добавляй `event.code` в `Set`; если все элементы из `codes` присутствуют в `Set` (`.every`), очисти `Set` (`clear()`, чтобы не сработало повторно при удержании) и вызови `callback()`.
-3) На `'keyup'` на `document`: удаляй отпущенную клавишу (`delete(event.code)`).
+3. На `'keyup'` на `document`: удаляй отпущенную клавишу (`delete(event.code)`), а на `'blur'` у `window` очищай весь `Set` (`clear()`), чтобы зажатые клавиши не «залипали» при переключении окна (`Alt+Tab`).
 
 ```js
 'use strict';
@@ -293,6 +293,11 @@ function runOnKeys(callback, codes) {
 
   document.addEventListener('keyup', (event) => {
     pressedCodes.delete(event.code);
+  });
+
+  /* Если окно потеряло фокус (Alt+Tab), keyup не придёт — очищаем Set */
+  window.addEventListener('blur', () => {
+    pressedCodes.clear();
   });
 }
 

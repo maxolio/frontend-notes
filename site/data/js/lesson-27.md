@@ -13,19 +13,19 @@
 const formElement = document.querySelector('form');
 const inputElement = document.querySelector('input');
 
-console.log(formElement.action);   /* геттер: вернёт полный URL (домен + "/login") */
-formElement.action = '/new-login'; /* сеттер: сразу обновит атрибут action в DOM */
-console.log(inputElement.checked); /* true/false для чекбокса (у form этого нет) */
+console.log(formElement.action);   /* геттер: полный URL (домен + /login) */
+formElement.action = '/new-login'; /* сеттер: сразу обновит HTML-атрибут */
+console.log(inputElement.checked); /* true/false для чекбокса */
 
 /* Атрибуты через дефис в JS пишутся в camelCase: */
-formElement.ariaLabel = 'Форма входа'; /* в HTML будет aria-label="Форма входа" */
+formElement.ariaLabel = 'Форма входа'; /* в HTML: aria-label="Форма входа" */
 
-/* Типы и особые имена DOM-свойств (в отличие от строковых HTML-атрибутов): */
-inputElement.checked;  /* boolean (true/false), а getAttribute("checked") -> "" */
-formElement.style;     /* объект CSSStyleDeclaration, а не строка стилей */
-linkElement.href;      /* полный URL, а getAttribute("href") -> "#top" как в HTML */
-formElement.className; /* вместо "class" (class и for — зарезервированы в JS!) */
-labelElement.htmlFor;  /* вместо "for" */
+/* Типы и особые имена DOM-свойств (vs строковые HTML-атрибуты): */
+inputElement.checked;  /* boolean, а getAttribute('checked') -> '' */
+formElement.style;     /* объект CSSStyleDeclaration, а не строка */
+linkElement.href;      /* полный URL, а getAttribute('href') -> '#top' */
+formElement.className; /* вместо 'class' (зарезервировано в JS!) */
+labelElement.htmlFor;  /* вместо 'for' */
 ```
 
 ## 2. Нестандартные атрибуты: get/set/remove/hasAttribute (03:19–06:40, 09:45)
@@ -33,15 +33,17 @@ labelElement.htmlFor;  /* вместо "for" */
 [!] Кастомные атрибуты (например, qty или data-value) НЕ превращаются в свойства объекта (elem.qty === undefined). Для работы с ними нужны 4 метода (значения атрибутов в HTML всегда хранятся как строки!).
 
 ```js
-console.log(formElement.getAttribute('qty'));       /* читает значение как строку */
-formElement.setAttribute('data-value', '10');       /* ставит (число 10 тоже -> '10') */
-formElement.hasAttribute('data-value');             /* true / false — есть ли атрибут */
-formElement.removeAttribute('qty');                 /* полностью удаляет атрибут */
+console.log(formElement.getAttribute('qty')); /* читает как строку */
+formElement.setAttribute('data-value', '10'); /* ставит (10 -> '10') */
+formElement.hasAttribute('data-value');       /* true / false */
+formElement.removeAttribute('qty');           /* полностью удаляет */
 
-/* ОШИБКА: setAttribute("qty", "") НЕ удаляет атрибут, а оставляет пустую строку! */
-/* Коллекция formElement.attributes показывает все атрибуты, но только для чтения */
-/* Регистр: getAttribute("QTY") найдёт qty (HTML не различает регистр атрибутов),
-   а DOM-свойства в JS строго чувствительны к регистру (elem.id работает, ID — нет) */
+/*
+  ОШИБКА: setAttribute('qty', '') НЕ удаляет атрибут, а оставляет ''!
+  Коллекция formElement.attributes показывает все атрибуты (только чтение).
+  getAttribute('QTY') найдёт qty (HTML без регистра), а DOM-свойства
+  в JS строго чувствительны к регистру (elem.id работает, elem.ID — нет).
+*/
 ```
 
 ## 3. Синхронизация и односторонняя ловушка с value (06:41–09:45)
@@ -50,39 +52,42 @@ formElement.removeAttribute('qty');                 /* полностью уда
 
 ```js
 /* <input id="login"> (атрибут value в HTML изначально не задан) */
-inputElement.value = 'Admin';                  /* меняет текст в поле на экране */
-console.log(inputElement.value);               /* 'Admin' — всегда актуально */
-console.log(inputElement.getAttribute('value')); /* null! В HTML атрибут не появился */
+inputElement.value = 'Admin';                  /* меняет текст на экране */
+console.log(inputElement.value);               /* 'Admin' — актуально */
+console.log(inputElement.getAttribute('value')); /* null! В HTML его нет */
 
-inputElement.setAttribute('value', 'Guest');   /* меняет и атрибут, и свойство, */
-/* НО если пользователь уже вводил текст, setAttribute не обновит поле на экране! */
-
-/* Правило: для value и всех стандартных атрибутов используй свойства (elem.value) */
+/*
+  inputElement.setAttribute('value', 'Guest') меняет атрибут и свойство,
+  НО если пользователь уже вводил текст, экран он не обновит!
+  Правило: для value и стандартных атрибутов используй свойства (elem.value).
+*/
 ```
 
 [+] Зачем так устроено: HTML-атрибут value (как и checked у чекбокса) специально хранит исходное значение по умолчанию — именно к нему форма откатывается при нажатии кнопки сброса (`<button type="reset">`), а input.value — текущее значение.
 
 ```js
 /* Ловушка boolean-атрибутов (disabled, hidden, required): */
-btn.setAttribute('disabled', 'false'); /* ОШИБКА: кнопка ВСЁ РАВНО заблокирована! */
-btn.disabled = false;                  /* ПРАВИЛЬНО: разблокирует и уберёт атрибут */
+btn.setAttribute('disabled', 'false'); /* ОШИБКА: всё равно disabled! */
+btn.disabled = false;                  /* ПРАВИЛЬНО: уберёт атрибут */
 ```
 
 ## 4. Атрибуты data-*, свойство dataset и передача JSON (10:03–13:20)
 
 [+] Все атрибуты вида data-* автоматически собираются в объект elem.dataset (префикс data- отрезается, а дефисы переходят в camelCase). Также в data-* можно передать готовый объект настроек в формате JSON.
 
-```js
-<!-- В HTML: внешние кавычки ОДИНАРНЫЕ, внутри валидный JSON с двойными кавычками -->
+```html
+<!-- Внешние кавычки ОДИНАРНЫЕ, внутри валидный JSON с двойными -->
 <div data-js-slider='{ "autoplay": true, "speed": 500 }'></div>
+```
 
+```js
 const sliderElement = document.querySelector('[data-js-slider]');
 
-/* Способ 1: через dataset (без "data-", в camelCase) — подходит для чтения и записи */
+/* Способ 1: dataset (без "data-", в camelCase) — чтение и запись */
 console.log(sliderElement.dataset.jsSlider);
-delete sliderElement.dataset.jsSlider; /* удаление data-* атрибута через dataset */
+delete sliderElement.dataset.jsSlider; /* удаление data-* атрибута */
 
-/* Способ 2: getAttribute + безопасный JSON.parse (защита от пустого атрибута) */
+/* Способ 2: getAttribute + JSON.parse (с защитой от пустой строки) */
 const rawConfig = sliderElement.getAttribute('data-js-slider');
 const config = rawConfig ? JSON.parse(rawConfig) : {};
 ```
@@ -153,16 +158,22 @@ console.log(btnElement.disabled);
 
 **Задача 1. Почини чтение `value`, снятие `disabled` и удаление атрибута**
 
-Сейчас код читает старое значение поля через `getAttribute`, пытается разблокировать кнопку строкой `'false'` и оставляет пустой атрибут `data-loading=""` вместо его удаления. Исправь эти три ошибки.
+В коде ниже допущены три типичные ошибки работы с атрибутами. Исправь их:
+
+1. Прочитай актуальное значение поля `nameInputElement` через DOM-свойство `.value`, а не через `getAttribute('value')`.
+2. Разблокируй кнопку присвоением `submitButtonElement.disabled = false` вместо `setAttribute('disabled', 'false')`.
+3. Полностью удали `data-loading` через `.removeAttribute('data-loading')` вместо записи пустой строки.
+
+Проверка: в консоль должны вывестись `'Иван'`, `false` и `false`.
+
+```html
+<input data-js-name value="">
+<button data-js-submit disabled data-loading="true">Отправить</button>
+```
 
 ```js
 'use strict';
 
-/*
-  HTML на странице:
-  <input data-js-name value="">
-  <button data-js-submit disabled data-loading="true">Отправить</button>
-*/
 const nameInputElement = document.querySelector('[data-js-name]');
 const submitButtonElement = document.querySelector('[data-js-submit]');
 
@@ -196,9 +207,9 @@ nameInputElement.value = 'Иван';
 const currentName = nameInputElement.value;
 
 if (currentName.trim() !== '') {
-  /* Логический атрибут отключают присвоением boolean false (он сам уберётся из HTML) */
+  /* Логический атрибут отключают присвоением false (он уберётся из HTML) */
   submitButtonElement.disabled = false;
-  /* Полностью удаляем кастомный атрибут через removeAttribute вместо пустой строки */
+  /* Полностью удаляем кастомный атрибут через removeAttribute */
   submitButtonElement.removeAttribute('data-loading');
 }
 
@@ -211,19 +222,24 @@ console.log(submitButtonElement.hasAttribute('data-loading')); /* false */
 
 **Задача 2. Поиск внешних ссылок через `getAttribute('href')`**
 
-Напиши функцию `getExternalLinks(rootElement)`, которая находит все ссылки `<a>` внутри `rootElement` и возвращает массив только **внешних** адресов (строк `href`, которые содержат `'://'` и **не** начинаются с `'https://mysite.ru'`). Используй именно `getAttribute('href')`, чтобы относительные ссылки вроде `'/about'` не превратились в полный URL.
+Напиши функцию `getExternalLinks(rootElement)`, возвращающую массив только внешних адресов:
+
+1. Если `!rootElement`, верни пустой массив `[]`.
+2. Найди все ссылки `<a>` внутри `rootElement` и прочитай сырой атрибут через `getAttribute('href')` (чтобы относительные ссылки вроде `'/about'` не превратились в полный URL).
+3. Собери только адреса, которые содержат `'://'` и не начинаются с `'https://mysite.ru'`.
+
+Проверка: для разметки ниже вернётся `['https://google.com']`.
+
+```html
+<nav data-js-menu>
+  <a href="/about">О нас</a>
+  <a href="https://mysite.ru/contacts">Контакты</a>
+  <a href="https://google.com">Поиск</a>
+</nav>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <nav data-js-menu>
-    <a href="/about">О нас</a>
-    <a href="https://mysite.ru/contacts">Контакты</a>
-    <a href="https://google.com">Поиск</a>
-  </nav>
-*/
 
 /* Твоё решение: */
 function getExternalLinks(rootElement) {
@@ -248,8 +264,8 @@ function getExternalLinks(rootElement) {
 
   linkElements.forEach((linkElement) => {
     /*
-      Берём сырой HTML-атрибут через getAttribute('href'), потому что свойство
-      linkElement.href доклеило бы текущий домен даже к относительному '/about'
+      Берём сырой атрибут через getAttribute('href'), потому что свойство
+      linkElement.href доклеило бы текущий домен к относительному '/about'
     */
     const href = linkElement.getAttribute('href');
     if (!href) return;
@@ -270,13 +286,13 @@ console.log(getExternalLinks(menuElement)); /* ['https://google.com'] */
 
 **Задача 3. JSON-конфиг из `data-js-config` и запись в `dataset`**
 
-Напиши функцию `initWidgetConfig(widgetElement)`:
-1) Проверь, что `widgetElement` передан (иначе верни `null`).
-2) Прочитай JSON-строку из `widgetElement.dataset.jsConfig` и распарси её в `try...catch` (если атрибут пуст или JSON битый — верни объект по умолчанию `{ speed: 300, autoplay: false }`).
-3) Запиши на элемент атрибут `data-initialized="true"` через `widgetElement.dataset` и верни объект конфигурации.
+Напиши функцию `initWidgetConfig(widgetElement)` для чтения настроек компонента из HTML:
+
+1. Если `!widgetElement`, верни `null`.
+2. Прочитай JSON-строку из `widgetElement.dataset.jsConfig` и распарси её в `try...catch` (если атрибут пуст или JSON битый — верни `{ speed: 300, autoplay: false }`).
+3. Запиши `data-initialized="true"` через `widgetElement.dataset.initialized = 'true'` и верни объект конфигурации.
 
 ```html
-<!-- HTML на странице: -->
 <div data-js-config='{ "speed": 500, "autoplay": true }'></div>
 ```
 
@@ -302,20 +318,20 @@ function initWidgetConfig(widgetElement) {
   if (!widgetElement) return null;
 
   const fallbackConfig = { speed: 300, autoplay: false };
-  /* Атрибут data-js-config в объекте dataset доступен в camelCase как jsConfig */
+  /* Атрибут data-js-config в dataset доступен в camelCase как jsConfig */
   const rawConfig = widgetElement.dataset.jsConfig;
   let config = fallbackConfig;
 
   if (rawConfig) {
     try {
-      /* dataset всегда хранит строку — превращаем её в объект через JSON.parse */
+      /* dataset всегда хранит строку — разбираем её через JSON.parse */
       config = JSON.parse(rawConfig);
     } catch (err) {
       console.log('Битый JSON в data-js-config:', err.message);
     }
   }
 
-  /* Запись в dataset.initialized создаст на элементе HTML-атрибут data-initialized="true" */
+  /* Запись в dataset.initialized создаст атрибут data-initialized="true" */
   widgetElement.dataset.initialized = 'true';
   return config;
 }

@@ -13,10 +13,10 @@
 <!-- Способ 1: поставить <script> в самом конце <body> перед </body> -->
 <script src="script.js"></script>
 
-<!-- Способ 2: оставить в <head>, но добавить defer (ждёт готовности всей разметки) -->
+<!-- Способ 2: оставить в <head> с defer (ждёт готовности всей разметки) -->
 <script src="script.js" defer></script>
 
-<!-- Атрибут async: качается и запускается в случайный момент (до или после DOM) -->
+<!-- async: запускается сразу после скачивания (до или после DOM) -->
 <!-- Не подходит для работы с DOM; ставят для метрик и аналитики -->
 <script src="analytics.js" async></script>
 ```
@@ -33,14 +33,14 @@ const body = document.body;
 /* Вверх (к родителю) и в стороны (к соседям на одном уровне) */
 body.parentElement;          /* <html> */
 body.previousElementSibling; /* <head> (предыдущий соседний тег) */
-body.nextElementSibling;     /* null (после <body> на том же уровне никого нет) */
+body.nextElementSibling;     /* null (после <body> соседей нет) */
 
 /* Вниз (к прямым дочерним тегам) */
-body.children;               /* живая коллекция HTMLCollection всех прямых детей-тегов */
+body.children;               /* живая HTMLCollection прямых детей-тегов */
 body.firstElementChild;      /* первый дочерний тег (например, <div>) */
 body.lastElementChild;       /* последний дочерний тег */
 
-/* У таблиц <table> есть отдельные быстрые свойства (в обход скрытого <tbody>): */
+/* У <table> есть быстрые свойства (в обход скрытого <tbody>): */
 table.rows;                  /* все строки <tr> таблицы */
 table.rows[0].cells;         /* все ячейки <td> и <th> в первой строке */
 ```
@@ -56,12 +56,12 @@ const bodyChildren = document.body.children;
 console.log(bodyChildren.length); /* 1 (например, только один <div>) */
 console.log(bodyChildren[0]);     /* по индексу обращаться можно */
 
-/* Если добавить новый тег в DOM, старая переменная bodyChildren САМА обновится! */
+/* При добавлении нового тега в DOM переменная bodyChildren обновится! */
 const btn = document.createElement('button');
 document.body.append(btn);
 console.log(bodyChildren.length); /* уже 2! */
 
-/* bodyChildren.forEach(...) -> TypeError! Сначала превращаем в обычный массив: */
+/* bodyChildren.forEach(...) -> TypeError! Превращаем в обычный массив: */
 const arr1 = Array.from(bodyChildren);
 const arr2 = [...bodyChildren];
 arr2.forEach((el) => console.log(el));
@@ -73,11 +73,13 @@ for (const el of bodyChildren) { console.log(el); }
 [!] Не используйте for..in для перебора коллекций (он захватит лишние свойства length и item) и не пытайтесь менять коллекцию напрямую (children[0] = ... не сработает, она только для чтения).
 
 ```js
-/* Ловушка удаления из живой коллекции: при удалении индексы съезжают прямо в цикле! */
-/* ПЛОХО: удалить всё не выйдет — половина элементов пропустится из-за сдвига */
-for (let i = 0; i < parent.children.length; i++) { parent.children[i].remove(); }
+/* Ловушка удаления из живой коллекции: индексы съезжают прямо в цикле! */
+/* ПЛОХО: половина элементов пропустится из-за сдвига индексов */
+for (let i = 0; i < parent.children.length; i++) {
+  parent.children[i].remove();
+}
 
-/* ХОРОШО: делаем неподвижную копию-массив [...parent.children] и удаляем спокойно */
+/* ХОРОШО: делаем неподвижную копию [...parent.children] и удаляем */
 for (const child of [...parent.children]) { child.remove(); }
 ```
 
@@ -88,21 +90,21 @@ for (const child of [...parent.children]) { child.remove(); }
 ```js
 const div = document.body.firstElementChild;
 
-/* Родитель: разница видна только на корневом теге <html> (documentElement) */
-document.documentElement.parentElement; /* null (над <html> нет HTML-тега) */
-document.documentElement.parentNode;    /* объект document (корень всего DOM) */
+/* Родитель: разница видна только на корневом <html> (documentElement) */
+document.documentElement.parentElement; /* null (над <html> нет тега) */
+document.documentElement.parentNode;    /* document (корень всего DOM) */
 
 /* Соседи, первый/последний и все дети: */
 div.previousElementSibling; /* null (тега перед <div> нет) */
-div.previousSibling;        /* #text "\n  " (перенос строки и пробелы до <div>!) */
+div.previousSibling;        /* #text "\n  " (перенос и пробелы до <div>!) */
 
 div.nextElementSibling;     /* следующий соседний тег (или null) */
-div.nextSibling;            /* следующий узел (часто #text с переносом строки) */
+div.nextSibling;            /* следующий узел (часто #text с переносом) */
 
-div.firstElementChild;      /* vs div.firstChild (первый узел, часто #text) */
+div.firstElementChild;      /* vs div.firstChild (часто #text) */
 div.lastElementChild;       /* vs div.lastChild (последний узел) */
-div.children;               /* HTMLCollection (теги) vs div.childNodes (NodeList: всё) */
-/* У NodeList (childNodes) метод .forEach() есть сразу, а у HTMLCollection — нет */
+div.children;               /* HTMLCollection vs div.childNodes (NodeList) */
+/* У NodeList (childNodes) метод .forEach() есть, а у HTMLCollection — нет */
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -164,9 +166,10 @@ for (let i = 0; i < list.children.length; i++) {
 
 **Задача 1. Почини порядок подключения скриптов в `<head>`**
 
-Исправь теги `<script>` внутри `<head>` так, чтобы:
-1) `core.js` и `ui.js` дождались построения всей страницы и гарантированно запустились строго по порядку (`core.js` первым, `ui.js` вторым).
-2) Независимый счётчик `analytics.js` не блокировал HTML и сработал сразу после скачивания, не дожидаясь DOM и остальных скриптов.
+Исправь теги `<script>` внутри `<head>` с правильными атрибутами и порядком:
+
+1. `core.js` и `ui.js` должны дождаться построения всей страницы и запуститься строго по порядку (`core.js` первым, `ui.js` вторым).
+2. Независимый счётчик `analytics.js` не должен блокировать HTML и должен сработать сразу после скачивания, не дожидаясь DOM и остальных скриптов.
 
 ```html
 <head>
@@ -184,13 +187,13 @@ for (let i = 0; i < list.children.length; i++) {
 <head>
   <!--
     defer: оба файла качаются параллельно, ждут готовности DOM и
-    запускаются строго в порядке объявления (сначала core.js, затем ui.js)
+    запускаются строго по порядку (сначала core.js, затем ui.js)
   -->
   <script src="core.js" defer></script>
   <script src="ui.js" defer></script>
 
   <!--
-    async: для независимой аналитики — запускается сразу по мере скачивания,
+    async: для независимой аналитики — запускается сразу по готовности,
     не задерживая рендер и не дожидаясь других скриптов
   -->
   <script src="analytics.js" async></script>
@@ -201,7 +204,11 @@ for (let i = 0; i < list.children.length; i++) {
 
 **Задача 2. Безопасная очистка живой коллекции `children`**
 
-Сейчас функция `clearAndCount(container)` удаляет не всех детей (из-за сдвига индексов в живой коллекции `HTMLCollection`) и возвращает `0`. Перепиши её так, чтобы она сделала копию-массив `[...container.children]`, безопасно удалила все дочерние элементы и вернула исходное количество удалённых тегов.
+Сейчас функция `clearAndCount(container)` удаляет лишь половину детей (из-за сдвига индексов в живой `HTMLCollection`) и возвращает `0`. Перепиши её:
+
+1. Сделай статичную копию-массив `[...container.children]`.
+2. Удали все элементы из копии (через `.forEach((child) => child.remove())`).
+3. Верни исходное количество удалённых элементов (`items.length`).
 
 ```js
 'use strict';
@@ -240,10 +247,11 @@ function clearAndCount(container) {
 
 **Задача 3. Шаги по DOM-элементам и быстрый доступ к таблице**
 
-Используя только свойства навигации (без поиска по селекторам) и безопасную цепочку `?.`:
-1) От `head` перейди к следующему соседнему тегу `<body>`.
-2) От `currentItem` получи предыдущий соседний **тег** (игнорируя пробелы `#text`) и родительский тег.
-3) У таблицы `table` найди вторую строку (`[1]`) и её первую ячейку (`[0]`) через `rows` и `cells`.
+Используя только свойства навигации (без селекторов) и безопасную цепочку `?.`:
+
+1. От `head` перейди к следующему соседнему тегу `<body>` (`bodyEl`).
+2. От `currentItem` получи предыдущий соседний тег (`prevSiblingEl`, игнорируя `#text`) и родительский тег (`parentEl`).
+3. У таблицы `table` найди вторую строку (`[1]`) и её первую ячейку (`[0]`) через `rows` и `cells` (`targetCell`).
 
 ```js
 'use strict';
@@ -272,14 +280,14 @@ const head = document.head;
 const currentItem = document.body.firstElementChild?.children[1];
 const table = document.body.lastElementChild;
 
-/* nextElementSibling шагает строго к следующему тегу (<body> идёт сразу за <head>) */
+/* nextElementSibling шагает строго к следующему тегу (<body> за <head>) */
 const bodyEl = head.nextElementSibling;
 
-/* Свойства со словом Element пропускают текстовые узлы (пробелы и переносы строк) */
+/* Свойства с Element пропускают текстовые узлы (пробелы и переносы) */
 const prevSiblingEl = currentItem?.previousElementSibling ?? null;
 const parentEl = currentItem?.parentElement ?? null;
 
-/* Свойства table.rows и row.cells автоматически обходят скрытый браузером <tbody> */
+/* table.rows и row.cells автоматически обходят скрытый <tbody> */
 const targetCell = table?.rows?.[1]?.cells?.[0] ?? null;
 
 console.log(bodyEl === document.body); /* true */

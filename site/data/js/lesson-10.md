@@ -14,15 +14,15 @@
 const user = {
   name: 'Александр',
   age: 28,
-  'registration date': '01.01.2024', /* имя с пробелом — обязательно в кавычках */
-  sayHi: () => console.log('Привет'), /* метод объекта (висячая запятая допустима) */
+  'registration date': '01.01.2024', /* пробел -> обязательно в кавычках */
+  sayHi: () => console.log('Привет'), /* метод объекта */
 };
 
-console.log(user.name);                  /* "Александр" */
-console.log(user['registration date']);  /* доступ через [] из-за пробела */
-user.sayHi();                            /* вызов метода */
-console.log(user.missingProp);           /* undefined */
-console.log(user.address?.street);       /* ?. защитит от TypeError, если address нет */
+console.log(user.name);                 /* "Александр" */
+console.log(user['registration date']); /* доступ через [] из-за пробела */
+user.sayHi();                           /* вызов метода */
+console.log(user.missingProp);          /* undefined */
+console.log(user.address?.street);      /* ?. спасает от TypeError */
 ```
 
 ## 2. Добавление, изменение, удаление delete и const-объект (04:15–07:03)
@@ -31,13 +31,13 @@ console.log(user.address?.street);       /* ?. защитит от TypeError, е
 
 ```js
 const profile = {};
-profile.name = 'Александр';        /* добавили свойство */
-profile['is developer'] = true;    /* добавили свойство с пробелом */
-profile.name = 'Максим';           /* изменили существующее */
+profile.name = 'Александр';     /* добавили свойство */
+profile['is developer'] = true; /* добавили свойство с пробелом */
+profile.name = 'Максим';        /* изменили существующее */
 
-delete profile.name;               /* удалили свойство (несуществующее ошибки не даст) */
+delete profile.name;            /* удалили (несуществующее ошибки не даст) */
 delete profile['is developer'];
-/* profile = {}; -> ОШИБКА: Assignment to constant variable (саму переменную менять нельзя) */
+/* profile = {}; -> TypeError (саму const-переменную перезаписать нельзя) */
 ```
 
 ## 3. Короткая запись, вычисляемые свойства [key] и имена ключей (07:04–10:42)
@@ -46,13 +46,13 @@ delete profile['is developer'];
 
 ```js
 const name = 'Александр', age = 28;
-const shortUser = { name, age }; /* короткая запись вместо { name: name, age: age } */
+const shortUser = { name, age }; /* коротко вместо { name: name, age: age } */
 
 const propName = 'city';
 const propValue = 'Москва';
-const obj = { [propName]: propValue }; /* вычисляемое имя -> { city: "Москва" } */
+const obj = { [propName]: propValue }; /* вычисляемое имя -> { city: ... } */
 /* Без [] получилось бы буквальное имя ключа "propName"! */
-/* Ключ __proto__ особый: obj.__proto__ = 5 не станет числом 5 (проигнорируется!). */
+/* Ключ __proto__ особый: obj.__proto__ = 5 проигнорируется! */
 ```
 
 ## 4. Оператор in, перебор for..in и порядок свойств (10:43–15:16)
@@ -61,17 +61,18 @@ const obj = { [propName]: propValue }; /* вычисляемое имя -> { cit
 
 ```js
 const testObj = { status: undefined };
-console.log('status' in testObj);        /* true — ключ реально есть в объекте! */
-console.log(testObj.status !== undefined); /* false — обманет, если значение undefined */
-console.log('toString' in testObj);      /* true! видит и методы прототипа объекта */
-console.log(Object.hasOwn(testObj, 'toString')); /* false — проверяет ТОЛЬКО свои ключи */
+console.log('status' in testObj);        /* true — ключ реально есть! */
+console.log(testObj.status !== undefined); /* false — обманет при undefined */
+console.log('toString' in testObj);      /* true! видит методы прототипа */
+/* Object.hasOwn проверяет ТОЛЬКО собственные ключи объекта (false): */
+console.log(Object.hasOwn(testObj, 'toString'));
 
 const nums = { 2: 'второй', 1: 'первый', 3: 'третий', name: 'Алекс' };
 for (const key in nums) {
   /* ВНИМАНИЕ: значение берут через nums[key], а НЕ nums.key! */
   console.log(key, nums[key]); /* порядок: "1", "2", "3", "name" */
 }
-/* Трюк порядка: ключи "+49", "+41" нецелочисленные и сохранят порядок добавления! */
+/* Трюк порядка: ключи "+49", "+41" сохранят исходный порядок добавления! */
 ```
 
 ## 5. Скрытые ключи через `Symbol` (дополнительно)
@@ -88,7 +89,10 @@ const userWithId = {
 
 console.log(userWithId[id]); /* 12345 — доступ только по переменной id */
 
-/* Символы скрыты от перебора: цикл for..in (как и Object.keys / JSON.stringify позже) их не видит */
+/*
+  Символы скрыты от перебора: цикл for..in
+  (а позже и Object.keys / JSON.stringify) их не видит
+*/
 for (const key in userWithId) {
   console.log(key); /* выведет только: name */
 }
@@ -154,7 +158,13 @@ box = { role: 'admin' };
 
 **Задача 1. Создание объекта, вычисляемый ключ `[...]` и удаление `delete`**
 
-Создай через `const` объект `profile` со свойствами: `name` со значением `'Александр'`, ключ с пробелом `'favorite color'` со значением `'синий'` и вычисляемый ключ из переменной `dynamicKey` со значением `'Москва'`. Затем поменяй `name` на `'Максим'`, удали `'favorite color'` через `delete` и выведи в консоль результат проверки `'city' in profile` и сам объект.
+Собери и измени объект профиля пользователя:
+
+1. Создай через `const` объект `profile` со свойствами `name: 'Александр'`, `'favorite color': 'синий'` и вычисляемым ключом `[dynamicKey]: 'Москва'`.
+2. Измени `profile.name` на `'Максим'` и удали `'favorite color'` оператором `delete`.
+3. Выведи в консоль результат `'city' in profile` и итоговый объект `profile`.
+
+Проверка: в консоль должны вывестись `true` и `{ name: 'Максим', city: 'Москва' }`.
 
 ```js
 'use strict';
@@ -176,7 +186,7 @@ const profile = {
   name: 'Александр',
   /* Ключ с пробелом обязательно берём в кавычки */
   'favorite color': 'синий',
-  /* Квадратные скобки берут имя ключа из значения переменной dynamicKey ('city') */
+  /* Скобки берут имя ключа из значения переменной dynamicKey ('city') */
   [dynamicKey]: 'Москва',
 };
 
@@ -193,7 +203,12 @@ console.log(profile);           /* { name: 'Максим', city: 'Москва' 
 
 **Задача 2. Проверка объекта на пустоту `isEmpty(obj)`**
 
-Напиши функцию `isEmpty(obj)`, которая возвращает `true`, если у объекта нет свойств, и `false`, если в нём есть хотя бы одно свойство (даже со значением `undefined`). Используй цикл `for..in`.
+Напиши функцию `isEmpty(obj)`, проверяющую наличие хотя бы одного свойства:
+
+1. Запусти цикл `for (const key in obj)`: если цикл зашёл хотя бы на первый шаг — сразу верни `false` (даже если значение ключа `undefined`).
+2. Если цикл ни разу не выполнился — верни `true`.
+
+Проверка: `isEmpty(emptyBox)` -> `true`, `isEmpty(draftBox)` -> `false`.
 
 ```js
 'use strict';
@@ -230,14 +245,19 @@ const emptyBox = {};
 const draftBox = { title: undefined };
 
 console.log(isEmpty(emptyBox)); /* true */
-console.log(isEmpty(draftBox)); /* false (свойство есть, пусть и со значением undefined) */
+console.log(isEmpty(draftBox)); /* false (свойство есть, пусть и undefined) */
 ```
 
 </details>
 
 **Задача 3. Сумма и удвоение только числовых свойств (`for..in` и `typeof`)**
 
-Исправь функцию `sumNumeric(obj)`: сейчас она ошибочно читает `obj.key` вместо `obj[key]` и пытается прибавлять строковые поля вроде `title`. Затем допиши функцию `multiplyNumeric(obj)`, которая умножает на `2` только числовые свойства объекта (строки не трогает).
+Сейчас `sumNumeric(obj)` читает несуществующее поле `obj.key` и пытается складывать строки. Доработай код:
+
+1. Исправь `sumNumeric(obj)`: читай значение через `obj[key]` и прибавляй к `total` только настоящие числа (`typeof value === 'number' && !Number.isNaN(value)`).
+2. Напиши функцию `multiplyNumeric(obj)`, которая умножает на `2` только числовые свойства объекта на месте, не трогая строки.
+
+Проверка: `sumNumeric(menu)` -> `500`, после `multiplyNumeric(menu)` -> `1000`, а `menu.title` остаётся `'Меню сайта'`.
 
 ```js
 'use strict';
