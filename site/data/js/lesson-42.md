@@ -18,15 +18,15 @@ console.log(window.location.search);   /* "?page=2" */
 console.log(window.location.hash);     /* "#top" */
 
 /* Методы навигации: */
-/* window.location.reload();              -> перезагрузка страницы */
-/* window.location.assign('/catalog.html'); -> переход С записью в историю */
-/* window.location.replace('/catalog.html'); -> переход БЕЗ записи (кнопка Назад обойдёт) */
+/* window.location.reload();                 -> перезагрузка страницы */
+/* window.location.assign('/catalog.html');  -> переход С историей */
+/* window.location.replace('/catalog.html'); -> БЕЗ записи в историю */
 
 /* Сеттер window.location.href = url: по клику работает как assign(), */
 /* а при автоматическом редиректе сразу на старте — как replace()! */
 
-/* У window.location нет .searchParams, но есть встроенный конструктор new URL(...): */
-const urlObj = new URL(window.location.href); /* уже содержит urlObj.searchParams! */
+/* У location нет .searchParams, но есть new URL(...): */
+const urlObj = new URL(window.location.href); /* есть .searchParams! */
 ```
 
 ## 2. window.history: back/forward/go и pushState / replaceState (08:03–15:52)
@@ -37,16 +37,22 @@ const urlObj = new URL(window.location.href); /* уже содержит urlObj.
 /* Навигация по уже существующей истории вкладки: */
 window.history.back();    /* на 1 шаг назад (как стрелка браузера) */
 window.history.forward(); /* на 1 шаг вперёд */
-window.history.go(-2);    /* прыгнуть на N шагов назад (-) или вперёд (+) */
+window.history.go(-2);    /* прыгнуть на N шагов назад (-) / вперёд (+) */
 
-/* Смена URL без перезагрузки (2-й аргумент title игнорируется — передаём ""): */
-window.history.pushState({ from: 'home' }, '', '/catalog.html'); /* +1 запись в историю */
-window.history.replaceState({}, '', '/catalog.html'); /* заменяет текущую запись */
-/* Новый url обязан быть на том же origin (иначе SecurityError)! В SPA при F5 сервер */
-/* должен отдавать index.html на любой путь (иначе будет 404). */
+/* Смена URL без перезагрузки (2-й аргумент title игнорируется — ""): */
+/* +1 запись в историю: */
+window.history.pushState({ from: 'home' }, '', '/catalog.html');
+/* Заменяет текущую запись: */
+window.history.replaceState({}, '', '/catalog.html');
+/*
+  Новый url обязан быть на том же origin (иначе SecurityError)!
+  В SPA при F5 сервер должен отдавать index.html на любой путь
+*/
 
-/* pushState/replaceState НЕ запускают popstate — оно ловит кнопки Назад/Вперёд: */
-window.addEventListener('popstate', (e) => { /* в e.state лежит 1-й аргумент */ });
+/* pushState/replaceState НЕ запускают popstate (только Назад/Вперёд): */
+window.addEventListener('popstate', (e) => {
+  /* В e.state лежит 1-й аргумент из pushState / replaceState */
+});
 ```
 
 ## 3. Синхронизация формы с URL через URLSearchParams (15:53–23:39)
@@ -54,23 +60,24 @@ window.addEventListener('popstate', (e) => { /* в e.state лежит 1-й ар�
 [+] Вместо ручной склейки строк через split/join используют класс URLSearchParams: он превращает объект с полями в query-строку и удобно разбирает window.location.search обратно. Также у него есть методы get, set, has, append, delete и sort.
 
 ```js
-/* 1) Запись фильтров в URL без перезагрузки (при change на форме): */
+/* 1. Запись фильтров в URL без перезагрузки (при change на форме): */
 filterFormElement.addEventListener('change', () => {
   const formData = new FormData(filterFormElement);
   const formDataObject = Object.fromEntries(formData);
   const paramsString = new URLSearchParams(formDataObject).toString();
+  const nextUrl = `${window.location.pathname}?${paramsString}`;
 
-  window.history.replaceState({}, "", `${window.location.pathname}?${paramsString}`);
+  window.history.replaceState({}, '', nextUrl);
 });
 
-/* 2) Восстановление фильтров из URL при загрузке страницы: */
+/* 2. Восстановление фильтров из URL при загрузке страницы: */
 const setFilterFromUrl = () => {
   const searchParams = new URLSearchParams(window.location.search);
-  /* ВНИМАНИЕ: в forEach у URLSearchParams 1-й аргумент value, 2-й — name! */
+  /* ВНИМАНИЕ: в forEach 1-й аргумент value, 2-й — name! */
   searchParams.forEach((value, name) => {
-    /* Проверка защитит от лишних меток в URL вроде ?utm_source=... (иначе TypeError!): */
+    /* Защита от лишних меток ?utm_source=... (иначе TypeError): */
     const field = filterFormElement.elements[name];
-    if (field) field.value = value; /* а для checkbox нужно менять .checked */
+    if (field) field.value = value; /* для checkbox меняют .checked */
   });
 };
 setFilterFromUrl();
@@ -104,7 +111,13 @@ setFilterFromUrl();
 
 </details>
 
-**3. Почему обращение к `window.location.searchParams` даёт `undefined`, и в чём главный подвох метода `searchParams.forEach(...)`?**
+**3. Что выведет код ниже, почему `window.location.searchParams` даёт `undefined`, и в чём подвох `forEach`?**
+
+```js
+console.log(window.location.searchParams);
+const params = new URLSearchParams('?page=2&sort=price');
+params.forEach((first, second) => console.log(first, second));
+```
 
 <details>
 <summary>Показать ответ</summary>
@@ -117,11 +130,14 @@ setFilterFromUrl();
 
 **Задача 1. Обновление query-параметров в произвольном URL с помощью `new URL` и `URLSearchParams`**
 
-Напиши функцию `updateQueryParams(urlString, updates)`:
-1) Принимает строку полного URL `urlString` и объект `updates` (например, `{ page: 2, sort: 'price', discount: null, query: '' }`).
-2) Создаёт объект `new URL(urlString)`.
-3) Перебирает `Object.entries(updates)`: если значение равно `null`, `undefined` или пустой строке `''` — удаляет этот параметр (`delete`), иначе записывает его строковое значение (`set`).
-4) Возвращает итоговый URL в виде строки (`url.toString()`), сохранив исходные путь и `#hash`.
+Нужно аккуратно обновлять и удалять GET-параметры в готовом URL, не ломая путь и якорь `#hash`. Напиши функцию `updateQueryParams(urlString, updates)`:
+
+1. Принимает строку полного URL `urlString` и объект `updates` (например, `{ page: 2, sort: 'price', discount: null, query: '' }`).
+2. Создаёт объект `new URL(urlString)`.
+3. Перебирает `Object.entries(updates)`: если значение равно `null`, `undefined` или пустой строке `''` — удаляет параметр (`delete`), иначе записывает его строковое значение (`set`).
+4. Возвращает итоговый URL в виде строки (`url.toString()`), сохранив исходные путь и `#hash`.
+
+Проверка: `'https://shop.test/catalog?page=2&sort=price#list'`.
 
 ```js
 'use strict';
@@ -136,7 +152,6 @@ console.log(
     query: '',
   })
 );
-/* Ожидается: 'https://shop.test/catalog?page=2&sort=price#list' */
 ```
 
 <details>
@@ -146,16 +161,18 @@ console.log(
 'use strict';
 
 function updateQueryParams(urlString, updates) {
-  /* Конструктор URL сразу разбирает строку на origin, pathname, searchParams и hash,
-     поэтому при изменении параметров якорь (#hash) не потеряется и не уедет перед '?': */
+  /*
+    Конструктор URL разбирает строку на origin, pathname, searchParams
+    и hash, поэтому якорь #hash не потеряется и не уедет перед '?':
+  */
   const url = new URL(urlString);
 
   for (const [key, value] of Object.entries(updates)) {
-    /* Пустые фильтры (null, undefined, '') удаляем из URL, чтобы не плодить '?query=': */
+    /* Пустые фильтры удаляем, чтобы не плодить '?query=': */
     if (value === null || value === undefined || value === '') {
       url.searchParams.delete(key);
     } else {
-      /* set перезаписывает существующий ключ или добавляет новый, приводя значение к строке: */
+      /* set перезаписывает или добавляет ключ, приводя к строке: */
       url.searchParams.set(key, String(value));
     }
   }
@@ -178,12 +195,12 @@ console.log(
 
 **Задача 2. Синхронизация формы фильтров с URL (пустые поля, чекбоксы и сторонние параметры вроде `utm_source`)**
 
-Напиши две функции для формы фильтрации с полями `<input name="query">`, `<select name="category">` и `<input type="checkbox" name="inStock">`:
-1) `syncFormToUrl(form)` — читает данные через `new FormData(form)`, отбрасывает поля с пустым значением `''`, собирает query-строку через `URLSearchParams` и обновляет адрес через `window.history.replaceState` без перезагрузки страницы (сохраняя `pathname` и `hash`, а если параметров не осталось — не оставляет лишний символ `?`).
-2) `restoreFormFromUrl(form)` — сначала сбрасывает форму (`form.reset()`), затем перебирает `new URLSearchParams(window.location.search)` через `forEach`: если в форме нет поля с таким именем (например, `?utm_source=tg`), безопасно пропускает его; для `checkbox` обновляет `.checked`, для остальных полей — `.value`.
+Фильтры каталога должны сохраняться в адресной строке и восстанавливаться при обновлении страницы. Напиши две функции для формы фильтрации:
+
+1. `syncFormToUrl(form)` — читает данные через `new FormData(form)`, отбрасывает поля с пустым значением `''`, собирает query-строку через `URLSearchParams` и обновляет адрес через `window.history.replaceState` без перезагрузки (сохраняя `pathname` и `hash`, без лишнего `?` при пустых параметрах).
+2. `restoreFormFromUrl(form)` — сначала сбрасывает форму (`form.reset()`), затем перебирает `new URLSearchParams(window.location.search)` через `forEach`: безопасно пропускает чужие параметры вроде `?utm_source=tg`, для `checkbox` обновляет `.checked`, для остальных полей — `.value`.
 
 ```html
-<!-- Пример разметки:
 <form data-js-filter-form>
   <input name="query" placeholder="Поиск" />
   <select name="category">
@@ -193,7 +210,6 @@ console.log(
   </select>
   <label><input type="checkbox" name="inStock" /> В наличии</label>
 </form>
--->
 ```
 
 ```js
@@ -215,35 +231,37 @@ const filterForm = document.querySelector('[data-js-filter-form]');
 function syncFormToUrl(form) {
   const params = new URLSearchParams();
 
-  /* FormData автоматически пропускает снятые чекбоксы и добавляет отмеченные со значением 'on': */
+  /* FormData пропускает снятые чекбоксы и даёт отмеченным 'on': */
   for (const [name, value] of new FormData(form)) {
-    /* Пропускаем пустые текстовые/выпадающие поля, чтобы URL оставался чистым: */
+    /* Пропускаем пустые поля, чтобы URL оставался чистым: */
     if (String(value).trim() === '') continue;
     params.append(name, String(value));
   }
 
   const queryString = params.toString();
-  /* Если параметры есть — добавляем '?', если пусто — не оставляем висячий '?' в конце пути;
-     также обязательно сохраняем текущий window.location.hash: */
+  /*
+    Добавляем '?' только если есть параметры (без висячего '?'),
+    и обязательно сохраняем текущий window.location.hash:
+  */
   const nextUrl =
     window.location.pathname +
     (queryString ? `?${queryString}` : '') +
     window.location.hash;
 
-  /* replaceState обновляет URL без создания лишней записи в истории на каждый чих фильтра: */
+  /* replaceState обновляет URL без лишних записей в истории: */
   window.history.replaceState(window.history.state, '', nextUrl);
 }
 
 function restoreFormFromUrl(form) {
-  /* Сначала возвращаем форму к исходным значениям (очистит поля, которых больше нет в URL): */
+  /* Сбрасываем форму (очистит поля, которых больше нет в URL): */
   form.reset();
 
   const searchParams = new URLSearchParams(window.location.search);
 
-  /* ВНИМАНИЕ: в URLSearchParams.forEach первым идёт value, вторым — name: */
+  /* ВНИМАНИЕ: в URLSearchParams.forEach 1-й value, 2-й — name: */
   searchParams.forEach((value, name) => {
     const field = form.elements[name];
-    /* Защита от посторонних GET-параметров вроде ?utm_source=... — без проверки будет TypeError: */
+    /* Защита от посторонних параметров ?utm_source=... (иначе TypeError): */
     if (!field) return;
 
     if (field.type === 'checkbox') {
@@ -264,14 +282,14 @@ if (filterForm) {
 
 **Задача 3. Мини-роутер вкладок через `history.pushState` и событие `popstate`**
 
-Реализуй переключение вкладок с сохранением активной вкладки в URL (`?tab=...`) так, чтобы работали и прямой переход по ссылке, и кнопки браузера «Назад» / «Вперёд»:
-1) Напиши функцию `renderActiveTab(tabName)`: если панели с `data-tab-panel` для `tabName` нет, берётся имя первой панели (`'profile'`). У кнопок `[data-tab-btn]` и панелей `[data-tab-panel]` переключается класс `'is-active'`, а функция возвращает реально активированное имя вкладки.
-2. При старте страницы прочитай `tab` из `window.location.search`, вызови `renderActiveTab(...)`, синхронизируй параметр `startUrl.searchParams.set('tab', initialTab)` и запиши стартовое состояние через `window.history.replaceState({ tab: initialTab }, '', startUrl.toString())` (чтобы при битом `?tab=` в URL сразу стояла реальная вкладка, а в `event.state` не было `null`).
-3) По делегированию на `[data-tabs]` обрабатывай клик по `[data-tab-btn]`: если вкладка изменилась — обнови `?tab=` через `new URL(window.location.href)`, добавь запись через `window.history.pushState({ tab: nextTab }, '', nextUrl.toString())` и вызови `renderActiveTab(nextTab)`.
-4) На `window` слушай событие `'popstate'` и синхронизируй вкладку через `renderActiveTab(event.state?.tab ?? new URLSearchParams(window.location.search).get('tab'))`.
+Нужно переключать вкладки с сохранением активной вкладки в URL (`?tab=...`), чтобы работали прямой переход по ссылке и кнопки браузера «Назад» / «Вперёд». Реализуй 4 шага:
+
+1. Напиши `renderActiveTab(tabName)`: если панели с `data-tab-panel` для `tabName` нет, берётся имя первой панели (`'profile'`). У кнопок `[data-tab-btn]` и панелей `[data-tab-panel]` переключается класс `'is-active'`, а функция возвращает реально активированное имя вкладки.
+2. При старте страницы прочитай `tab` из `window.location.search`, вызови `renderActiveTab(...)`, синхронизируй параметр `startUrl.searchParams.set('tab', initialTab)` и запиши стартовое состояние через `window.history.replaceState({ tab: initialTab }, '', startUrl.toString())`.
+3. По делегированию на `[data-tabs]` обрабатывай клик по `[data-tab-btn]`: если вкладка изменилась — обнови `?tab=` через `new URL(window.location.href)`, добавь запись через `window.history.pushState({ tab: nextTab }, '', nextUrl.toString())` и вызови `renderActiveTab(nextTab)`.
+4. На `window` слушай событие `'popstate'` и синхронизируй вкладку через `renderActiveTab(event.state?.tab ?? new URLSearchParams(window.location.search).get('tab'))`.
 
 ```html
-<!-- Пример разметки:
 <div data-tabs>
   <button type="button" data-tab-btn="profile">Профиль</button>
   <button type="button" data-tab-btn="orders">Заказы</button>
@@ -281,7 +299,6 @@ if (filterForm) {
   <section data-tab-panel="orders">Список заказов</section>
   <section data-tab-panel="settings">Настройки аккаунта</section>
 </div>
--->
 ```
 
 ```js
@@ -306,27 +323,34 @@ if (tabsRoot) {
   const fallbackTab = panels[0]?.dataset.tabPanel ?? 'profile';
 
   function renderActiveTab(tabName) {
-    /* Проверяем, существует ли панель с таким именем — иначе подставляем безопасный fallback: */
-    const hasPanel = panels.some((panel) => panel.dataset.tabPanel === tabName);
+    /* Проверяем наличие панели — иначе подставляем безопасный fallback: */
+    const hasPanel = panels.some(
+      (panel) => panel.dataset.tabPanel === tabName
+    );
     const activeTab = hasPanel ? tabName : fallbackTab;
 
     buttons.forEach((btn) => {
       btn.classList.toggle('is-active', btn.dataset.tabBtn === activeTab);
     });
     panels.forEach((panel) => {
-      panel.classList.toggle('is-active', panel.dataset.tabPanel === activeTab);
+      const isCurrent = panel.dataset.tabPanel === activeTab;
+      panel.classList.toggle('is-active', isCurrent);
     });
 
     return activeTab;
   }
 
-  /* 1. Инициализация при открытии страницы (учитываем переданный ?tab=... в URL): */
+  /* 1. Инициализация при открытии (учитываем ?tab=... в URL): */
   const startUrl = new URL(window.location.href);
   const initialTab = renderActiveTab(startUrl.searchParams.get('tab'));
-  /* Синхронизируем ?tab= на случай пустого или битого параметра в URL: */
+  /* Синхронизируем ?tab= на случай пустого или битого параметра: */
   startUrl.searchParams.set('tab', initialTab);
-  /* Сохраняем state для первой записи истории, чтобы кнопка Назад знала вкладку: */
-  window.history.replaceState({ tab: initialTab }, '', startUrl.toString());
+  /* Сохраняем state для 1-й записи, чтобы Назад знала вкладку: */
+  window.history.replaceState(
+    { tab: initialTab },
+    '',
+    startUrl.toString()
+  );
 
   /* 2. Переключение по клику (делегирование на контейнере вкладок): */
   tabsRoot.addEventListener('click', (event) => {
@@ -334,21 +358,23 @@ if (tabsRoot) {
     if (!button) return;
 
     const nextTab = button.dataset.tabBtn;
-    const currentTab = new URL(window.location.href).searchParams.get('tab') ?? fallbackTab;
-    /* Повторный клик по уже открытой вкладке не должен плодить дубли в истории: */
+    const currentUrl = new URL(window.location.href);
+    const currentTab = currentUrl.searchParams.get('tab') ?? fallbackTab;
+    /* Повторный клик по активной вкладке не должен плодить дубли: */
     if (nextTab === currentTab) return;
 
     const nextUrl = new URL(window.location.href);
     nextUrl.searchParams.set('tab', nextTab);
 
-    /* pushState меняет URL и добавляет шаг в историю без перезагрузки страницы: */
+    /* pushState меняет URL и добавляет шаг без перезагрузки страницы: */
     window.history.pushState({ tab: nextTab }, '', nextUrl.toString());
     renderActiveTab(nextTab);
   });
 
-  /* 3. Реакция на кнопки Назад/Вперёд (pushState сам по себе popstate не вызывает): */
+  /* 3. Реакция на Назад/Вперёд (pushState сам popstate не вызывает): */
   window.addEventListener('popstate', (event) => {
-    const tabFromUrl = new URLSearchParams(window.location.search).get('tab');
+    const params = new URLSearchParams(window.location.search);
+    const tabFromUrl = params.get('tab');
     renderActiveTab(event.state?.tab ?? tabFromUrl);
   });
 }

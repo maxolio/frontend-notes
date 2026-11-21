@@ -402,9 +402,9 @@ console.log(Counter.isAllowed(15)); /* false */
 
 Построй иерархию классов уведомлений:
 
-1. Создай класс `Notification(title)` с методом `format()`, возвращающим `` `[Уведомление] ${this.title}` ``.
+1. Создай класс `Notification(title)` с методом `format()`, возвращающим шаблонную строку `[Уведомление] ${this.title}`.
 2. Создай наследника `EmailNotification extends Notification(title, email)`: первой строкой вызови `super(title)` до записи `this.email = email`.
-3. Расширь метод `format()` через `super.format()`, чтобы он возвращал `` `[Уведомление] ${this.title} -> ${this.email}` ``.
+3. Расширь метод `format()` через `super.format()`, чтобы он возвращал шаблонную строку `[Уведомление] ${this.title} -> ${this.email}`.
 
 Проверка: `notice.format()` -> `'[Уведомление] Заказ оплачен -> user@mail.ru'`, оба `instanceof` -> `true`.
 

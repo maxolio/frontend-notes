@@ -9,22 +9,27 @@
 
 [+] HTML-атрибут onclick="..." (требует вызова со скобками ()) и свойство button.onclick = fn (без скобок, только в нижнем регистре) ограничены 1 функцией — вторая затрёт первую. Единственный правильный способ — addEventListener.
 
-```js
+```html
 <!-- Способ 1 (устаревший, в HTML): нужны скобки вызова () -->
 <button onclick="logMessage()">Нажми</button>
+```
 
-/* Способ 2 (в JS через свойство): БЕЗ скобок () и перетирает прошлый обработчик! */
+```js
+/* Способ 2 (в JS): БЕЗ скобок () и перетирает прошлый обработчик! */
 const btn = document.querySelector('button');
-const logMessage = () => console.log("Клик!");
-btn.onclick = logMessage;   /* btn.onclick = logMessage() вызовет функцию СРАЗУ и сломает! */
+const logMessage = () => console.log('Клик!');
+/* Ошибка: btn.onclick = logMessage() вызовет функцию СРАЗУ! */
+btn.onclick = logMessage;
 
-/* Способ 3 (правильный): имя события без "on", можно вешать много обработчиков */
+/* Способ 3 (правильный): имя события без "on", много обработчиков */
 btn.addEventListener('click', () => console.log('Обработчик 1'));
 btn.addEventListener('click', () => console.log('Обработчик 2'));
 
 /* Полезные опции 3-го аргумента: */
-btn.addEventListener('click', logMessage, { once: true }); /* 1 раз и удалится сам */
-window.addEventListener('scroll', onScroll, { passive: true }); /* плавность на мобилках */
+/* Сработает 1 раз и удалится сам: */
+btn.addEventListener('click', logMessage, { once: true });
+/* Плавность скролла на мобильных: */
+window.addEventListener('scroll', onScroll, { passive: true });
 ```
 
 ## 2. Удаление обработчика: removeEventListener (08:13–10:48)
@@ -43,7 +48,7 @@ secondBtn.addEventListener('click', () => {
 });
 
 /* ЛОВУШКА с .bind(): obj.fn.bind(obj) создаёт НОВУЮ функцию каждый раз! */
-/* const boundFn = obj.fn.bind(obj); — сначала сохрани ссылку, потом передавай */
+/* Сначала сохрани ссылку: const boundFn = obj.fn.bind(obj); */
 ```
 
 ## 3. Объект event: target, currentTarget и this (10:49–15:40)
@@ -51,15 +56,20 @@ secondBtn.addEventListener('click', () => {
 [+] Браузер передаёт первым аргументом в обработчик объект события event (координаты, зажатые клавиши Alt/Ctrl и ссылку на элемент).
 
 ```js
-/* Разница между target и currentTarget (box3 вложен в box2 -> в box1): */
+/* Разница target и currentTarget (box3 вложен в box2 -> в box1): */
 box1.addEventListener('click', function (event) {
-  console.log(event.target);        /* самый глубокий элемент, куда РЕАЛЬНО кликнули */
-  console.log(event.currentTarget); /* элемент, на КОТОРОМ висит обработчик (box1) */
-  console.log(this);                /* в обычной function равен event.currentTarget */
+  /* Самый глубокий элемент, куда РЕАЛЬНО кликнули: */
+  console.log(event.target);
+  /* Элемент, на КОТОРОМ висит обработчик (box1): */
+  console.log(event.currentTarget);
+  /* В обычной function равен event.currentTarget: */
+  console.log(this);
 });
-/* В стрелочной () => {} свой this НЕ работает! Всегда надёжнее event.currentTarget */
-/* Если внутри <button> лежит <span> или <svg>, event.target вернёт именно <span>,
-   а НЕ кнопку — используйте event.currentTarget или event.target.closest("button") */
+/* В стрелочной () => {} this НЕ работает — бери event.currentTarget */
+/*
+  Если внутри <button> лежит <span> или <svg>, event.target вернёт <span>,
+  а НЕ кнопку — бери event.currentTarget или event.target.closest('button')
+*/
 ```
 
 ## 4. Всплытие (Bubbling) и его отмена (12:12–18:15)
@@ -68,10 +78,10 @@ box1.addEventListener('click', function (event) {
 
 ```js
 box3.addEventListener('click', (event) => {
-  /* Остановит подъём к родителям box2/box1, но другие обработчики на box3 СРАБОТАЮТ */
+  /* Остановит подъём к родителям, но другие слушатели на box3 СРАБОТАЮТ */
   event.stopPropagation();
 
-  /* Остановит И подъём вверх, И все остальные обработчики на самом box3: */
+  /* Остановит И подъём вверх, И все остальные слушатели на самом box3: */
   event.stopImmediatePropagation();
 });
 ```
@@ -83,13 +93,14 @@ box3.addEventListener('click', (event) => {
 [+] Полный жизненный цикл события: 1) Погружение (Capturing) сверху вниз от window до цели -> 2) Цель -> 3) Всплытие (Bubbling) снизу вверх. По умолчанию addEventListener слушает только всплытие.
 
 ```js
-/* 3-й аргумент { capture: true } (или просто true) включает перехват на ПОГРУЖЕНИИ */
+/* { capture: true } (или просто true) ловит событие на ПОГРУЖЕНИИ */
 box2.addEventListener('click', (event) => {
   console.log('Поймали сверху вниз раньше дочернего box3!');
-  event.stopPropagation(); /* отменит погружение глубже (полезно для чужих виджетов) */
+  /* Отменит погружение глубже (полезно для чужих виджетов): */
+  event.stopPropagation();
 }, { capture: true });
 
-/* ВАЖНО: чтобы снять такой обработчик, в removeEventListener ТОЖЕ передают capture! */
+/* Чтобы снять такой слушатель, в removeEventListener тоже нужен capture! */
 /* box2.removeEventListener('click', fn, { capture: true }); */
 ```
 
@@ -172,8 +183,9 @@ btn.addEventListener('click', (event) => {
 **Задача 1. Почини подписку `{ once: true }` и удаление обработчика по ссылке**
 
 Сейчас `promoBtnElement.onclick = showBanner()` запускается сразу при загрузке, второй `onclick` перетирает первый, а кнопка отмены не снимает слушатель статистики. Перепиши код через `addEventListener`:
-1) Сделай так, чтобы `showBanner` срабатывал **ровно один раз** при первом клике (`{ once: true }`).
-2) Добавь второй обработчик `onPromoStats` для вывода `'Учёт клика в статистику'` и сними его с `promoBtnElement` по клику на `cancelBtnElement`.
+
+1. Сделай так, чтобы `showBanner` срабатывал **ровно один раз** при первом клике (`{ once: true }`).
+2. Добавь второй обработчик `onPromoStats` для вывода `'Учёт клика в статистику'` и сними его с `promoBtnElement` по клику на `cancelBtnElement`.
 
 ```js
 'use strict';
@@ -202,11 +214,11 @@ const promoBtnElement = document.querySelector('[data-js-promo]');
 const cancelBtnElement = document.querySelector('[data-js-cancel]');
 
 const showBanner = () => console.log('Показан разовый баннер!');
-/* Сохраняем обработчик в переменную, чтобы передать ту же ссылку в removeEventListener */
+/* Сохраняем ссылку в переменную для передачи в removeEventListener */
 const onPromoStats = () => console.log('Учёт клика в статистику');
 
 if (promoBtnElement && cancelBtnElement) {
-  /* Передаём showBanner БЕЗ скобок () и с { once: true } — удалится сам после 1-го клика */
+  /* Передаём showBanner БЕЗ скобок; { once: true } сам снимет его */
   promoBtnElement.addEventListener('click', showBanner, { once: true });
   promoBtnElement.addEventListener('click', onPromoStats);
 
@@ -221,18 +233,21 @@ if (promoBtnElement && cancelBtnElement) {
 
 **Задача 2. Спойлер с переключением через `event.currentTarget` (защита от клика по `<span>`)**
 
-Напиши функцию `initSpoiler()`: по клику на кнопку `[data-js-toggle]` переключи класс `'is-hidden'` у `[data-js-content]`, а текст внутри `<span>` внутри самой кнопки смени на `'Открыть'` (если класс `'is-hidden'` сейчас есть) или `'Скрыть'` (если его нет). Используй `event.currentTarget`, чтобы код не сломался при клике прямо по `<span>`.
+Внутри кнопки спойлера лежит `<span>`, поэтому клик часто попадает именно в него, а не в `<button>`. Напиши функцию `initSpoiler()`:
+
+1. По клику на кнопку `[data-js-toggle]` переключи класс `'is-hidden'` у `[data-js-content]`.
+2. Смени текст внутри `<span>` кнопки на `'Открыть'` (если класс `'is-hidden'` сейчас есть) или `'Скрыть'` (если его нет).
+3. Используй `event.currentTarget`, чтобы код не ломался при клике прямо по `<span>`.
+
+```html
+<div data-js-spoiler>
+  <button type="button" data-js-toggle><span>Открыть</span></button>
+  <div class="is-hidden" data-js-content>Скрытый текст</div>
+</div>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <div data-js-spoiler>
-    <button type="button" data-js-toggle><span>Открыть</span></button>
-    <div class="is-hidden" data-js-content>Скрытый текст</div>
-  </div>
-*/
 
 /* Твоё решение: */
 function initSpoiler() {
@@ -254,12 +269,12 @@ function initSpoiler() {
   if (!toggleButtonElement || !contentElement) return;
 
   toggleButtonElement.addEventListener('click', (event) => {
-    /* toggle вернёт true, если класс 'is-hidden' добавился, и false — если удалился */
+    /* toggle вернёт true, если класс добавился, и false — если удалился */
     const isHidden = contentElement.classList.toggle('is-hidden');
 
     /*
-      event.currentTarget — это сама <button>, даже если event.target попал в <span>.
-      Поэтому поиск <span> внутри event.currentTarget всегда надёжно найдёт текст кнопки
+      event.currentTarget — это сама <button>, даже при клике в <span>.
+      Поиск <span> внутри event.currentTarget всегда найдёт текст кнопки
     */
     const labelElement = event.currentTarget.querySelector('span');
     if (labelElement) {
@@ -275,9 +290,10 @@ initSpoiler();
 
 **Задача 3. Фаза погружения `{ capture: true }` и `stopImmediatePropagation`**
 
-Допиши функцию `setupHandlers(boxElement, buttonElement)` для вложенной кнопки внутри блока:
-1) На `boxElement` повесь два слушателя `'click'`: один на фазе **погружения** (`{ capture: true }`, выводит `'1. Погружение на родителе'`), второй — на всплытии (выводит `'Всплытие на родителе — не должно сработать!'`).
-2) На `buttonElement` повесь два слушателя `'click'`: первый выводит `'2. Первый клик по кнопке'` и полностью обрывает дальнейшее распространение через `event.stopImmediatePropagation()`, чтобы ни второй слушатель кнопки, ни всплытие до `boxElement` не запустились.
+Нужно проверить порядок фаз события для кнопки внутри контейнера. Допиши функцию `setupHandlers(boxElement, buttonElement)`:
+
+1. На `boxElement` повесь два слушателя `'click'`: один на фазе **погружения** (`{ capture: true }`, выводит `'1. Погружение на родителе'`), второй — на всплытии (выводит `'Всплытие на родителе — не должно сработать!'`).
+2. На `buttonElement` повесь два слушателя `'click'`: первый выводит `'2. Первый клик по кнопке'` и полностью обрывает распространение через `event.stopImmediatePropagation()`, чтобы ни второй слушатель кнопки, ни всплытие до `boxElement` не запустились.
 
 ```js
 'use strict';
@@ -301,17 +317,17 @@ setupHandlers(boxElement, buttonElement);
 function setupHandlers(boxElement, buttonElement) {
   if (!boxElement || !buttonElement) return;
 
-  /* 1. { capture: true } сработает на фазе ПОГРУЖЕНИЯ сверху вниз до самой кнопки */
+  /* 1. { capture: true } сработает на ПОГРУЖЕНИИ сверху вниз до кнопки */
   boxElement.addEventListener('click', () => {
     console.log('1. Погружение на родителе');
   }, { capture: true });
 
-  /* Обычный слушатель на всплытии — до него событие не дойдёт из-за отмены на кнопке */
+  /* Обычный слушатель на всплытии — до него событие не дойдёт */
   boxElement.addEventListener('click', () => {
     console.log('Всплытие на родителе — не должно сработать!');
   });
 
-  /* 2. stopImmediatePropagation остановит И второй слушатель кнопки, И всплытие вверх */
+  /* 2. stopImmediatePropagation остановит 2-й слушатель и всплытие */
   buttonElement.addEventListener('click', (event) => {
     console.log('2. Первый клик по кнопке');
     event.stopImmediatePropagation();

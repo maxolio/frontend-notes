@@ -1,5 +1,10 @@
 # Worklog — Уроки JS (site/data/js)
 
+## 2026-11-21 — Финал рефакторинга всех 45 уроков JS, бандлы и validate-lessons.mjs
+- **Сделано:** Завершены Пачка 6 (`lesson-30`..`36`) и Пачка 7 (`lesson-37`..`42`), добавлены кодовые сниппеты в вопросы (`34, 35, 39, 41, 42`), проверены `pointercancel`, `window blur`, `String(!isValid)` и `startUrl.searchParams.set('tab', initialTab)`. Убраны 6 двойных бэктиков (`06, 12, 19, 22`), перенесён валидатор в `scripts/validate-lessons.mjs` (`0 issues` по всем 45 файлам), удалены временные валидаторы из `scratch/`, пересобраны `all-lessons.md` и `all-questions-and-tasks.md`.
+- **Файлы:** `site/data/js/lesson-06.md`, `12`, `19`, `22`, `30..42`, `site/data/js/all-lessons.md`, `site/data/js/all-questions-and-tasks.md`, `scripts/validate-lessons.mjs`, `logs/lessons.md`.
+- **Дальше:** Вернуться к системной **Практике 1** по Урокам 01–14 (`site/data/js/practice-01.md` + `LEARNING_LOG.md`).
+
 ## 2026-11-21 — Шаг 0, Шаг 1 (11 багов) и Пачки 1–5 (32 из 45 уроков)
 - **Сделано:** Создан валидатор `scratch/validate_js_lessons.py`, исправлены все 11 багов из аудита (`00b`, `01`, `11`, `13`, `17`, `18`, `19`, `34`, `35`, `39`, `42`), приведены к стандарту 32 урока (`lesson-00.md` .. `lesson-29.md`) с `0 issues` (Правило 7, `/* ... */`, длина строк `≤ 78`, вынос HTML в ```` ```html ````).
 - **Файлы:** `site/data/js/lesson-00.md`..`29.md`, `site/data/js/lesson-34.md`, `35`, `39`, `42`, `scratch/validate_js_lessons.py`, `HANDOFF.md`.

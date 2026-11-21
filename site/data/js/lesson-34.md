@@ -10,15 +10,15 @@
 [+] mousemove стреляет при каждом сдвиге мыши. mouseover / mouseout реагируют на наведение и увод, но СРАБАТЫВАЮТ повторно при переходе на любой вложенный тег (а relatedTarget при быстром движении или уходе за край окна может дать null).
 
 ```js
-/* У mouseover / mouseout есть relatedTarget (откуда ушёл / куда перешёл курсор): */
+/* У mouseover / mouseout есть relatedTarget (откуда / куда ушёл курсор): */
 box.addEventListener('mouseover', (event) => {
   console.log(event.target, event.relatedTarget); /* может быть null! */
 });
 
-/* mouseenter / mouseleave НЕ реагируют на внутренние дочерние элементы — удобнее! */
-box.addEventListener('mouseenter', () => console.log('Вошли на сам блок целиком'));
-box.addEventListener('mouseleave', () => console.log('Вышли за границы блока'));
-/* ВАЖНО: mouseenter/mouseleave НЕ всплывают — их нельзя делегировать на document */
+/* mouseenter / mouseleave НЕ реагируют на дочерние элементы — удобнее! */
+box.addEventListener('mouseenter', () => console.log('Вошли на блок'));
+box.addEventListener('mouseleave', () => console.log('Вышли за границы'));
+/* ВАЖНО: mouseenter/mouseleave НЕ всплывают — на document не делегировать */
 ```
 
 ## 2. Нажатия мыши: mousedown, mouseup, click, dblclick, contextmenu (07:51–11:55)
@@ -28,7 +28,7 @@ box.addEventListener('mouseleave', () => console.log('Вышли за грани
 ```js
 btn.addEventListener('dblclick', () => console.log('Двойной клик'));
 
-/* contextmenu — правая кнопка мыши; preventDefault() отменит системное меню: */
+/* contextmenu — правая кнопка мыши; preventDefault() отменит меню: */
 btn.addEventListener('contextmenu', (event) => {
   event.preventDefault();
 });
@@ -36,7 +36,9 @@ btn.addEventListener('contextmenu', (event) => {
 /* Какая кнопка (mousedown) и какие клавиши были зажаты при клике: */
 btn.addEventListener('mousedown', (event) => {
   console.log(event.button); /* 0 — левая, 1 — колёсико, 2 — правая */
-  if (event.shiftKey || event.ctrlKey || event.metaKey) console.log("С модификатором");
+  if (event.shiftKey || event.ctrlKey || event.metaKey) {
+    console.log('С модификатором');
+  }
 });
 ```
 
@@ -47,9 +49,9 @@ btn.addEventListener('mousedown', (event) => {
 ```js
 document.addEventListener('pointerdown', (event) => {
   console.log(event.pointerType); /* "mouse" | "touch" | "pen" */
-  console.log(event.pointerId);   /* у мыши всегда 1; у каждого пальца свой ID */
-  console.log(event.isPrimary);   /* true для 1-го пальца, false для 2-го и далее */
-  /* Захват указателя: все pointermove/up полетят в target, даже за пределы окна! */
+  console.log(event.pointerId);   /* у мыши 1; у каждого пальца свой ID */
+  console.log(event.isPrimary);   /* true для 1-го пальца, false для 2-го */
+  /* Захват указателя: pointermove/up полетят в target даже вне окна! */
   /* event.target.setPointerCapture(event.pointerId); */
 });
 ```
@@ -63,39 +65,47 @@ class DragAndDrop {
   selectors = { root: '[data-js-dnd]' };
   stateClasses = { isDragging: 'is-dragging' };
   initialState = {
-    offsetX: null, offsetY: null, isDragging: false, currentDraggingElement: null,
+    offsetX: null,
+    offsetY: null,
+    isDragging: false,
+    currentDraggingElement: null,
   };
   constructor() { this.resetState(); this.bindEvents(); }
   resetState() { this.state = { ...this.initialState }; }
 
   onPointerDown({ target, x, y }) {
     if (!target.matches(this.selectors.root)) return;
-    /* Если внутри лежат <img>/<span>, задай им CSS pointer-events: none (или closest) */
+    /* Для вложенных <img>/<span> задай CSS pointer-events: none */
     target.classList.add(this.stateClasses.isDragging);
     const { left, top } = target.getBoundingClientRect();
     this.state = {
-      offsetX: x - left, offsetY: y - top, /* смещение от угла элемента */
-      isDragging: true, currentDraggingElement: target,
+      offsetX: x - left,
+      offsetY: y - top, /* смещение от угла элемента */
+      isDragging: true,
+      currentDraggingElement: target,
     };
   }
   onPointerMove(event) {
     if (!this.state.isDragging) return;
-    const x = event.pageX - this.state.offsetX; /* pageX/Y для absolute; clientX/Y — fixed */
+    /* pageX/Y для position: absolute; clientX/Y — для fixed: */
+    const x = event.pageX - this.state.offsetX;
     const y = event.pageY - this.state.offsetY;
     this.state.currentDraggingElement.style.left = `${x}px`;
     this.state.currentDraggingElement.style.top = `${y}px`;
   }
   onPointerUp() {
     if (!this.state.isDragging) return;
-    this.state.currentDraggingElement.classList.remove(this.stateClasses.isDragging);
+    this.state.currentDraggingElement.classList.remove(
+      this.stateClasses.isDragging
+    );
     this.resetState();
   }
   bindEvents() {
-    /* Стрелочная обёртка сохраняет this экземпляра DragAndDrop (не document!) */
+    /* Стрелочная обёртка сохраняет this экземпляра (не document!) */
     document.addEventListener('pointerdown', (e) => this.onPointerDown(e));
     document.addEventListener('pointermove', (e) => this.onPointerMove(e));
     document.addEventListener('pointerup',   () => this.onPointerUp());
-    /* Если тащим саму <img> (без div), отменяем встроенный dragstart браузера: */
+    /* Для самой <img> отменяем встроенный dragstart браузера: */
     /* document.addEventListener('dragstart', (e) => { */
     /*   if (e.target.matches(this.selectors.root)) e.preventDefault(); */
     /* }); */
@@ -103,11 +113,11 @@ class DragAndDrop {
 }
 new DragAndDrop();
 
-/* Как в onPointerUp(event) узнать, над какой зоной ("миской") отпустили элемент? */
-/* el.hidden = true;                                                               */
-/* const elemBelow = document.elementFromPoint(event.clientX, event.clientY);      */
-/* el.hidden = false;                                                              */
-/* const dropzone = elemBelow?.closest('[data-js-dropzone]');                      */
+/* Как в onPointerUp(event) узнать зону сброса под элементом: */
+/* el.hidden = true; */
+/* const below = document.elementFromPoint(event.clientX, event.clientY); */
+/* el.hidden = false; */
+/* const dropzone = below?.closest('[data-js-dropzone]'); */
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -144,6 +154,15 @@ new DragAndDrop();
 
 **3. Что сломается при передаче `this.onPointerDown` без обёртки в `addEventListener`, и зачем прятать элемент (`el.hidden = true`) перед `document.elementFromPoint`?**
 
+```js
+class DragAndDrop {
+  state = { isDragging: false };
+  bindEvents() {
+    document.addEventListener('pointerdown', this.onPointerDown);
+  }
+}
+```
+
 <details>
 <summary>Показать ответ</summary>
 
@@ -156,9 +175,10 @@ new DragAndDrop();
 
 **Задача 1. Защита галереи от контекстного меню, перетаскивания и `Shift + ЛКМ`**
 
-Напиши функцию `initMediaControls(galleryElement)` с делегированием событий на контейнер `galleryElement`:
-1) При `contextmenu` и `dragstart` на картинках `<img>` внутри галереи отменяй стандартное действие браузера (`preventDefault`) и выводи в консоль `'Действие запрещено'`.
-2) При `mousedown` на `<img>`: если нажата **левая** кнопка мыши (`event.button === 0`) **и** зажата клавиша `Shift` (`event.shiftKey`), выведи в консоль путь `imgElement.getAttribute('src')`.
+Нужно защитить изображения в галерее от сохранения мышкой и добавить выбор фото по `Shift + ЛКМ`. Напиши функцию `initMediaControls(galleryElement)` с делегированием на `galleryElement`:
+
+1. При `contextmenu` и `dragstart` на картинках `<img>` внутри галереи отменяй стандартное действие браузера (`preventDefault`) и выводи в консоль `'Действие запрещено'`.
+2. При `mousedown` на `<img>`: если нажата **левая** кнопка мыши (`event.button === 0`) **и** зажата клавиша `Shift` (`event.shiftKey`), выведи в консоль путь `imgElement.getAttribute('src')`.
 
 ```js
 'use strict';
@@ -189,7 +209,7 @@ function initMediaControls(galleryElement) {
     console.log('Действие запрещено');
   };
 
-  /* Отменяем правое меню и встроенный drag-n-drop картинок одной функцией */
+  /* Отменяем правое меню и встроенный dragstart одной функцией */
   galleryElement.addEventListener('contextmenu', blockDefaultForImg);
   galleryElement.addEventListener('dragstart', blockDefaultForImg);
 
@@ -212,17 +232,17 @@ initMediaControls(galleryElement);
 
 **Задача 2. Делегируемая подсказка (`mouseover` / `mouseout` + `relatedTarget`)**
 
-Напиши функцию `initTooltips()` с делегированием на `document` для любых элементов с атрибутом `[data-tooltip]` (даже если внутри лежит `<span>`):
-1) В обработчике `mouseover`: найди `tooltipTarget = event.target.closest('[data-tooltip]')`. Если `tooltipTarget` найден и курсор пришёл **извне** (т. е. `!tooltipTarget.contains(event.relatedTarget)`), выведи `'Показать подсказку: ' + tooltipTarget.dataset.tooltip`.
-2) В обработчике `mouseout`: если курсор ушёл **за пределы** всего `tooltipTarget` (`!tooltipTarget.contains(event.relatedTarget)`), выведи `'Скрыть подсказку'`.
+События `mouseenter` / `mouseleave` не всплывают, поэтому для делегирования подсказок на `document` используют `mouseover` / `mouseout`. Напиши функцию `initTooltips()` для любых `[data-tooltip]` (даже со вложенным `<span>`):
+
+1. В `mouseover`: найди `tooltipTarget = event.target.closest('[data-tooltip]')`. Если `tooltipTarget` найден и курсор пришёл **извне** (`!tooltipTarget.contains(event.relatedTarget)`), выведи `'Показать подсказку: ' + tooltipTarget.dataset.tooltip`.
+2. В `mouseout`: если курсор ушёл **за пределы** всего `tooltipTarget` (`!tooltipTarget.contains(event.relatedTarget)`), выведи `'Скрыть подсказку'`.
+
+```html
+<button data-tooltip="Сохранить изменения"><span>Сохранить</span></button>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <button data-tooltip="Сохранить изменения"><span>Сохранить</span></button>
-*/
 
 /* Твоё решение: */
 function initTooltips() {
@@ -244,9 +264,9 @@ function initTooltips() {
     if (!tooltipTarget) return;
 
     /*
-      Если relatedTarget (откуда пришёл курсор) уже лежит внутри tooltipTarget,
-      значит мы просто перешагнули между <span> и <button> — повторно не срабатываем.
-      Когда relatedTarget === null (заход извне окна), contains(null) даёт false
+      Если relatedTarget уже лежит внутри tooltipTarget, значит мы просто
+      перешли между <span> и <button> — повторно не срабатываем.
+      При relatedTarget === null (заход извне окна) contains(null) -> false
     */
     if (tooltipTarget.contains(event.relatedTarget)) return;
 
@@ -257,7 +277,7 @@ function initTooltips() {
     const tooltipTarget = event.target.closest('[data-tooltip]');
     if (!tooltipTarget) return;
 
-    /* Скрываем подсказку, только если курсор ушёл за пределы всего элемента */
+    /* Скрываем подсказку, только если курсор ушёл за пределы элемента */
     if (tooltipTarget.contains(event.relatedTarget)) return;
 
     console.log('Скрыть подсказку');
@@ -271,20 +291,20 @@ initTooltips();
 
 **Задача 3. Горизонтальный ползунок на Pointer Events с `setPointerCapture`**
 
-Напиши функцию `initRangeSlider(trackElement, thumbElement)` для перетаскивания бегунка строго по горизонтали внутри шкалы:
-1) На `pointerdown` по `thumbElement`: захвати указатель (`setPointerCapture(event.pointerId)`), вычисли смещение `shiftX = event.clientX - thumbElement.getBoundingClientRect().left` и включи `isDragging = true`.
-2) На `pointermove` по `thumbElement`: если `isDragging`, рассчитай `newLeft = event.clientX - shiftX - trackElement.getBoundingClientRect().left`, ограничь его в диапазоне `[0 .. trackElement.clientWidth - thumbElement.offsetWidth]` через `Math.max` / `Math.min` и обнови `thumbElement.style.left` в `'px'`.
-3. На `pointerup` и `pointercancel`: выключи `isDragging = false` (`pointercancel` спасает от залипания ползунка на планшете/телефоне при системном жесте или звонке).
+Нужно сделать плавный ползунок, который не теряет курсор за краем окна и не залипает на телефоне. Напиши функцию `initRangeSlider(trackElement, thumbElement)`:
+
+1. На `pointerdown` по `thumbElement`: захвати указатель (`setPointerCapture(event.pointerId)`), вычисли смещение `shiftX = event.clientX - thumbElement.getBoundingClientRect().left` и включи `isDragging = true`.
+2. На `pointermove` по `thumbElement`: если `isDragging`, рассчитай `newLeft = event.clientX - shiftX - trackElement.getBoundingClientRect().left`, ограничь его в диапазоне `[0 .. trackElement.clientWidth - thumbElement.offsetWidth]` через `Math.max` / `Math.min` и обнови `thumbElement.style.left` в `'px'`.
+3. На `pointerup` и `pointercancel`: выключи `isDragging = false` (`pointercancel` спасает от залипания ползунка при системном жесте или звонке).
+
+```html
+<div data-js-track style="position: relative; width: 300px;">
+  <div data-js-thumb style="position: absolute; width: 20px;"></div>
+</div>
+```
 
 ```js
 'use strict';
-
-/*
-  Вёрстка:
-  <div data-js-track style="position: relative; width: 300px;">
-    <div data-js-thumb style="position: absolute; width: 20px; touch-action: none;"></div>
-  </div>
-*/
 
 /* Твоё решение: */
 function initRangeSlider(trackElement, thumbElement) {
@@ -309,7 +329,7 @@ function initRangeSlider(trackElement, thumbElement) {
   let shiftX = 0;
 
   thumbElement.addEventListener('pointerdown', (event) => {
-    /* Захватываем указатель — все pointermove/up прилетят в thumb даже за краем окна */
+    /* Захват указателя: pointermove/up прилетят в thumb даже вне окна */
     thumbElement.setPointerCapture(event.pointerId);
     shiftX = event.clientX - thumbElement.getBoundingClientRect().left;
     isDragging = true;
@@ -321,7 +341,7 @@ function initRangeSlider(trackElement, thumbElement) {
     const trackRect = trackElement.getBoundingClientRect();
     let newLeft = event.clientX - shiftX - trackRect.left;
 
-    /* Ограничиваем сдвиг рамками шкалы: не левее 0 и не правее (шкала - ширина бегунка) */
+    /* Ограничиваем сдвиг рамками шкалы: от 0 до (шкала - бегунок) */
     const maxLeft = trackElement.clientWidth - thumbElement.offsetWidth;
     newLeft = Math.max(0, Math.min(newLeft, maxLeft));
 

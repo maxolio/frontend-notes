@@ -17,7 +17,7 @@ loginInput.addEventListener('focus', () => {
   loginInput.classList.remove('is-invalid');
 });
 
-/* Ставим ошибку при уходе с пустого поля (change тут бы промолчал, если не меняли): */
+/* Ошибка при уходе с пустого поля (change промолчит, если не меняли): */
 loginInput.addEventListener('blur', () => {
   /* event.preventDefault() в blur НЕ удержит фокус! */
   if (loginInput.value.length === 0) {
@@ -30,14 +30,19 @@ loginInput.addEventListener('blur', () => {
 
 [+] Фокусом можно управлять из JS. Если автофокус нужен сразу при открытии страницы, чаще ставят HTML-атрибут autofocus (но учтите: при старте браузер ставит его до подписки в JS, поэтому первое событие focus не поймается).
 
-```js
+```html
 <!-- В HTML: сразу ставит фокус при загрузке страницы -->
 <input id="login" autofocus />
+```
 
+```js
 /* Программно через JS: */
-loginInput.focus(); /* поставить фокус (браузер сам прокрутит страницу к элементу) */
-loginInput.focus({ preventScroll: true }); /* поставить фокус БЕЗ прокрутки экрана */
-setTimeout(() => loginInput.blur(), 2000); /* принудительно снять фокус */
+/* Поставить фокус (браузер сам прокрутит страницу к элементу): */
+loginInput.focus();
+/* Поставить фокус БЕЗ прокрутки экрана: */
+loginInput.focus({ preventScroll: true });
+/* Принудительно снять фокус: */
+setTimeout(() => loginInput.blur(), 2000);
 ```
 
 [!] Почему focus() молча не срабатывает: 1) элемент скрыт (display: none / visibility: hidden — сначала покажи, потом фокусируй); 2) у `<div>` нет tabindex; 3) поле disabled. В CSS для красивой рамки только с клавиатуры берите :focus-visible.
@@ -70,9 +75,10 @@ document.addEventListener('focusout', (event) => {
 <!-- В 99% используют только два значения: 0 или -1 -->
 <div tabindex="0">Можно дойти по Tab (в порядке разметки) и кликом</div>
 <div tabindex="-1">Tab пропустит, но можно вызвать div.focus() из JS</div>
-<!-- Положительные tabindex="1", "2" ломают естественный порядок — не используйте -->
-/* В JavaScript это свойство пишется в camelCase с заглавной I: elem.tabIndex = 0; */
+<!-- Положительные tabindex="1", "2" ломают порядок — не используйте -->
 ```
+
+В JavaScript это свойство пишется в `camelCase` с заглавной `I`: `elem.tabIndex = 0;`.
 
 ## 5. Кто сейчас в фокусе: document.activeElement (09:52–12:18)
 
@@ -154,21 +160,21 @@ formElement.addEventListener('blur', (event) => {
 
 **Задача 1. Делегирование фокуса и закрытие меню при уходе (`focusin` / `focusout`)**
 
-Напиши функцию `initMenuFocusGuard(menuElement)` для выпадающего меню:
-1) При `focusin` на `menuElement` добавляй меню класс `'has-focus'`.
-2) При `focusout` на `menuElement` проверяй `event.relatedTarget` (куда перешёл фокус): если фокус ушёл **за пределы** всего `menuElement` (`!menuElement.contains(event.relatedTarget)`), убирай классы `'has-focus'` и `'is-open'`.
+Выпадающее меню должно подсвечиваться, пока фокус внутри него, и автоматически закрываться при уходе наружу. Напиши функцию `initMenuFocusGuard(menuElement)`:
+
+1. При `focusin` на `menuElement` добавляй меню класс `'has-focus'`.
+2. При `focusout` на `menuElement` проверяй `event.relatedTarget` (куда перешёл фокус): если фокус ушёл **за пределы** всего `menuElement` (`!menuElement.contains(event.relatedTarget)`), убирай классы `'has-focus'` и `'is-open'`.
+
+```html
+<div class="dropdown is-open" data-js-menu>
+  <button type="button" data-js-trigger>Меню</button>
+  <a href="#profile">Профиль</a>
+  <a href="#logout">Выйти</a>
+</div>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <div class="dropdown is-open" data-js-menu>
-    <button type="button" data-js-trigger>Меню</button>
-    <a href="#profile">Профиль</a>
-    <a href="#logout">Выйти</a>
-  </div>
-*/
 
 /* Твоё решение: */
 function initMenuFocusGuard(menuElement) {
@@ -188,16 +194,16 @@ initMenuFocusGuard(menuElement);
 function initMenuFocusGuard(menuElement) {
   if (!menuElement) return;
 
-  /* focusin всплывает — сработает, когда фокус попадёт на кнопку или любую ссылку внутри */
+  /* focusin всплывает — сработает для кнопки и любой ссылки внутри */
   menuElement.addEventListener('focusin', () => {
     menuElement.classList.add('has-focus');
   });
 
   menuElement.addEventListener('focusout', (event) => {
     /*
-      Пока пользователь прыгает клавишей Tab между кнопкой и ссылками меню,
-      event.relatedTarget находится внутри menuElement -> закрывать рано.
-      При клике в пустое место relatedTarget === null, и contains(null) даст false
+      Пока пользователь ходит по Tab внутри меню, relatedTarget внутри
+      menuElement -> закрывать рано. При клике в пустое место
+      relatedTarget === null, и contains(null) вернёт false
     */
     if (menuElement.contains(event.relatedTarget)) return;
 
@@ -213,9 +219,10 @@ initMenuFocusGuard(menuElement);
 
 **Задача 2. Доступное модальное окно с возвратом `document.activeElement`**
 
-Реализуй пару функций `openModal(modalElement)` и `closeModal(modalElement)`:
-1) При `openModal`: сохрани текущий активный элемент `document.activeElement` в `lastActiveElement`, убери `'is-hidden'` и добавь `'is-open'`. Переведи фокус на кнопку закрытия `[data-js-close]` внутри модалки — а если её нет, поставь самой модалке `tabIndex = -1` и вызови `.focus({ preventScroll: true })`.
-2) При `closeModal`: верни `'is-hidden'`, убери `'is-open'` и верни фокус обратно на `lastActiveElement` (через `?.focus({ preventScroll: true })`).
+После закрытия модального окна фокус клавиатуры должен возвращаться на кнопку, с которой его открыли. Реализуй пару функций `openModal(modalElement)` и `closeModal(modalElement)`:
+
+1. При `openModal`: сохрани `document.activeElement` в `lastActiveElement`, убери `'is-hidden'` и добавь `'is-open'`. Переведи фокус на кнопку закрытия `[data-js-close]` внутри модалки — а если её нет, поставь самой модалке `tabIndex = -1` и вызови `.focus({ preventScroll: true })`.
+2. При `closeModal`: верни `'is-hidden'`, убери `'is-open'` и верни фокус обратно на `lastActiveElement` (через `?.focus({ preventScroll: true })`).
 
 ```js
 'use strict';
@@ -245,10 +252,10 @@ let lastActiveElement = null;
 function openModal(modalElement) {
   if (!modalElement) return;
 
-  /* Запоминаем кнопку/элемент, с которого открыли окно, чтобы вернуть туда фокус */
+  /* Запоминаем элемент, с которого открыли окно, чтобы вернуть фокус */
   lastActiveElement = document.activeElement;
 
-  /* Показываем окно ДО вызова .focus(), иначе на скрытом элементе фокус не сработает */
+  /* Показываем окно ДО .focus(), иначе на скрытом фокус не сработает */
   modalElement.classList.remove('is-hidden');
   modalElement.classList.add('is-open');
 
@@ -256,7 +263,7 @@ function openModal(modalElement) {
   if (closeButtonElement) {
     closeButtonElement.focus({ preventScroll: true });
   } else {
-    /* tabIndex = -1 разрешает фокусировать <div> программно, не добавляя в очередь Tab */
+    /* tabIndex = -1 разрешает фокус из JS, не добавляя в очередь Tab */
     modalElement.tabIndex = -1;
     modalElement.focus({ preventScroll: true });
   }
@@ -265,7 +272,7 @@ function openModal(modalElement) {
 function closeModal(modalElement) {
   if (!modalElement) return;
 
-  /* Прячем через класс с display: none / visibility: hidden, чтобы не красть Tab */
+  /* Прячем через display: none / visibility: hidden, чтобы не красть Tab */
   modalElement.classList.remove('is-open');
   modalElement.classList.add('is-hidden');
 
@@ -280,17 +287,17 @@ const modalElement = document.querySelector('[data-js-modal]');
 
 **Задача 3. Редактируемый `<div>` по клику (`<div>` -> `<textarea>` -> `blur` / `Enter`)**
 
-Напиши функцию `makeEditable(boxElement)`:
-1) Сделай `boxElement` доступным через `Tab` (`boxElement.tabIndex = 0`) и повесь `'click'`: создай `<textarea>`, запиши в её `.value` текст из `boxElement.textContent`, замени `boxElement` на `<textarea>` через `.replaceWith(...)` и вызови `.focus()`.
-2) При `'blur'` на `<textarea>` или нажатии `Enter` (`event.code === 'Enter'` без `shiftKey`, не забудь `preventDefault()`!) сохрани новое `.value` обратно в `boxElement.textContent` и верни `boxElement` на место. Защитись флагом от двойного срабатывания `Enter` + `blur`.
+Нужно превращать текстовый блок в поле редактирования по клику и сохранять результат при выходе или нажатии `Enter`. Напиши функцию `makeEditable(boxElement)`:
+
+1. Сделай `boxElement` доступным через `Tab` (`boxElement.tabIndex = 0`) и повесь `'click'`: создай `<textarea>`, запиши в её `.value` текст из `boxElement.textContent`, замени `boxElement` на `<textarea>` через `.replaceWith(...)` и вызови `.focus()`.
+2. При `'blur'` на `<textarea>` или нажатии `Enter` (`event.code === 'Enter'` без `shiftKey`, не забудь `preventDefault()`!) сохрани новое `.value` обратно в `boxElement.textContent` и верни `boxElement` на место. Защитись флагом от двойного срабатывания `Enter` + `blur`.
+
+```html
+<div class="note" data-js-editable>Нажми, чтобы изменить заметку</div>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <div class="note" data-js-editable>Нажми, чтобы изменить заметку</div>
-*/
 
 /* Твоё решение: */
 function makeEditable(boxElement) {
@@ -318,7 +325,7 @@ function makeEditable(boxElement) {
     textareaElement.classList.add('editor');
     textareaElement.value = boxElement.textContent;
 
-    /* Флаг защищает от двойного сохранения: replaceWith при Enter само вызовет blur */
+    /* Защита от двойного вызова: replaceWith при Enter само вызовет blur */
     let isSaved = false;
 
     const finishEdit = () => {

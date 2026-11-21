@@ -442,7 +442,7 @@ test();
 В коде ниже цепочка `.then()` ломается из-за забытого `return` и отсутствия обработки ошибок. Перепиши `loadUserReport(userId)`:
 
 1. Сделай функцию `async`, внутри `try` дождись `user = await fetchUser(userId)` и `orders = await fetchOrders(user.id)`.
-2. Верни строку `` `${user.name}: заказов ${orders.length}` ``.
+2. Верни шаблонную строку `${user.name}: заказов ${orders.length}`.
 3. В `catch (err)` выведи `'Ошибка:', err.message` и верни `null`.
 
 Проверка: `loadUserReport(1)` -> `'Алиса: заказов 2'`, `loadUserReport(-1)` -> лог ошибки и `null`.

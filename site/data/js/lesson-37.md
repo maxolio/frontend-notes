@@ -10,23 +10,27 @@
 [+] document.forms — живая HTMLCollection всех форм на странице. У самой формы свойство elements хранит живую коллекцию всех её полей (input, textarea, select, fieldset, button), куда можно обращаться по атрибуту name.
 
 ```js
-const formElement = document.forms.regForm; /* форма по её id / name (или [0]) */
+/* Форма по её id / name (или document.forms[0]): */
+const formElement = document.forms.regForm;
 
 /* Два одинаковых способа получить поле по атрибуту name="login": */
 const loginInput1 = formElement.elements.login;
 const loginInput2 = formElement.login; /* короткая запись без .elements */
 
-/* Для радиокнопок с одним name="gender" вернёт коллекцию RadioNodeList: */
+/* Для радиокнопок с одним name="gender" вернёт RadioNodeList: */
 const genderRadios = formElement.gender;
 
-/* Совет: form.elements.login надёжнее короткого form.login (после смены .name */
-/* старое имя исчезает из elements, но остаётся в form). Не называйте поля */
-/* name="submit" или "reset" — иначе перетрёте методы formElement.submit() / reset()! */
-/* <fieldset> тоже имеет своё .elements, а fieldset.disabled = true отключит всё внутри */
-formElement.reset();  /* сбросит все поля к исходным значениям из HTML */
-formElement.submit(); /* отправит форму сразу, НЕ вызывая JS-событие submit! */
-/* readonly — запрет правки, но фокус работает и поле уходит при отправке; */
-/* disabled — нет ни фокуса, ни клика, и поле вообще НЕ попадает в отправку! */
+/*
+  Совет: form.elements.login надёжнее form.login (после смены .name
+  старое имя исчезает из elements, но остаётся в form).
+  Не называйте поля name="submit" или "reset" — перетрёте методы!
+*/
+/* <fieldset> имеет свой .elements; fieldset.disabled = true отключит всё */
+formElement.reset();  /* сбросит поля к исходным значениям из HTML */
+/* Отправит форму сразу, НЕ вызывая JS-событие submit: */
+formElement.submit();
+/* readonly — запрет правки, фокус есть, поле уходит при отправке; */
+/* disabled — нет фокуса/клика, и поле НЕ попадает в отправку */
 ```
 
 ## 2. Поле за пределами формы: свойство и атрибут form (03:58–06:32)
@@ -34,12 +38,14 @@ formElement.submit(); /* отправит форму сразу, НЕ вызыв
 [+] У каждого поля есть свойство field.form со ссылкой на его форму (или null). Если по дизайну элемент лежит в HTML за пределами тега `<form>`, просто укажите ему атрибут form="idФормы" — он сразу попадёт в form.elements и уйдёт при отправке!
 
 ```html
-<!-- В HTML <select> стоит отдельно, но привязан к форме id="regForm": -->
+<!-- В HTML <select> стоит отдельно, но привязан к id="regForm": -->
 <form id="regForm">...</form>
 <select name="city" form="regForm">...</select>
+```
 
+```js
 const citySelect = document.querySelector('[name="city"]');
-console.log(citySelect.form); /* теперь ссылается на <form id="regForm">! */
+console.log(citySelect.form); /* теперь ссылается на <form id="regForm"> */
 ```
 
 ## 3. Поля ввода: `<input>` и `<textarea>` (06:33–08:16)
@@ -49,12 +55,13 @@ console.log(citySelect.form); /* теперь ссылается на <form id="
 ```js
 const aboutTextarea = formElement.about;
 aboutTextarea.value = 'Новое описание';
-console.log(aboutTextarea.value);       /* "Новое описание" — верно */
-console.log(aboutTextarea.textContent); /* ОШИБКА: старый текст из HTML-разметки! */
+console.log(aboutTextarea.value); /* "Новое описание" — верно */
+/* ОШИБКА: textContent хранит старый текст из HTML-разметки! */
+console.log(aboutTextarea.textContent);
 
-/* Запись из JS не запускает события input/change — они только от действий юзера! */
-/* HTML-атрибут value (input.defaultValue / defaultChecked) хранит стартовое значение: */
-console.log(loginInput1.getAttribute('value')); /* старт из HTML (к нему вернёт reset) */
+/* Запись из JS не запускает input/change — они только от юзера! */
+/* Атрибут value (defaultValue / defaultChecked) хранит старт из HTML: */
+console.log(loginInput1.getAttribute('value'));
 ```
 
 ## 4. Радиокнопки (type="radio") и чекбоксы (type="checkbox") (08:17–14:24)
@@ -63,15 +70,20 @@ console.log(loginInput1.getAttribute('value')); /* старт из HTML (к не
 
 ```js
 /* Радиокнопки (через RadioNodeList по общему name="gender"): */
-console.log(formElement.gender.value); /* значение выбранной кнопки (или "") */
-formElement.gender.value = 'мужской';  /* программно переключит нужную радиокнопку */
-/* Если указать несуществующее value — ничего не изменится; либо radios[0].checked = true */
+/* Значение выбранной кнопки (или ""): */
+console.log(formElement.gender.value);
+/* Программно переключит нужную радиокнопку: */
+formElement.gender.value = 'мужской';
+/* Несуществующее value ничего не изменит; либо radios[0].checked = true */
 
 /* Чекбокс (например, согласие с правилами name="agreement"): */
 const agreementCheckbox = formElement.agreement;
-console.log(agreementCheckbox.value);   /* ОПАСНО: "on", даже когда НЕ отмечен! */
-console.log(agreementCheckbox.checked); /* ПРАВИЛЬНО: true или false */
-agreementCheckbox.checked = true;       /* поставить галку (НЕ вызовет событие change!) */
+/* ОПАСНО: вернёт "on", даже когда НЕ отмечен! */
+console.log(agreementCheckbox.value);
+/* ПРАВИЛЬНО: true или false */
+console.log(agreementCheckbox.checked);
+/* Поставить галку из JS (НЕ вызовет событие change!): */
+agreementCheckbox.checked = true;
 ```
 
 ## 5. Выпадающий список `<select>` и `<select multiple>` (14:25–19:22)
@@ -80,17 +92,21 @@ agreementCheckbox.checked = true;       /* поставить галку (НЕ �
 
 ```js
 const citySelect = formElement.city;
-console.log(citySelect.value); /* текущее значение; в начале — первый <option> */
-citySelect.value = 'Питер';    /* меняет выбор (несуществующий сбросит в '') */
+/* Текущее значение; в начале — первый <option>: */
+console.log(citySelect.value);
+/* Меняет выбор (несуществующий сбросит в ''): */
+citySelect.value = 'Питер';
 
 /* Альтернатива через options и индекс: */
 console.log(citySelect.options[citySelect.selectedIndex].value);
 
-/* Множественный выбор (<select multiple>): читаем все через selectedOptions: */
-const selectedCities = [...citySelect.selectedOptions].map((opt) => opt.value).join(", ");
+/* Множественный выбор (<select multiple>): читаем selectedOptions: */
+const selectedCities = [...citySelect.selectedOptions]
+  .map((opt) => opt.value)
+  .join(', ');
 
-/* Быстро создать новый пункт <option> без createElement: new Option(text, value, ...) */
-citySelect.append(new Option('Казань', 'kazan', true, true)); /* defaultSelected, selected */
+/* Создать <option> без createElement: new Option(text, val, def, sel) */
+citySelect.append(new Option('Казань', 'kazan', true, true));
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -156,11 +172,13 @@ formElement.submit();
 
 **Задача 1. Доступ через `document.forms`, `elements` и внешнее поле с атрибутом `form`**
 
-1) В HTML-разметке привяжи внешний `<select name="city">` к форме `id="orderForm"` через HTML-атрибут, чтобы он попал в `elements`.
-2) В функции `readOrderForm()` получи форму через `document.forms.orderForm` и через `formElement.elements` верни объект с полями: `comment` (текст `<textarea>`), `delivery` (значение выбранной радиокнопки), `isAgreed` (`boolean` чекбокса) и `city` (выбранный город).
+По дизайну список городов лежит снаружи тега `<form>`, но его значение должно попадать в форму. Выполни два шага:
+
+1. В HTML-разметке привяжи внешний `<select name="city">` к форме `id="orderForm"` через HTML-атрибут, чтобы он попал в `elements`.
+2. В функции `readOrderForm()` получи форму через `document.forms.orderForm` и через `formElement.elements` верни объект с полями: `comment` (текст `<textarea>`), `delivery` (значение выбранной радиокнопки), `isAgreed` (`boolean` чекбокса) и `city` (выбранный город).
 
 ```html
-<!-- 1) В HTML привяжи <select> к форме id="orderForm": -->
+<!-- 1. В HTML привяжи <select> к форме id="orderForm": -->
 <!-- Твоё решение: -->
 <form id="orderForm">
   <textarea name="comment"></textarea>
@@ -175,7 +193,7 @@ formElement.submit();
 ```
 
 ```js
-/* 2) JS: */
+/* 2. JS: */
 'use strict';
 
 /* Твоё решение: */
@@ -196,7 +214,7 @@ console.log(readOrderForm());
   <input type="radio" name="delivery" value="pickup">
   <input type="checkbox" name="agree">
 </form>
-<!-- Атрибут form="orderForm" связывает внешний select с формой по её id -->
+<!-- Атрибут form="orderForm" связывает внешний select с формой по id -->
 <select name="city" form="orderForm">
   <option value="msk">Москва</option>
   <option value="spb">Питер</option>
@@ -214,10 +232,14 @@ function readOrderForm() {
   const { comment, delivery, agree, city } = formElement.elements;
 
   return {
-    comment: comment.value,   /* у <textarea> актуальный текст всегда в .value */
-    delivery: delivery.value, /* RadioNodeList сам отдаст value выбранной радиокнопки */
-    isAgreed: agree.checked,  /* у чекбокса статус галки только в .checked */
-    city: city.value,         /* благодаря form="orderForm" внешний select здесь доступен */
+    /* У <textarea> актуальный текст всегда в .value: */
+    comment: comment.value,
+    /* RadioNodeList сам отдаст value выбранной радиокнопки: */
+    delivery: delivery.value,
+    /* У чекбокса статус галки только в .checked: */
+    isAgreed: agree.checked,
+    /* Благодаря form="orderForm" внешний select доступен здесь: */
+    city: city.value,
   };
 }
 
@@ -228,9 +250,10 @@ console.log(readOrderForm());
 
 **Задача 2. Управление `<select multiple>` и создание пунктов через `new Option`**
 
-Напиши две функции для `<select multiple name="skills">`:
-1) `addSkillOption(selectElement, text, value, isSelected = false)`: проверь через `[...selectElement.options].some(...)`, что опции с таким `value` ещё нет, создай её конструктором `new Option(text, value, isSelected, isSelected)` и вставь в конец списка.
-2) `getSelectedSkills(selectElement)`: верни массив значений (`value`) всех выбранных сейчас вариантов с помощью `selectElement.selectedOptions`.
+Нужно добавлять навыки в список с множественным выбором без дублей и считывать все выбранные варианты. Напиши две функции для `<select multiple name="skills">`:
+
+1. `addSkillOption(selectElement, text, value, isSelected = false)` — проверь через `[...selectElement.options].some(...)`, что опции с таким `value` ещё нет, создай её конструктором `new Option(text, value, isSelected, isSelected)` и вставь в конец списка.
+2. `getSelectedSkills(selectElement)` — верни массив значений (`value`) всех выбранных сейчас вариантов с помощью `selectElement.selectedOptions`.
 
 ```js
 'use strict';
@@ -259,12 +282,14 @@ function addSkillOption(selectElement, text, value, isSelected = false) {
   if (!selectElement) return;
 
   /* Защита от дублей: перебираем существующие <option> через options */
-  const exists = [...selectElement.options].some((opt) => opt.value === value);
+  const exists = [...selectElement.options].some(
+    (opt) => opt.value === value
+  );
   if (exists) return;
 
   /*
-    new Option(text, value, defaultSelected, selected) создаёт <option> без createElement;
-    3-й и 4-й аргументы сразу помечают пункт выбранным и в HTML, и в текущем состоянии
+    new Option(text, value, defaultSelected, selected) создаёт <option>;
+    3-й и 4-й аргументы помечают пункт выбранным в HTML и в состоянии
   */
   const optionElement = new Option(text, value, isSelected, isSelected);
   selectElement.append(optionElement);
@@ -273,7 +298,7 @@ function addSkillOption(selectElement, text, value, isSelected = false) {
 function getSelectedSkills(selectElement) {
   if (!selectElement) return [];
 
-  /* В multiple-селекте select.value покажет только 1-й пункт, поэтому берём selectedOptions */
+  /* В multiple-селекте select.value даст лишь 1-й пункт — берём массив */
   return [...selectElement.selectedOptions].map((opt) => opt.value);
 }
 
@@ -286,26 +311,26 @@ console.log(getSelectedSkills(skillsSelectElement));
 
 **Задача 3. Живой депозитный калькулятор на событиях формы**
 
-Напиши функцию `initDepositCalculator()` для формы `document.forms.calculator`:
-- Подпишись на делегированное событие `'input'` на всей форме (чтобы реагировать на ввод денег, смену срока в `<select>` и переключение чекбокса `isVip`).
-- Вычисляй ставку: `14%` (`0.14`) если `isVip.checked`, иначе `10%` (`0.1`). Итог считай по формуле `Math.round(initial * (1 + rate) ** (months / 12))` (если сумма `<= 0` или `NaN` — выводи `'0'`).
-- Выводи результат в элемент `[data-js-result]` через `.textContent`, и сразу вызови расчёт 1 раз при инициализации.
+Нужно пересчитывать итог по вкладу мгновенно при изменении любого поля формы. Напиши функцию `initDepositCalculator()` для `document.forms.calculator`:
+
+1. Подпишись на делегированное событие `'input'` на всей форме (чтобы реагировать на ввод денег, смену срока в `<select>` и переключение чекбокса `isVip`).
+2. Вычисляй ставку: `14%` (`0.14`) если `isVip.checked`, иначе `10%` (`0.1`). Итог считай по формуле `Math.round(initial * (1 + rate) ** (months / 12))` (если сумма `<= 0` или `NaN` — выводи `'0'`).
+3. Выводи результат в элемент `[data-js-result]` через `.textContent`, и сразу вызови расчёт 1 раз при инициализации.
+
+```html
+<form name="calculator">
+  <input name="money" type="number" value="10000">
+  <select name="months">
+    <option value="12" selected>1 год</option>
+    <option value="24">2 года</option>
+  </select>
+  <input name="isVip" type="checkbox">
+</form>
+<div data-js-result></div>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <form name="calculator">
-    <input name="money" type="number" value="10000">
-    <select name="months">
-      <option value="12" selected>1 год</option>
-      <option value="24">2 года</option>
-    </select>
-    <input name="isVip" type="checkbox">
-  </form>
-  <div data-js-result></div>
-*/
 
 /* Твоё решение: */
 function initDepositCalculator() {
@@ -342,10 +367,10 @@ function initDepositCalculator() {
     resultElement.textContent = String(total);
   };
 
-  /* Событие input всплывает от <input>, <select> и checkbox до самой формы */
+  /* input всплывает от <input>, <select> и checkbox до самой формы */
   formElement.addEventListener('input', updateCalculation);
 
-  /* Первый расчёт сразу при открытии страницы на основе стартовых значений HTML */
+  /* Первый расчёт сразу при открытии по стартовым значениям HTML */
   updateCalculation();
 }
 

@@ -12,15 +12,16 @@
 ```js
 const box = document.querySelector('.box');
 
-/* textContent: склеивает текст всех детей; при записи сотрёт все вложенные теги! */
-box.textContent = '<p>Текст</p>'; /* на экране выведет буквы '<p>Текст</p>', а не тег */
-/* БЕЗОПАСНОСТЬ (XSS): чужой текст от пользователя вставляй ТОЛЬКО через textContent! */
+/* textContent склеивает текст детей; при записи стирает вложенные теги! */
+/* Выведет на экран буквально '<p>Текст</p>', а не тег: */
+box.textContent = '<p>Текст</p>';
+/* БЕЗОПАСНОСТЬ (XSS): ввод пользователя — ТОЛЬКО через textContent! */
 
-/* innerHTML: парсит теги; "+=" не только медленный, но и СТИРАЕТ фокус и обработчики */
+/* innerHTML парсит теги; "+=" медленный и стирает фокус и обработчики: */
 box.innerHTML = '<p>Обновлённый абзац</p>';
 box.innerHTML += '<p>Ещё один в конец</p>';
 
-/* outerHTML: включает сам тег .box; в старой переменной box останется УДАЛЁННЫЙ тег! */
+/* outerHTML включает сам тег .box; в переменной box останется старый тег */
 box.outerHTML = '<section>Вместо box</section>';
 ```
 
@@ -30,26 +31,33 @@ box.outerHTML = '<section>Вместо box</section>';
 
 ```js
 const getNewParagraph = () => {
-  const p = document.createElement('p'); /* создан в памяти, в DOM пока отсутствует */
+  /* Создан в памяти, в DOM пока отсутствует: */
+  const p = document.createElement('p');
   p.textContent = 'Новый параграф';
   p.classList.add('paragraph-4');
   return p;
 };
 
 /* 5 методов вставки относительно опорного элемента box: */
-box.append(getNewParagraph(), "просто текст"); /* внутрь в КОНЕЦ (+ строки как текст) */
-box.prepend(getNewParagraph());                /* внутрь в НАЧАЛО */
-box.before(getNewParagraph());                 /* снаружи ДО открывающего тега box */
-box.after(getNewParagraph());                  /* снаружи ПОСЛЕ закрывающего тега box */
-box.replaceWith(getNewParagraph());            /* ЗАМЕНЯЕТ сам элемент box */
+/* Внутрь в КОНЕЦ (строки вставляются как обычный текст): */
+box.append(getNewParagraph(), 'просто текст');
+/* Внутрь в НАЧАЛО: */
+box.prepend(getNewParagraph());
+/* Снаружи ДО открывающего тега box: */
+box.before(getNewParagraph());
+/* Снаружи ПОСЛЕ закрывающего тега box: */
+box.after(getNewParagraph());
+/* ЗАМЕНЯЕТ сам элемент box: */
+box.replaceWith(getNewParagraph());
 
-/* Пакетная вставка 100 элементов без 100 перерисовок: DocumentFragment или ...массив */
-const fragment = document.createDocumentFragment(); /* виртуальный контейнер */
+/* Пакетная вставка без лишних перерисовок (виртуальный контейнер): */
+const fragment = document.createDocumentFragment();
 for (let i = 0; i < 3; i++) { fragment.append(getNewParagraph()); }
-box.append(fragment); /* сам fragment растворится, внутри box окажутся только 3 <p> */
+/* Сам fragment растворится, внутри box окажутся только 3 <p>: */
+box.append(fragment);
 
-/* ВАЖНО: один и тот же созданный объект нельзя вставить дважды — он ПЕРЕМЕСТИТСЯ! */
-/* И помни: box.append(p) всегда возвращает undefined, а НЕ вставленный элемент p */
+/* Один и тот же DOM-узел нельзя вставить дважды — он ПЕРЕМЕСТИТСЯ! */
+/* box.append(p) всегда возвращает undefined, а НЕ вставленный элемент */
 ```
 
 ## 3. Точная вставка HTML-строки: insertAdjacentHTML / Element (11:09–14:06)
@@ -76,15 +84,17 @@ box.insertAdjacentText('beforeend', 'Безопасный текст (как tex
 const box1 = document.querySelector('.box-1');
 const box3 = document.querySelector('.box-3');
 
-/* Удаление элемента из DOM (в переменной box1 он остаётся живым — можно вставить снова): */
+/* Удаление из DOM (в переменной box1 узел остаётся — можно вернуть): */
 box1.remove();
 
 /* Клонирование элемента: */
-const shallowClone = box1.cloneNode();     /* ПОВЕРХНОСТНОЕ: тег пустой, без детей! */
-const deepClone = box1.cloneNode(true);    /* ГЛУБОКОЕ (но НЕ копирует addEventListener!) */
+/* ПОВЕРХНОСТНОЕ: тег пустой, без детей: */
+const shallowClone = box1.cloneNode();
+/* ГЛУБОКОЕ (но НЕ копирует addEventListener!): */
+const deepClone = box1.cloneNode(true);
 box1.after(deepClone);
 
-/* Перемещение существующего элемента (box1 исчезнет со старого места и встанет за box3): */
+/* Перемещение: box1 исчезнет со старого места и встанет за box3: */
 box3.after(box1);
 ```
 
@@ -155,10 +165,11 @@ boxElement.append(copy);
 
 **Задача 1. Безопасная пакетная вставка комментариев через `DocumentFragment`**
 
-Напиши функцию `renderComments(listElement, items)`:
-1) Полностью очисти содержимое `listElement` современным методом `.replaceChildren()`.
-2) С помощью `document.createDocumentFragment()` собери в памяти список `<li>` (добавь каждому класс `'comment-item'`), записывая текст так, чтобы опасные теги вроде `'<script>...'` вывелись как обычный безопасный текст.
-3) Вставь весь фрагмент в `listElement` одной операцией через `.append()`.
+Нужно перерисовать список комментариев пользователей быстро и безопасно (без риска XSS). Напиши функцию `renderComments(listElement, items)`:
+
+1. Полностью очисти содержимое `listElement` современным методом `.replaceChildren()`.
+2. С помощью `document.createDocumentFragment()` собери в памяти список `<li>` (добавь каждому класс `'comment-item'`), записывая текст так, чтобы опасные теги вроде `'<script>...'` вывелись как обычный безопасный текст.
+3. Вставь весь фрагмент в `listElement` одной операцией через `.append()`.
 
 ```js
 'use strict';
@@ -196,19 +207,19 @@ function renderComments(listElement, items) {
   /* Быстрая очистка всех старых детей контейнера без innerHTML = '' */
   listElement.replaceChildren();
 
-  /* DocumentFragment копит узлы в памяти — браузер перерисует страницу лишь 1 раз */
+  /* DocumentFragment копит узлы в памяти — перерисовка будет лишь 1 раз */
   const fragment = document.createDocumentFragment();
 
   items.forEach((commentText) => {
     const itemElement = document.createElement('li');
     itemElement.classList.add('comment-item');
 
-    /* textContent экранирует теги: <script> выведется строкой и НЕ выполнится */
+    /* textContent экранирует теги: <script> выведется строкой */
     itemElement.textContent = commentText;
     fragment.append(itemElement);
   });
 
-  /* Сам fragment исчезает, передав внутрь listElement только собранные <li> */
+  /* Сам fragment исчезает, передав внутрь listElement только <li> */
   listElement.append(fragment);
 }
 
@@ -220,20 +231,20 @@ renderComments(commentsListElement, comments);
 
 **Задача 2. Точечная вставка `insertAdjacentHTML` и глубокое клонирование `cloneNode(true)`**
 
-Допиши функцию `updateCard(cardElement)`:
-1) Вставь HTML-строку `'<span class="badge">Новинка</span>'` внутрь карточки **в самое начало** (сразу после открывающего тега `<article>`), не перестраивая существующих детей через `innerHTML +=`.
-2) Найди внутри карточки кнопку `[data-js-buy]` (если найдена) и вставь её **глубокую** копию снаружи **сразу после** карточки через `.after()`.
+Нужно добавить бейдж в карточку товара без перестройки соседей и продублировать кнопку покупки снаружи. Допиши функцию `updateCard(cardElement)`:
+
+1. Вставь HTML-строку `'<span class="badge">Новинка</span>'` внутрь карточки **в самое начало** (сразу после открывающего тега `<article>`), не перестраивая существующих детей через `innerHTML +=`.
+2. Найди внутри карточки кнопку `[data-js-buy]` (если найдена) и вставь её **глубокую** копию снаружи **сразу после** карточки через `.after()`.
+
+```html
+<article class="card" data-js-card>
+  <h3>Товар</h3>
+  <button type="button" data-js-buy>Купить</button>
+</article>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML на странице:
-  <article class="card" data-js-card>
-    <h3>Товар</h3>
-    <button type="button" data-js-buy>Купить</button>
-  </article>
-*/
 
 /* Твоё решение: */
 function updateCard(cardElement) {
@@ -255,14 +266,17 @@ function updateCard(cardElement) {
   if (!cardElement) return;
 
   /*
-    'afterbegin' вставляет HTML-строку внутрь cardElement перед первым ребёнком,
+    'afterbegin' вставляет HTML-строку внутрь cardElement перед 1-м ребёнком,
     оставляя существующие <h3> и <button> нетронутыми в памяти
   */
-  cardElement.insertAdjacentHTML('afterbegin', '<span class="badge">Новинка</span>');
+  cardElement.insertAdjacentHTML(
+    'afterbegin',
+    '<span class="badge">Новинка</span>'
+  );
 
   const buyButtonElement = cardElement.querySelector('[data-js-buy]');
   if (buyButtonElement) {
-    /* Обязательно передаём true в cloneNode, чтобы скопировался текст 'Купить' внутри */
+    /* true в cloneNode копирует не только тег, но и текст 'Купить' внутри */
     const clonedButtonElement = buyButtonElement.cloneNode(true);
     cardElement.after(clonedButtonElement);
   }
@@ -276,9 +290,11 @@ updateCard(cardElement);
 
 **Задача 3. Рекурсивное создание вложенного меню из объекта (`createTree`)**
 
-Напиши функцию `createTree(containerElement, treeObj)`, которая строит вложенный список `<ul>` / `<li>` на любую глубину из переданного объекта:
-- Если у объекта нет ключей (`Object.keys(obj).length === 0`), вложенный `<ul>` не создавай.
-- Для каждого ключа создай `<li>`, запиши имя ключа через `textContent`, а если внутри есть дочерний объект с ключами — рекурсивно создай вложенный `<ul>` и добавь его в этот `<li>`.
+Нужно построить многоуровневое меню `<ul>` / `<li>` любой вложенности из дерева категорий. Напиши функцию `createTree(containerElement, treeObj)`:
+
+1. Если у объекта нет ключей (`Object.keys(obj).length === 0`), вложенный `<ul>` не создавай.
+2. Для каждого ключа создай `<li>` и запиши имя ключа через `textContent`.
+3. Если внутри есть дочерний объект с ключами — рекурсивно создай вложенный `<ul>` и добавь его в этот `<li>`.
 
 ```js
 'use strict';
@@ -325,7 +341,7 @@ const menuData = {
 };
 
 function buildTreeList(obj) {
-  /* Базовый случай рекурсии: для пустого объекта {} не создаём пустой <ul> */
+  /* Базовый случай рекурсии: для пустого объекта {} не создаём <ul> */
   if (!obj || Object.keys(obj).length === 0) return null;
 
   const ulElement = document.createElement('ul');
@@ -334,7 +350,7 @@ function buildTreeList(obj) {
     const liElement = document.createElement('li');
     liElement.textContent = key;
 
-    /* Рекурсивно строим дочерний список для значения и крепим внутрь <li> */
+    /* Рекурсивно строим дочерний список для значения и крепим в <li> */
     const nestedListElement = buildTreeList(obj[key]);
     if (nestedListElement) {
       liElement.append(nestedListElement);

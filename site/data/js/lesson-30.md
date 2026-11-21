@@ -17,7 +17,7 @@ console.log(htmlElement.clientWidth, htmlElement.clientHeight);
 
 /* ОШИБКА ДЛЯ ПОЗИЦИОНИРОВАНИЯ: учитывают ширину скроллбара */
 console.log(window.innerWidth, window.innerHeight);
-/* Условие: в HTML обязательно должен быть <!DOCTYPE html>, иначе метрики врут */
+/* В HTML обязателен <!DOCTYPE html>, иначе метрики врут */
 ```
 
 ## 2. Полная высота всей страницы и позиция скролла (02:46–05:00)
@@ -33,7 +33,7 @@ const fullPageHeight = Math.max(
 
 /* Текущая позиция скролла страницы (актуальный способ, без deprecated): */
 console.log(window.scrollX, window.scrollY);
-/* Надёжнее, чем body.scrollTop / htmlElement.scrollTop (в браузерах они расходились) */
+/* Надёжнее body.scrollTop / htmlElement.scrollTop (в браузерах разные) */
 /* window.pageXOffset / pageYOffset — устарели (deprecated) */
 ```
 
@@ -43,20 +43,24 @@ console.log(window.scrollX, window.scrollY);
 
 ```js
 /* Абсолютный скролл до точки y = 200 (от самого верха страницы): */
-window.scroll({ top: 200, behavior: 'smooth' }); /* или window.scrollTo(...) */
-/* ВАЖНО: smooth-скролл идёт во времени — сразу на строке ниже window.scrollY ещё 0! */
-/* Повторный вызов window.scroll({ top: 100 }) прокрутит ОБРАТНО ВВЕРХ до 100! */
+window.scroll({ top: 200, behavior: 'smooth' }); /* или window.scrollTo */
+/* ВАЖНО: smooth-скролл идёт во времени — ниже window.scrollY ещё 0! */
+/* Повторный window.scroll({ top: 100 }) прокрутит ОБРАТНО ВВЕРХ до 100! */
 
 /* Относительный сдвиг от текущей позиции (scrollBy): */
 window.scrollBy({ top: 200, behavior: 'smooth' });
 setTimeout(() => {
-  window.scrollBy({ top: 100, behavior: 'smooth' }); /* итого спустимся на 300px */
+  /* Итого спустимся на 300px: */
+  window.scrollBy({ top: 100, behavior: 'smooth' });
 }, 2000);
 
 /* Блокировка скролла страницы (например, для открытой модалки): */
-const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
-document.body.style.overflow = 'hidden'; /* запретить скролл (+ paddingRight = scrollbar) */
-document.body.style.overflow = '';       /* вернуть скролл при закрытии модалки */
+const scrollbarWidth =
+  window.innerWidth - document.documentElement.clientWidth;
+/* Запретить скролл (и добавить paddingRight = scrollbarWidth): */
+document.body.style.overflow = 'hidden';
+/* Вернуть скролл при закрытии модалки: */
+document.body.style.overflow = '';
 ```
 
 ## 4. Прокрутка прямо к элементу: elem.scrollIntoView() (07:10–10:19)
@@ -74,7 +78,7 @@ reviewsSectionElement.scrollIntoView({
   inline: 'nearest',
 });
 
-/* Короткий старый синтаксис: true = block: "start" (верх), false = block: "end" (низ) */
+/* Старый синтаксис: true = block: "start" (верх), false = "end" (низ) */
 reviewsSectionElement.scrollIntoView(false);
 
 /* Если у сайта фиксированная шапка (fixed), добавьте секции в CSS: */
@@ -136,9 +140,11 @@ console.log(window.scrollY);
 
 **Задача 1. Надёжная высота документа и процент прокрутки страницы**
 
-Напиши две функции:
-1) `getDocumentHeight()` — возвращает точную полную высоту страницы через `Math.max` из 6 свойств (`scrollHeight`, `offsetHeight`, `clientHeight` у `document.body` и `document.documentElement`).
-2) `getScrollProgress()` — возвращает процент прокрутки от `0` до `100` (целое число через `Math.round`): раздели `window.scrollY` на доступный запас скролла `(getDocumentHeight() - document.documentElement.clientHeight)` и умножь на `100` (если страница целиком помещается на экран и запас `<= 0`, верни `0`).
+Для индикатора чтения статьи нужно точно знать полную высоту страницы и долю прокрутки. Напиши две функции:
+
+1. `getDocumentHeight()` — возвращает точную полную высоту страницы через `Math.max` из 6 свойств (`scrollHeight`, `offsetHeight`, `clientHeight` у `document.body` и `document.documentElement`).
+2. `getScrollProgress()` — возвращает процент прокрутки от `0` до `100` (целое число через `Math.round`): раздели `window.scrollY` на доступный запас скролла `(getDocumentHeight() - document.documentElement.clientHeight)` и умножь на `100`.
+3. Если страница целиком помещается на экран и запас `<= 0`, верни `0`.
 
 ```js
 'use strict';
@@ -165,7 +171,7 @@ console.log('Прочитано (%):', getScrollProgress());
 function getDocumentHeight() {
   const { body, documentElement } = document;
 
-  /* Берём максимум из 6 метрик, чтобы избежать расхождений между браузерами */
+  /* Берём максимум из 6 метрик против расхождений между браузерами */
   return Math.max(
     body.scrollHeight, documentElement.scrollHeight,
     body.offsetHeight, documentElement.offsetHeight,
@@ -174,8 +180,9 @@ function getDocumentHeight() {
 }
 
 function getScrollProgress() {
-  /* Доступный максимум скролла = полная высота минус чистое окно без скроллбара */
-  const maxScroll = getDocumentHeight() - document.documentElement.clientHeight;
+  /* Доступный скролл = полная высота минус чистое окно без скроллбара */
+  const maxScroll =
+    getDocumentHeight() - document.documentElement.clientHeight;
   if (maxScroll <= 0) return 0;
 
   return Math.round((window.scrollY / maxScroll) * 100);
@@ -189,9 +196,10 @@ console.log('Прочитано (%):', getScrollProgress());
 
 **Задача 2. Запрет скролла страницы под модалкой без «прыжка» контента**
 
-Напиши функцию `togglePageScroll(isLocked)`:
-- При `isLocked === true`: сначала вычисли толщину полосы прокрутки (`window.innerWidth - document.documentElement.clientWidth`), компенсируй её через `document.body.style.paddingRight` (в `'px'`) и отключи прокрутку через `document.body.style.overflow = 'hidden'`.
-- При `isLocked === false`: верни исходное поведение CSS, сбросив оба инлайн-стиля пустой строкой `''`.
+При открытии модального окна полоса прокрутки исчезает, и контент страницы дёргается вправо. Напиши функцию `togglePageScroll(isLocked)`:
+
+1. При `isLocked === true`: сначала вычисли толщину полосы прокрутки (`window.innerWidth - document.documentElement.clientWidth`), компенсируй её через `document.body.style.paddingRight` (в `'px'`) и отключи прокрутку через `document.body.style.overflow = 'hidden'`.
+2. При `isLocked === false`: верни исходное поведение CSS, сбросив оба инлайн-стиля пустой строкой `''`.
 
 ```js
 'use strict';
@@ -217,12 +225,13 @@ function togglePageScroll(isLocked) {
       Считаем ширину скроллбара строго ДО установки overflow: 'hidden',
       иначе полоса исчезнет и разница сразу станет равна 0
     */
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
 
     document.body.style.paddingRight = `${scrollbarWidth}px`;
     document.body.style.overflow = 'hidden';
   } else {
-    /* Пустая строка полностью снимает инлайновые стили, возвращая правила CSS-файла */
+    /* Пустая строка снимает инлайн-стили, возвращая правила из CSS */
     document.body.style.overflow = '';
     document.body.style.paddingRight = '';
   }
@@ -236,9 +245,10 @@ togglePageScroll(false);
 
 **Задача 3. Плавная прокрутка к секции (`scrollIntoView`) и сдвиг слайдера (`scrollBy`)**
 
-Напиши две утилиты:
-1) `scrollToSection(selector)` — ищет элемент по селектору и, если он найден, плавно прокручивает к нему страницу так, чтобы блок оказался **по центру** экрана (`behavior: 'smooth'`, `block: 'center'`).
-2) `shiftSlider(sliderElement, stepPx)` — сдвигает элемент-слайдер по горизонтали **от текущей позиции** на `stepPx` пикселей плавно через `scrollBy`.
+Нужно плавно переходить к нужной секции и листать горизонтальный слайдер шагами. Напиши две утилиты:
+
+1. `scrollToSection(selector)` — ищет элемент по селектору и, если он найден, плавно прокручивает к нему страницу так, чтобы блок оказался **по центру** экрана (`behavior: 'smooth'`, `block: 'center'`).
+2. `shiftSlider(sliderElement, stepPx)` — сдвигает элемент-слайдер по горизонтали **от текущей позиции** на `stepPx` пикселей плавно через `scrollBy`.
 
 ```js
 'use strict';
@@ -267,7 +277,7 @@ function scrollToSection(selector) {
   const sectionElement = document.querySelector(selector);
   if (!sectionElement) return;
 
-  /* block: 'center' ставит секцию в центр видимого окна, behavior: 'smooth' делает плавно */
+  /* block: 'center' ставит секцию в центр окна, smooth делает плавно */
   sectionElement.scrollIntoView({
     behavior: 'smooth',
     block: 'center',

@@ -12,14 +12,18 @@
 ```js
 fetch('https://jsonplaceholder.typicode.com/todos/1')
   .then((response) => {
-    /* response — объект Response со свойствами ok (true/false) и status (200, 404...) */
-    /* Тело (.json/.text/.blob) читают 1 раз! Для 2 раз нужен response.clone() до чтения; */
-    /* зато ok, status и response.headers.get('Content-Type') доступны сколько угодно. */
-    /* При 204 No Content (часто на DELETE/PUT) тело пустое — .json() вызовет ошибку: */
+    /*
+      response — объект Response: ok (true/false), status (200, 404...).
+      Тело (.json/.text/.blob) читают 1 раз (для 2 — response.clone());
+      ok, status и response.headers.get(...) доступны сколько угодно.
+      При 204 No Content тело пустое — .json() вызовет ошибку:
+    */
     if (response.status === 204) return null;
-    return response.json(); /* тоже возвращает Promise, поэтому обязателен return! */
+    /* Тоже возвращает Promise, поэтому обязателен return! */
+    return response.json();
   })
-  .then((json) => console.log(json)); /* готовые данные: { userId, id, title, completed } */
+  /* Готовые данные: { userId, id, title, completed }: */
+  .then((json) => console.log(json));
 ```
 
 ## 2. Динамический GET по форме и обработка 404 через !response.ok (06:33–13:12)
@@ -29,27 +33,32 @@ fetch('https://jsonplaceholder.typicode.com/todos/1')
 ```js
 loadTodoFormElement.addEventListener('submit', (event) => {
   event.preventDefault();
-  /* submitBtn.disabled = true; — блокируем повторный клик, пока идёт запрос */
+  /* submitBtn.disabled = true; — блокируем повторный клик на время запроса */
 
-  fetch(`https://jsonplaceholder.typicode.com/todos/${todoIdInputElement.value}`)
+  const url =
+    `https://jsonplaceholder.typicode.com/todos/${todoIdInputElement.value}`;
+
+  fetch(url)
     .then((response) => {
       if (!response.ok) {
         const errMsg = response.status === 404
           ? 'Задача по указанному идентификатору не найдена'
           : 'Что-то пошло не так :(';
-        throw new Error(errMsg); /* прерывает цепочку и сразу прыгает в .catch() */
+        /* Прерывает цепочку и сразу прыгает в .catch(): */
+        throw new Error(errMsg);
       }
       return response.json();
     })
     .then(({ id, title, completed }) => {
-      resultElement.innerHTML = `<input type="checkbox" ${completed ? "checked" : ""}>`
-        + `<span>${title}</span>`;
+      const checkedAttr = completed ? 'checked' : '';
+      resultElement.innerHTML =
+        `<input type="checkbox" ${checkedAttr}><span>${title}</span>`;
     })
     .catch((error) => {
       resultElement.innerHTML = error.message;
     })
     .finally(() => {
-      /* всегда сработает и при успехе, и при ошибке — здесь снимают disabled с кнопки */
+      /* Сработает и при успехе, и при ошибке — здесь снимают disabled */
     });
 });
 ```
@@ -62,14 +71,17 @@ loadTodoFormElement.addEventListener('submit', (event) => {
 createPostFormElement.addEventListener('submit', (event) => {
   event.preventDefault();
   const formData = new FormData(createPostFormElement);
-  const formDataObject = Object.fromEntries(formData); /* имена полей в HTML = db.json5 */
+  /* Имена полей в HTML должны совпадать с ключами в db.json5: */
+  const formDataObject = Object.fromEntries(formData);
 
   fetch('http://localhost:3000/posts', {
-    method: 'POST', /* в 2-м аргументе fetch задаём метод и тело запроса */
-    headers: { 'Content-Type': 'application/json' }, /* реальному бэкенду обязателен! */
+    method: 'POST', /* в 2-м аргументе задаём метод и тело запроса */
+    /* Реальному бэкенду заголовок Content-Type обязателен: */
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...formDataObject, views: 0 }),
   })
-    .then((response) => response.json()) /* в ответ вернётся созданный пост со статусом 201 */
+    /* В ответ вернётся созданный пост со статусом 201: */
+    .then((response) => response.json())
     .then((json) => console.log(json));
 });
 ```
@@ -80,7 +92,8 @@ createPostFormElement.addEventListener('submit', (event) => {
 
 ```js
 /* GET с query-параметром фильтрации (views >= значения из инпута): */
-fetch(`http://localhost:3000/posts?views_gte=${postViewsInputElement.value}`)
+const minViews = postViewsInputElement.value;
+fetch(`http://localhost:3000/posts?views_gte=${minViews}`)
   .then((response) => response.json())
   .then((posts) => {
     resultElement.innerHTML = posts
@@ -88,15 +101,17 @@ fetch(`http://localhost:3000/posts?views_gte=${postViewsInputElement.value}`)
       .join('');
   });
 
-/* Безопасно собирать параметры через URLSearchParams (сам экранирует кириллицу и &): */
-/* const params = new URLSearchParams({ views_gte: postViewsInputElement.value }); */
-/* fetch(`http://localhost:3000/posts?${params}`) */
+/* Безопасно собирать параметры через URLSearchParams (экранирует сам): */
+/* const params = new URLSearchParams({ views_gte: minViews }); */
+/* fetch(`http://localhost:3000/posts?${params}`); */
 
-/* Настройки headers, credentials ('same-origin' по умолчанию, 'include' для др. домена, */
-/* 'omit' — запретить) и signal для отмены запроса через AbortController: */
-/* headers: { 'Content-Type': 'application/json; charset=UTF-8', 'X-Auth-Token': '...' } */
-const controller = new AbortController(); /* controller.abort() -> ошибка AbortError */
-/* fetch(url, { headers: {...}, credentials: 'include', signal: controller.signal }) */
+/*
+  Настройки headers, credentials ('same-origin' по умолчанию,
+  'include' для другого домена, 'omit' — запретить) и signal для отмены:
+  headers: { 'Content-Type': 'application/json', 'X-Auth-Token': '...' }
+*/
+const controller = new AbortController(); /* abort() -> AbortError */
+/* fetch(url, { headers, credentials: 'include', signal }) */
 ```
 
 ## 5. Анализ запросов во вкладке DevTools -> Network (30:48–37:17)
@@ -159,10 +174,11 @@ fetch('https://example.com/missing-page')
 
 **Задача 1. Универсальная обёртка `fetchJson(url, options)` с проверкой `ok`, `204` и таймаутом `AbortController`**
 
-Напиши асинхронную функцию `fetchJson(url, options = {})`:
-1) Создай `const controller = new AbortController()` и поставь `setTimeout`, чтобы запрос отменялся через `5000` мс (передай `{ ...options, signal: controller.signal }` в `fetch`).
-2) В блоке `try`: если `!response.ok`, выброси `new Error(...)` со статусом ответа. Если `response.status === 204` — верни `null`, иначе верни `await response.json()`.
-3) В блоке `finally` обязательно очисти таймер через `clearTimeout`.
+Чтобы не дублировать проверку `response.ok`, обработку пустого `204` и отмену зависших запросов, вынеси их в единую обёртку. Напиши `async function fetchJson(url, options = {})`:
+
+1. Создай `const controller = new AbortController()` и поставь `setTimeout`, чтобы запрос отменялся через `5000` мс (передай `{ ...options, signal: controller.signal }` в `fetch`).
+2. В блоке `try`: если `!response.ok`, выброси `new Error(...)` со статусом ответа; если `response.status === 204` — верни `null`, иначе верни `await response.json()`.
+3. В блоке `finally` обязательно очисти таймер через `clearTimeout`.
 
 ```js
 'use strict';
@@ -185,7 +201,7 @@ fetchJson('https://jsonplaceholder.typicode.com/todos/1')
 
 async function fetchJson(url, options = {}) {
   const controller = new AbortController();
-  /* Если сервер не ответит за 5 секунд — abort() прервёт fetch с AbortError */
+  /* Если сервер не ответит за 5 секунд — abort() прервёт fetch */
   const timeoutId = setTimeout(() => controller.abort(), 5000);
 
   try {
@@ -194,17 +210,17 @@ async function fetchJson(url, options = {}) {
       signal: controller.signal,
     });
 
-    /* Явно переводим HTTP-ошибки (404, 500) в исключение, иначе они не попадут в catch */
+    /* Переводим HTTP-ошибки (404, 500) в исключение для catch */
     if (!response.ok) {
       throw new Error(`HTTP ошибка: ${response.status}`);
     }
 
-    /* При статусе 204 тело ответа пустое — не пытаемся парсить JSON */
+    /* При статусе 204 тело ответа пустое — не парсим JSON */
     if (response.status === 204) return null;
 
     return await response.json();
   } finally {
-    /* Очищаем таймер даже при быстром ответе или ошибке, чтобы не утекал */
+    /* Очищаем таймер при любом исходе, чтобы он не утекал */
     clearTimeout(timeoutId);
   }
 }
@@ -218,9 +234,10 @@ fetchJson('https://jsonplaceholder.typicode.com/todos/1')
 
 **Задача 2. Фильтрация `GET` через `URLSearchParams` и `POST` из формы**
 
-Напиши две асинхронные функции для `http://localhost:3000/posts`:
-1) `loadFilteredPosts(authorName, minViews)` — формирует query-строку через `new URLSearchParams({ author: authorName, views_gte: minViews })`, делает `GET`-запрос с проверкой `!response.ok` и возвращает массив постов из `.json()`.
-2) `createPostFromForm(formElement)` — собирает данные через `new FormData(formElement)` + `Object.fromEntries`, добавляет `views: 0` и отправляет `POST` с заголовком `'Content-Type': 'application/json'` и телом `JSON.stringify(...)`, возвращая созданный объект.
+Нужно загружать отфильтрованные посты и создавать новые на локальном `http://localhost:3000/posts`. Напиши две асинхронные функции:
+
+1. `loadFilteredPosts(authorName, minViews)` — формирует query-строку через `new URLSearchParams({ author: authorName, views_gte: minViews })`, делает `GET`-запрос с проверкой `!response.ok` и возвращает массив постов из `.json()`.
+2. `createPostFromForm(formElement)` — собирает данные через `new FormData(formElement)` + `Object.fromEntries`, добавляет `views: 0` и отправляет `POST` с заголовком `'Content-Type': 'application/json'` и телом `JSON.stringify(...)`, возвращая созданный объект.
 
 ```js
 'use strict';
@@ -244,7 +261,7 @@ async function createPostFromForm(formElement) {
 const POSTS_URL = 'http://localhost:3000/posts';
 
 async function loadFilteredPosts(authorName, minViews) {
-  /* URLSearchParams сам безопасно кодирует кириллицу, пробелы и спецсимволы в URL */
+  /* URLSearchParams сам безопасно кодирует кириллицу и пробелы */
   const params = new URLSearchParams({
     author: authorName,
     views_gte: minViews,
@@ -263,7 +280,7 @@ async function createPostFromForm(formElement) {
 
   const response = await fetch(POSTS_URL, {
     method: 'POST',
-    /* Заголовок обязателен, чтобы сервер понял, что в теле приходит JSON */
+    /* Заголовок нужен, чтобы сервер понял, что в теле приходит JSON */
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...formDataObject, views: 0 }),
   });
@@ -280,7 +297,12 @@ async function createPostFromForm(formElement) {
 
 **Задача 3. Параллельная загрузка профилей GitHub `getUsers(names)` с `null` при ошибке**
 
-Напиши асинхронную функцию `getUsers(names)`, которая принимает массив логинов и запрашивает профили по адресу `` `https://api.github.com/users/${name}` `` **одновременно** через `Promise.all` + `names.map(...)`. Если конкретный логин вернул статус не `ok` (например, `404`) или произошёл обрыв сети — для него в итоговом массиве должно вернуться `null`, не ломая остальные запросы.
+Нужно загрузить сразу несколько профилей GitHub так, чтобы один несуществующий логин не уронил всю пачку. Напиши `async function getUsers(names)`:
+
+1. Запусти все запросы к `https://api.github.com/users/<name>` **одновременно** через `Promise.all` и `names.map(...)`.
+2. Если конкретный логин вернул статус не `ok` (например, `404`) или произошёл обрыв сети — верни для него `null`, не ломая остальные запросы.
+
+Проверка: для `['iliakan', 'remy', 'no-such-user-999999']` вернётся массив из 3 элементов `[{ ... }, { ... }, null]`.
 
 ```js
 'use strict';
@@ -292,7 +314,6 @@ async function getUsers(names) {
 
 getUsers(['iliakan', 'remy', 'no-such-user-999999'])
   .then((users) => console.log(users));
-/* Ожидается массив из 3 элементов: [{ ... }, { ... }, null] */
 ```
 
 <details>
@@ -304,7 +325,7 @@ getUsers(['iliakan', 'remy', 'no-such-user-999999'])
 async function getUsers(names) {
   /*
     Запускаем все запросы параллельно через .map(), оборачивая каждый
-    в свой try...catch, чтобы сбой или 404 одного не уронил весь Promise.all
+    в try...catch, чтобы сбой или 404 одного не уронил весь Promise.all
   */
   const requests = names.map(async (name) => {
     try {
@@ -313,7 +334,7 @@ async function getUsers(names) {
 
       return await response.json();
     } catch {
-      /* Сетевой сбой для отдельного пользователя тоже превращаем в null */
+      /* Сетевой сбой для отдельного пользователя превращаем в null */
       return null;
     }
   });

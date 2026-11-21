@@ -10,11 +10,15 @@
 [+] Свойство document.cookie работает как сеттер (добавляет/обновляет 1 запись по ключу, не затирая остальные) и геттер (возвращает все куки одной строкой через "; "). Лимит: до ~20 записей на домен и ~4 КБ на одну куку; главное назначение — токены и сессии.
 
 ```js
-/* Запись, опции (path, max-age, secure, samesite) и кодирование пробелов/символов: */
-/* Серверные куки с httpOnly полностью скрыты от JS (защита от кражи через XSS)! */
+/*
+  Запись, опции (path, max-age, secure, samesite) и кодирование:
+  Серверные куки с httpOnly скрыты от JS (защита от кражи через XSS)
+*/
 const setCookie = (name, value, options = {}) => {
-  const fullOptions = { path: '/', ...options }; /* без path=/ кука видна лишь на URL */
-  let newEntryBody = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
+  /* Без path=/ кука видна лишь на текущем URL: */
+  const fullOptions = { path: '/', ...options };
+  let newEntryBody =
+    `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
   const optionsString = Object.entries(fullOptions)
     .map(([key, val]) => `${key}=${val}`)
     .join('; ');
@@ -29,7 +33,9 @@ const deleteCookie = (name) => setCookie(name, '', { 'max-age': -1 });
 const getCookie = (name) => {
   for (const entryStr of document.cookie.split('; ')) {
     const [entryName, entryValue] = entryStr.split('=');
-    if (decodeURIComponent(entryName) === name) return decodeURIComponent(entryValue);
+    if (decodeURIComponent(entryName) === name) {
+      return decodeURIComponent(entryValue);
+    }
   }
 };
 ```
@@ -40,20 +46,25 @@ const getCookie = (name) => {
 
 ```js
 sessionStorage.setItem('age', 25); /* внутри всё приводится к строке! */
-console.log(typeof sessionStorage.getItem('age')); /* 'string', а не 'number' */
+/* Вернёт 'string', а не 'number': */
+console.log(typeof sessionStorage.getItem('age'));
 
-/* Объекты и массивы сохраняем через JSON.stringify и читаем через JSON.parse: */
-localStorage.setItem('user', JSON.stringify({ name: 'Alex', isAdmin: false }));
-const user = JSON.parse(localStorage.getItem('user')); /* вернёт null, если ключа нет */
-/* В продакшене JSON.parse прячут в try..catch (битая строка не должна уронить скрипт) */
-/* Секреты/токены в localStorage НЕ хранят (доступно XSS) — там только UI-настройки! */
+/* Объекты и массивы сохраняют через JSON.stringify и JSON.parse: */
+const userJson = JSON.stringify({ name: 'Alex', isAdmin: false });
+localStorage.setItem('user', userJson);
+/* Вернёт null, если ключа нет: */
+const user = JSON.parse(localStorage.getItem('user'));
+/* В продакшене JSON.parse прячут в try..catch от битого JSON */
+/* Секреты/токены в localStorage НЕ хранят (XSS) — только UI-настройки */
 
 localStorage.removeItem('user'); /* удалить одну запись по ключу */
-localStorage.clear();            /* полностью очистить хранилище домена */
+localStorage.clear();            /* полностью очистить хранилище */
 
-/* Перебор: for..in брать НЕЛЬЗЯ (попадут методы)! Берите Object.keys(localStorage) */
-/* При переполнении (~5 МБ) setItem кидает QuotaExceededError — страхуют try..catch */
-window.addEventListener('storage', (e) => { /* key, oldValue, newValue */ });
+/* Перебор: for..in НЕЛЬЗЯ (попадут методы) — Object.keys(localStorage) */
+/* При переполнении (~5 МБ) setItem кидает QuotaExceededError */
+window.addEventListener('storage', (e) => {
+  /* В объекте события: e.key, e.oldValue, e.newValue */
+});
 /* Событие storage ловится в ДРУГИХ вкладках этого сайта (не в текущей!) */
 ```
 
@@ -69,7 +80,9 @@ class ThemeSwitcher {
   storageKey = 'theme';
 
   constructor() {
-    this.switchThemeButtonElement = document.querySelector(this.selectors.switchThemeButton);
+    this.switchThemeButtonElement = document.querySelector(
+      this.selectors.switchThemeButton
+    );
     this.setInitialTheme();
     this.bindEvents();
   }
@@ -81,16 +94,20 @@ class ThemeSwitcher {
 
   setInitialTheme() {
     document.documentElement.classList.toggle(
-      this.stateClasses.isDarkTheme, this.isDarkThemeCached
+      this.stateClasses.isDarkTheme,
+      this.isDarkThemeCached
     );
   }
 
   /* Стрелочный метод сохраняет this при передаче в addEventListener: */
   onClick = () => {
-    localStorage.setItem(
-      this.storageKey, this.isDarkThemeCached ? this.themes.light : this.themes.dark
+    const nextTheme = this.isDarkThemeCached
+      ? this.themes.light
+      : this.themes.dark;
+    localStorage.setItem(this.storageKey, nextTheme);
+    document.documentElement.classList.toggle(
+      this.stateClasses.isDarkTheme
     );
-    document.documentElement.classList.toggle(this.stateClasses.isDarkTheme);
   };
 
   bindEvents() {
@@ -98,8 +115,10 @@ class ThemeSwitcher {
   }
 }
 new ThemeSwitcher();
-/* Чтобы не было "белой вспышки" при загрузке, стартовый класс .is-dark-theme ставят */
-/* синхронным <script> в <head> до <body>, а здесь оставляют лишь кнопку переключения. */
+/*
+  Чтобы не было "белой вспышки" при загрузке, стартовый класс ставят
+  синхронным <script> в <head> до <body>, а здесь — только переключение
+*/
 ```
 
 ## 4. IndexedDB — асинхронная база данных в браузере (22:46–23:59)
@@ -116,7 +135,14 @@ new ThemeSwitcher();
 
 ## Вопросы для закрепления
 
-**1. Мы выполнили `localStorage.setItem('isDark', false)`. Что вернёт `localStorage.getItem('isDark')` и сработает ли условие `if (localStorage.getItem('isDark'))`?**
+**1. Что выведет код ниже и почему сработает условие `if`?**
+
+```js
+localStorage.setItem('isDark', false);
+if (localStorage.getItem('isDark')) {
+  console.log('Тёмная тема включена!');
+}
+```
 
 <details>
 <summary>Показать ответ</summary>
@@ -147,9 +173,10 @@ new ThemeSwitcher();
 
 **Задача 1. Безопасные обёртки `saveJson(key, value)` и `loadJson(key, fallback = null)` для `localStorage`**
 
-Напиши две функции-помощника для работы с объектами, массивами и примитивами без потери типов:
-1) `saveJson(key, value)` — сериализует `value` через `JSON.stringify` (если результат `undefined`, ничего не записывает и возвращает `false`), сохраняет в `localStorage` внутри `try..catch` (защита от `QuotaExceededError` и циклических ссылок) и возвращает `true` при успехе или `false` при ошибке.
-2) `loadJson(key, fallback = null)` — читает строку через `localStorage.getItem(key)`: если вернулся `null`, возвращает `fallback`; иначе парсит через `JSON.parse` в `try..catch` и при битом JSON возвращает `fallback`.
+Нужны безопасные обёртки для сохранения объектов, массивов и примитивов без потери типов и падений при ошибках. Напиши две функции:
+
+1. `saveJson(key, value)` — сериализует `value` через `JSON.stringify` (если результат `undefined`, ничего не записывает и возвращает `false`), сохраняет в `localStorage` внутри `try..catch` (защита от `QuotaExceededError` и циклических ссылок) и возвращает `true` при успехе или `false` при ошибке.
+2. `loadJson(key, fallback = null)` — читает строку через `localStorage.getItem(key)`: если вернулся `null`, возвращает `fallback`; иначе парсит через `JSON.parse` в `try..catch` и при битом JSON возвращает `fallback`.
 
 ```js
 'use strict';
@@ -164,12 +191,16 @@ new ThemeSwitcher();
 'use strict';
 
 function saveJson(key, value) {
-  /* try..catch страхует сразу от двух ошибок: циклической ссылки в JSON.stringify
-     и переполнения лимита хранилища (~5 МБ, QuotaExceededError) в setItem: */
+  /*
+    try..catch страхует от циклической ссылки в JSON.stringify
+    и переполнения лимита (~5 МБ, QuotaExceededError) в setItem:
+  */
   try {
     const serialized = JSON.stringify(value);
-    /* JSON.stringify(undefined) возвращает не строку, а undefined —
-       запись его напрямую превратилась бы в строку 'undefined', которую JSON.parse сломает: */
+    /*
+      JSON.stringify(undefined) возвращает undefined — запись напрямую
+      дала бы строку 'undefined', которую сломает JSON.parse:
+    */
     if (serialized === undefined) return false;
 
     localStorage.setItem(key, serialized);
@@ -181,11 +212,10 @@ function saveJson(key, value) {
 
 function loadJson(key, fallback = null) {
   const raw = localStorage.getItem(key);
-  /* Если ключа нет, getItem возвращает null — возвращаем значение по умолчанию без парсинга: */
+  /* Если ключа нет, getItem вернёт null — отдаём fallback сразу: */
   if (raw === null) return fallback;
 
-  /* Если пользователь или расширение повредили строку в DevTools, JSON.parse кинет SyntaxError;
-     обработка исключения не даст упасть всему приложению: */
+  /* При битом JSON в DevTools JSON.parse кинет SyntaxError — ловим: */
   try {
     return JSON.parse(raw);
   } catch {
@@ -202,10 +232,11 @@ console.log(loadJson('missing', { volume: 50 })); /* { volume: 50 } */
 
 **Задача 2. Утилиты для работы с `document.cookie`: `setCookie`, `getCookie` и `deleteCookie`**
 
-Реализуй три функции:
-1) `setCookie(name, value, options = {})` — объединяет `{ path: '/', ...options }`, кодирует `name` и `value` через `encodeURIComponent`, добавляет опции через `; ` (если значение опции равно `true`, например `secure: true`, пишет только имя флага `secure` без `=true`; значения `false`, `null`, `undefined` пропускает) и записывает строку в `document.cookie`.
-2) `getCookie(name)` — ищет запись в `document.cookie` по декодированному имени (учитывай, что внутри самого значения куки может встречаться знак `=`, поэтому не теряй хвост значения!) и возвращает декодированное значение или `undefined`.
-3) `deleteCookie(name)` — удаляет куку, вызывая `setCookie` с `{ 'max-age': -1 }`.
+Нужен набор надёжных утилит для записи, чтения и удаления cookies с учётом кодирования и знака `=` внутри значений. Реализуй три функции:
+
+1. `setCookie(name, value, options = {})` — объединяет `{ path: '/', ...options }`, кодирует `name` и `value` через `encodeURIComponent`, добавляет опции через `; ` (для `true` вроде `secure: true` пишет только имя флага без `=true`; `false`, `null`, `undefined` пропускает) и записывает в `document.cookie`.
+2. `getCookie(name)` — ищет запись в `document.cookie` по декодированному имени (не теряя хвост значения, если внутри встречается `=`) и возвращает декодированное значение или `undefined`.
+3. `deleteCookie(name)` — удаляет куку, вызывая `setCookie` с `{ 'max-age': -1 }`.
 
 ```js
 'use strict';
@@ -220,21 +251,23 @@ console.log(loadJson('missing', { volume: 50 })); /* { volume: 50 } */
 'use strict';
 
 function setCookie(name, value, options = {}) {
-  /* Без path=/ кука будет видна только на текущем URL-пути, а не на всём сайте: */
+  /* Без path=/ кука будет видна только на текущем URL-пути: */
   const fullOptions = { path: '/', ...options };
-  /* Кодируем имя и значение, чтобы пробелы, ';' и '=' не сломали формат строки cookie: */
+  /* Кодируем имя и значение, чтобы ';', '=' и пробелы не ломали куку: */
   let entry = `${encodeURIComponent(name)}=${encodeURIComponent(value)}`;
 
   for (const [optKey, optVal] of Object.entries(fullOptions)) {
-    if (optVal === false || optVal === null || optVal === undefined) continue;
+    if (optVal === false || optVal === null || optVal === undefined) {
+      continue;
+    }
     entry += `; ${optKey}`;
-    /* Флаговые опции вроде secure или HttpOnly задаются без '=true': */
+    /* Флаговые опции вроде secure или HttpOnly задают без '=true': */
     if (optVal !== true) {
       entry += `=${optVal}`;
     }
   }
 
-  /* Сеттер document.cookie добавляет или обновляет только эту запись, сохраняя остальные: */
+  /* Сеттер document.cookie обновляет только эту запись: */
   document.cookie = entry;
 }
 
@@ -242,7 +275,7 @@ function getCookie(name) {
   if (!document.cookie) return undefined;
 
   for (const part of document.cookie.split('; ')) {
-    /* Ищем только ПЕРВЫЙ знак '=', чтобы не обрезать '=' внутри самого значения: */
+    /* Ищем только ПЕРВЫЙ '=', чтобы не обрезать '=' внутри значения: */
     const eqIndex = part.indexOf('=');
     if (eqIndex === -1) continue;
 
@@ -256,7 +289,7 @@ function getCookie(name) {
 }
 
 function deleteCookie(name) {
-  /* Отрицательный max-age немедленно удаляет куку с тем же path=/, с которым она была создана: */
+  /* Отрицательный max-age удаляет куку с тем же path=/ */
   setCookie(name, '', { 'max-age': -1 });
 }
 
@@ -270,20 +303,19 @@ console.log(getCookie('userName')); /* undefined */
 
 **Задача 3. Класс `DraftSaver` — автосохранение черновика формы и синхронизация между вкладками**
 
-Напиши класс `DraftSaver`, который привязывается к форме (с полями с атрибутом `name`) и хранит её черновик в `localStorage` по ключу `'feedback-draft'`:
-1) В `constructor(formSelector)` найди форму; если не найдена — выйди. Иначе восстанови сохранённый черновик из `localStorage` (если он есть) и повесь обработчики.
-2) При событии `'input'` на форме собери значения именованных полей (`this.form.elements`) в объект (игнорируя элементы без `name` и кнопки `submit`/`button`) и сохрани JSON в `localStorage` (внутри `try..catch`).
-3) При событии `'submit'` отмени отправку (`preventDefault()`), удали черновик через `removeItem` и сбрось форму (`reset()`).
-4) Подпишись на `window` событие `'storage'`: если изменился наш ключ `this.storageKey`, при `event.newValue === null` сбрось форму (`reset()`), иначе примени новое значение черновика, чтобы форма синхронизировалась с другими вкладками.
+Нужно сохранять введённый текст формы в `localStorage` под ключом `'feedback-draft'` и синхронизировать его между вкладками. Напиши класс `DraftSaver`:
+
+1. В `constructor(formSelector)` найди форму; если не найдена — выйди. Иначе восстанови сохранённый черновик из `localStorage` и повесь обработчики.
+2. При `'input'` на форме собери значения именованных полей (`this.form.elements`, пропуская элементы без `name` и кнопки `submit`/`button`) и сохрани JSON в `localStorage` внутри `try..catch`.
+3. При `'submit'` отмени отправку (`preventDefault()`), удали черновик через `removeItem` и сбрось форму (`reset()`).
+4. Подпишись на `window` событие `'storage'`: если изменился `this.storageKey`, при `event.newValue === null` сбрось форму (`reset()`), иначе примени новое значение черновика.
 
 ```html
-<!-- Пример разметки:
 <form data-js-feedback-form>
   <input name="author" placeholder="Имя" />
   <textarea name="message" placeholder="Сообщение"></textarea>
   <button type="submit">Отправить</button>
 </form>
--->
 ```
 
 ```js
@@ -311,31 +343,32 @@ class DraftSaver {
     this.form = document.querySelector(formSelector);
     if (!this.form) return;
 
-    /* При загрузке страницы сразу подставляем черновик, если он сохранился с прошлого визита: */
+    /* Подставляем черновик с прошлого визита при загрузке страницы: */
     this.applyDraft(localStorage.getItem(this.storageKey));
     this.bindEvents();
   }
 
-  /* Стрелочные методы привязывают this к экземпляру DraftSaver при передаче в addEventListener: */
+  /* Стрелочные методы сохраняют this при передаче в addEventListener: */
   onInput = () => {
     const draft = {};
 
-    /* Перебираем элементы формы через коллекцию elements и пропускаем кнопки / поля без name: */
+    /* Перебираем форму через elements, пропуская кнопки и поля без name: */
     for (const field of this.form.elements) {
-      if (!field.name || field.type === 'submit' || field.type === 'button') continue;
+      const isBtn = field.type === 'submit' || field.type === 'button';
+      if (!field.name || isBtn) continue;
       draft[field.name] = field.value;
     }
 
     try {
       localStorage.setItem(this.storageKey, JSON.stringify(draft));
     } catch {
-      /* Ошибка квоты или запрета storage в приватном режиме не должна ломать ввод текста */
+      /* Ошибка квоты или запрета storage не должна ломать ввод текста */
     }
   };
 
   onSubmit = (event) => {
     event.preventDefault();
-    /* Очищаем ключ после успешной отправки — это вызовет событие 'storage' в соседних вкладках: */
+    /* Очищаем ключ — это вызовет событие 'storage' в соседних вкладках: */
     localStorage.removeItem(this.storageKey);
     this.form.reset();
   };
@@ -344,7 +377,7 @@ class DraftSaver {
     /* Игнорируем изменения других ключей в localStorage: */
     if (event.key !== this.storageKey) return;
 
-    /* Если черновик удалили (submit в другой вкладке), сбрасываем поля текущей формы: */
+    /* Если черновик удалили в другой вкладке, сбрасываем текущую форму: */
     if (event.newValue === null) {
       this.form.reset();
       return;
@@ -361,7 +394,7 @@ class DraftSaver {
       if (!draft || typeof draft !== 'object') return;
 
       for (const field of this.form.elements) {
-        /* Object.hasOwn защищает от чтения унаследованных свойств вроде toString: */
+        /* Object.hasOwn защищает от унаследованных свойств (toString): */
         if (field.name && Object.hasOwn(draft, field.name)) {
           field.value = String(draft[field.name] ?? '');
         }
@@ -374,7 +407,7 @@ class DraftSaver {
   bindEvents() {
     this.form.addEventListener('input', this.onInput);
     this.form.addEventListener('submit', this.onSubmit);
-    /* Событие 'storage' на window приходит только при изменениях из других вкладок этого домена: */
+    /* Событие 'storage' приходит при изменениях из других вкладок: */
     window.addEventListener('storage', this.onStorage);
   }
 }

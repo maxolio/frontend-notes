@@ -11,11 +11,14 @@
 
 ```js
 document.addEventListener('keydown', (event) => {
-  if (event.repeat) return; /* true при автоповторе, если клавишу держат зажатой */
-  console.log(event.key);   /* символ с учётом раскладки: "q" (ENG) или "й" (RUS) */
-  console.log(event.code);  /* физическая клавиша: всегда "KeyQ" в любой раскладке */
+  /* true при автоповторе, если клавишу держат зажатой: */
+  if (event.repeat) return;
+  /* Символ с учётом раскладки: "q" (ENG) или "й" (RUS): */
+  console.log(event.key);
+  /* Физическая клавиша: всегда "KeyQ" в любой раскладке: */
+  console.log(event.code);
 
-  /* Спецклавиши-модификаторы (true/false): altKey, ctrlKey, shiftKey, metaKey */
+  /* Модификаторы (true/false): altKey, ctrlKey, shiftKey, metaKey */
   if ((event.ctrlKey || event.metaKey) && event.code === 'KeyS') {
     console.log('Нажали Ctrl+S / Cmd+S на Mac в любой раскладке!');
   }
@@ -31,13 +34,14 @@ document.addEventListener('keydown', (event) => {
 const anyDigitRegExp = /\d/; /* регулярное выражение: любая цифра */
 
 document.addEventListener('keydown', (event) => {
-  if (!event.target.matches('input')) return; /* фильтр через делегирование */
+  if (!event.target.matches('input')) return; /* делегирование */
 
   if (anyDigitRegExp.test(event.key)) {
-    event.preventDefault(); /* запретим вводить цифры (в keyup отменять уже ПОЗДНО!) */
+    /* Запретим вводить цифры (в keyup отменять уже ПОЗДНО!): */
+    event.preventDefault();
     console.log('Цифра заблокирована:', event.key);
   }
-  /* Минус keydown: вставку мышкой ("Вставить") он не ловит; чистите в input! */
+  /* Минус keydown: вставку мышкой не ловит — чистите в input! */
 });
 ```
 
@@ -49,25 +53,28 @@ document.addEventListener('keydown', (event) => {
 const input = document.querySelector('input');
 const output = document.querySelector('.name-output');
 
-/* input: срабатывает МГНОВЕННО при любом изменении (клавиатура, мышь, вставка) */
+/* input срабатывает МГНОВЕННО (клавиатура, мышь, вставка): */
 input.addEventListener('input', () => {
-  /* Надёжная чистка от цифр (работает и после вставки мышкой, и на телефоне): */
+  /* Надёжная чистка от цифр (работает и после вставки мышкой): */
   input.value = input.value.replace(/\d/g, '');
-  output.textContent = input.value; /* preventDefault() здесь уже не отменит ввод */
+  /* preventDefault() здесь уже не отменит ввод: */
+  output.textContent = input.value;
 });
 
-/* Живой поиск с паузой (debounce через setTimeout): не бьёт сервер на каждую букву */
+/* Живой поиск с паузой (debounce): не бьёт сервер на каждую букву */
 let searchTimerId;
 input.addEventListener('input', () => {
   clearTimeout(searchTimerId);
-  searchTimerId = setTimeout(() => console.log("Запрос:", input.value), 300);
+  searchTimerId = setTimeout(() => {
+    console.log('Запрос:', input.value);
+  }, 300);
 });
 
-/* change: у текстового поля — при ПОТЕРЕ фокуса; у <select>/checkbox/radio — СРАЗУ! */
+/* change: у текстового поля — при blur; у <select>/checkbox — сразу */
 input.addEventListener('change', () => {
   const isInvalid = input.value.length < 5;
   input.classList.toggle('is-invalid', isInvalid);
-  /* Идеально для валидации и тяжёлых запросов, чтобы не дёргать на каждую букву */
+  /* Идеально для валидации, чтобы не дёргать на каждую букву */
 });
 ```
 
@@ -77,11 +84,12 @@ input.addEventListener('change', () => {
 
 ```js
 document.addEventListener('paste', (event) => {
-  console.log(event.clipboardData.getData('text/plain')); /* только в paste */
-  /* event.preventDefault(); — можно запретить вставку/копирование/вырезание */
+  /* Синхронное чтение работает только в paste: */
+  console.log(event.clipboardData.getData('text/plain'));
+  /* event.preventDefault(); — запрет вставки/копирования/вырезания */
 });
 
-/* Асинхронный Clipboard API (работает в cut/copy/paste, нужен HTTPS и разрешение): */
+/* Асинхронный Clipboard API (cut/copy/paste, нужен HTTPS и доступ): */
 document.addEventListener('copy', () => {
   navigator.clipboard.readText().then((text) => console.log(text));
 });
@@ -104,7 +112,15 @@ document.addEventListener('copy', () => {
 
 ## Вопросы для закрепления
 
-**1. Почему хоткей `Ctrl + S` нельзя проверять через `event.key === 's'`, и зачем в обработчике `keydown` ставят `if (event.repeat) return;`?**
+**1. Почему хоткей `Ctrl + S` ниже сломается на русской раскладке, и зачем в `keydown` ставят `if (event.repeat) return;`?**
+
+```js
+document.addEventListener('keydown', (event) => {
+  if (event.ctrlKey && event.key === 's') {
+    console.log('Сохранено!');
+  }
+});
+```
 
 <details>
 <summary>Показать ответ</summary>
@@ -138,9 +154,10 @@ document.addEventListener('copy', () => {
 
 **Задача 1. Поисковая строка с `debounce` (`input`) и валидацией по выходу (`change`)**
 
-Напиши функцию `initSearchField(inputElement)`:
-1) На событие `'input'`: обнови счётчик символов в `[data-js-counter]` (если элемент найден) и настрой отложенный поиск с паузой **400 мс** (`clearTimeout` + `setTimeout`), чтобы при быстром вводе в консоль выводилось `'Поиск: <текст>'` только после остановки печати.
-2) На событие `'change'`: проверь, что введённая строка после `.trim()` короче `3` символов, и переключи на `inputElement` класс `'is-invalid'` через `classList.toggle`.
+Поисковое поле должно считать символы в реальном времени, но не слать запрос на каждую букву и не ругаться на короткий ввод раньше времени. Напиши функцию `initSearchField(inputElement)`:
+
+1. На событие `'input'`: обнови счётчик символов в `[data-js-counter]` (если элемент найден) и настрой отложенный поиск с паузой **400 мс** (`clearTimeout` + `setTimeout`), чтобы при быстром вводе в консоль выводилось `'Поиск: <текст>'` только после остановки печати.
+2. На событие `'change'`: проверь, что введённая строка после `.trim()` короче `3` символов, и переключи на `inputElement` класс `'is-invalid'` через `classList.toggle`.
 
 ```js
 'use strict';
@@ -174,8 +191,8 @@ function initSearchField(inputElement) {
     }
 
     /*
-      Debounce: сбрасываем прошлый таймер на каждой букве и ставим новый на 400 мс —
-      поиск запустится лишь 1 раз, когда пользователь перестанет печатать
+      Debounce: сбрасываем прошлый таймер на каждой букве и ставим новый
+      на 400 мс — поиск запустится 1 раз после паузы в печати
     */
     clearTimeout(searchTimerId);
     searchTimerId = setTimeout(() => {
@@ -183,7 +200,7 @@ function initSearchField(inputElement) {
     }, 400);
   });
 
-  /* change сработает при потере фокуса, чтобы не пугать ошибкой на первых буквах */
+  /* change сработает при потере фокуса — не пугаем ошибкой сразу */
   inputElement.addEventListener('change', () => {
     const isInvalid = inputElement.value.trim().length < 3;
     inputElement.classList.toggle('is-invalid', isInvalid);
@@ -198,9 +215,10 @@ initSearchField(searchInputElement);
 
 **Задача 2. Поле для 6-значного SMS-кода (`paste` и очистка в `input`)**
 
-Напиши функцию `initDigitsOnlyCodeField(codeInputElement)`:
-1) На `'paste'`: прочитай текст из `event.clipboardData.getData('text/plain')`. Если в вставляемом тексте нет ни одной цифры (`!/\d/.test(...)`), отмени вставку через `event.preventDefault()` и выведи `'Буфер не содержит цифр'`.
-2) На `'input'`: вырежи все нецифровые символы (`/\D/g`) и обрежь строку до `6` символов (`.slice(0, 6)`), чтобы при любом способе ввода в поле оставались только первые 6 цифр.
+В поле подтверждения SMS должны попадать только первые 6 цифр при любом способе ввода (клавиатура, вставка мышкой, автозаполнение). Напиши функцию `initDigitsOnlyCodeField(codeInputElement)`:
+
+1. На `'paste'`: прочитай текст из `event.clipboardData.getData('text/plain')`. Если в тексте нет ни одной цифры (`!/\d/.test(...)`), отмени вставку через `event.preventDefault()` и выведи `'Буфер не содержит цифр'`.
+2. На `'input'`: вырежи все нецифровые символы (`/\D/g`) и обрежь строку до `6` символов (`.slice(0, 6)`).
 
 ```js
 'use strict';
@@ -224,7 +242,7 @@ function initDigitsOnlyCodeField(codeInputElement) {
   if (!codeInputElement) return;
 
   codeInputElement.addEventListener('paste', (event) => {
-    /* getData('text/plain') работает в paste и даёт текст из буфера до вставки */
+    /* getData('text/plain') работает в paste и даёт текст до вставки */
     const pastedText = event.clipboardData?.getData('text/plain') ?? '';
 
     if (!/\d/.test(pastedText)) {
@@ -235,10 +253,11 @@ function initDigitsOnlyCodeField(codeInputElement) {
 
   codeInputElement.addEventListener('input', () => {
     /*
-      Чистим именно в input (не в keydown!), чтобы сработало и при вставке мышкой:
-      \D удаляет все не-цифры, а slice(0, 6) ограничивает код длиной 6 знаков
+      Чистим в input (не в keydown!), чтобы сработало при вставке мышкой:
+      \D удаляет все не-цифры, slice(0, 6) ограничивает код 6 знаками
     */
-    codeInputElement.value = codeInputElement.value.replace(/\D/g, '').slice(0, 6);
+    const digitsOnly = codeInputElement.value.replace(/\D/g, '');
+    codeInputElement.value = digitsOnly.slice(0, 6);
   });
 }
 
@@ -250,9 +269,10 @@ initDigitsOnlyCodeField(codeInputElement);
 
 **Задача 3. Отслеживание одновременного нажатия клавиш `runOnKeys(callback, codes)`**
 
-Напиши функцию `runOnKeys(callback, codes)`, которая запускает `callback()`, как только пользователь **одновременно** зажал все физические клавиши из массива `codes` (в любой раскладке, по `event.code`):
-1) Храни зажатые сейчас клавиши в коллекции `Set`.
-2) На `'keydown'` на `document`: добавляй `event.code` в `Set`; если все элементы из `codes` присутствуют в `Set` (`.every`), очисти `Set` (`clear()`, чтобы не сработало повторно при удержании) и вызови `callback()`.
+Нужно запускать `callback()`, как только пользователь **одновременно** зажал все физические клавиши из массива `codes` (в любой раскладке, по `event.code`). Напиши функцию `runOnKeys(callback, codes)`:
+
+1. Храни зажатые сейчас клавиши в коллекции `Set`.
+2. На `'keydown'` на `document`: добавляй `event.code` в `Set`; если все элементы из `codes` присутствуют в `Set` (`.every`), очисти `Set` (`clear()`, чтобы не сработало повторно при удержании) и вызови `callback()`.
 3. На `'keyup'` на `document`: удаляй отпущенную клавишу (`delete(event.code)`), а на `'blur'` у `window` очищай весь `Set` (`clear()`), чтобы зажатые клавиши не «залипали» при переключении окна (`Alt+Tab`).
 
 ```js
@@ -286,7 +306,7 @@ function runOnKeys(callback, codes) {
     const areAllPressed = codes.every((code) => pressedCodes.has(code));
     if (!areAllPressed) return;
 
-    /* Очищаем Set перед вызовом, чтобы удержание не вызывало callback многократно */
+    /* Очищаем Set до вызова, чтобы удержание не запускало callback вновь */
     pressedCodes.clear();
     callback();
   });

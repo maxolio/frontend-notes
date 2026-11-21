@@ -10,13 +10,23 @@
 [+] Браузер умеет проверять поля по HTML-атрибутам и CSS-псевдоклассам :user-valid / :user-invalid, но стандартные тултипы нельзя стилизовать. Поэтому на `<form>` ставят novalidate, а правила из HTML читают в JS и связывают поля с `<span>` ошибок для a11y.
 
 ```html
-<!-- novalidate отключает браузерные тултипы; data-js-form — метка для JS: -->
+<!-- novalidate отключает браузерные тултипы; data-js-form — метка JS: -->
 <form id="regForm" novalidate data-js-form>
   <p class="field">
-    <input id="login" name="login" required minlength="3" maxlength="12"
-           aria-errormessage="login-errors" /> <!-- связь для скринридера -->
-    <!-- Для пароля задают pattern="..." (регулярка) и title="Пояснение формата" -->
-    <span class="field__errors" id="login-errors" data-js-form-field-errors></span>
+    <input
+      id="login"
+      name="login"
+      required
+      minlength="3"
+      maxlength="12"
+      aria-errormessage="login-errors"
+    />
+    <!-- Для пароля ставят pattern="..." и title="Пояснение формата" -->
+    <span
+      class="field__errors"
+      id="login-errors"
+      data-js-form-field-errors
+    ></span>
   </p>
 </form>
 ```
@@ -32,13 +42,16 @@ class FormsValidation {
     fieldErrors: '[data-js-form-field-errors]',
   };
 
-  /* Ключи совпадают со свойствами ValidityState; функции получают DOM-элемент поля: */
+  /* Ключи = свойства ValidityState; функции получают DOM-элемент поля: */
   errorMessages = {
     valueMissing: () => 'Пожалуйста, заполните это поле',
-    patternMismatch: ({ title }) => title || 'Данные не соответствуют формату',
-    /* В HTML атрибут minlength/maxlength, а в JS-свойстве — camelCase minLength/maxLength! */
-    tooShort: ({ minLength }) => `Слишком короткое значение, минимум символов — ${minLength}`,
-    tooLong: ({ maxLength }) => `Слишком длинное значение, максимум символов — ${maxLength}`,
+    patternMismatch: ({ title }) =>
+      title || 'Данные не соответствуют формату',
+    /* В HTML minlength/maxlength, а в JS — camelCase minLength/maxLength */
+    tooShort: ({ minLength }) =>
+      `Слишком короткое значение, минимум — ${minLength}`,
+    tooLong: ({ maxLength }) =>
+      `Слишком длинное значение, максимум — ${maxLength}`,
   };
 
   constructor() {
@@ -46,7 +59,11 @@ class FormsValidation {
   }
 
   bindEvents() {
-    document.addEventListener('blur', (event) => this.onBlur(event), { capture: true });
+    document.addEventListener(
+      'blur',
+      (event) => this.onBlur(event),
+      { capture: true }
+    );
     document.addEventListener('change', (event) => this.onChange(event));
     document.addEventListener('submit', (event) => this.onSubmit(event));
   }
@@ -64,36 +81,42 @@ class FormsValidation {
 
 ```js
   validateField(fieldControlElement) {
-    const errors = fieldControlElement.validity; /* объект ValidityState с true/false */
+    /* Объект ValidityState с флагами true/false: */
+    const errors = fieldControlElement.validity;
     const errorMessages = [];
 
-    Object.entries(this.errorMessages).forEach(([errorType, getErrorMessage]) => {
-      if (errors[errorType]) {
-        errorMessages.push(getErrorMessage(fieldControlElement));
+    Object.entries(this.errorMessages).forEach(
+      ([errorType, getErrorMessage]) => {
+        if (errors[errorType]) {
+          errorMessages.push(getErrorMessage(fieldControlElement));
+        }
       }
-    });
+    );
 
     this.manageErrors(fieldControlElement, errorMessages);
     const isValid = errorMessages.length === 0;
-    fieldControlElement.ariaInvalid = !isValid; /* подсказка для скринридеров */
+    /* Подсказка для скринридеров (строка 'true' или 'false'): */
+    fieldControlElement.ariaInvalid = String(!isValid);
     return isValid;
   }
 
   manageErrors(fieldControlElement, errorMessages) {
     const fieldErrorsElement = fieldControlElement.parentElement
       .querySelector(this.selectors.fieldErrors);
-    /* Хрупко при лишних обёртках — надёжнее искать через closest или aria-errormessage! */
-    /* Если массив пустой, map + join("") дадут "" и очистят старые ошибки: */
-    /* Важно: если в текст попадёт ввод юзера/сервера, вместо innerHTML берите textContent! */
+    /*
+      Хрупко при лишних обёртках — надёжнее closest или aria-errormessage!
+      Если массив пустой, join('') очистит старые ошибки.
+      Если в тексте есть ввод юзера, берите textContent вместо innerHTML!
+    */
     fieldErrorsElement.innerHTML = errorMessages
       .map((message) => `<span class="field__error">${message}</span>`)
       .join('');
   }
 
-  /* Другие флаги в validity: valid (итог true/false), typeMismatch (email/url), */
-  /* rangeUnderflow / rangeOverflow (min/max), stepMismatch (step) и customError. */
-  /* Своя ошибка (делает valid=false): input.setCustomValidity('Запрещённый логин'); */
-  /* СБРОСИТЬ её обязательно пустой строкой, иначе поле не пройдёт валидацию: */
+  /* Другие флаги validity: valid, typeMismatch (email/url), */
+  /* rangeUnderflow / rangeOverflow, stepMismatch и customError. */
+  /* Своя ошибка (valid=false): input.setCustomValidity('Занято'); */
+  /* СБРОСИТЬ её пустой строкой, иначе поле не пройдёт валидацию: */
   /* input.setCustomValidity(''); */
 ```
 
@@ -121,24 +144,26 @@ class FormsValidation {
       const isFieldValid = this.validateField(element);
       if (!isFieldValid) {
         isFormValid = false;
-        if (!firstInvalidFieldControl) firstInvalidFieldControl = element;
+        if (!firstInvalidFieldControl) {
+          firstInvalidFieldControl = element;
+        }
       }
     });
 
     if (!isFormValid) {
       event.preventDefault(); /* останавливаем отправку формы */
-      firstInvalidFieldControl.focus(); /* удобный UX: фокус в 1-е поле с ошибкой */
+      firstInvalidFieldControl.focus(); /* фокус в 1-е поле с ошибкой */
     }
   }
 }
 
 new FormsValidation(); /* автозапуск компонента валидации */
 
-/* Нативные методы любой формы/поля (работают даже без своего класса): */
-/* form.checkValidity()  -> "тихо" вернёт true/false без показа тултипов */
-/* form.reportValidity() -> проверит И покажет системный тултип на 1-й ошибке */
-/* Строка из одних пробелов "   " проходит required! Лечится .trim() или pattern=".*\S.*" */
-/* Для лучшего UX поля с уже показанной ошибкой допроверяют сразу на событии input. */
+/* Нативные методы любой формы/поля (работают даже без класса): */
+/* form.checkValidity()  -> "тихо" вернёт true/false без тултипов */
+/* form.reportValidity() -> проверит И покажет тултип на 1-й ошибке */
+/* Пробелы "   " проходят required! Лечит .trim() или pattern=".*\S.*" */
+/* Для лучшего UX поля с ошибкой допроверяют сразу на событии input */
 ```
 
 ## 3 главные ловушки урока (чек-лист для повторения)
@@ -151,7 +176,13 @@ new FormsValidation(); /* автозапуск компонента валида
 
 ## Вопросы для закрепления
 
-**1. Зачем на `document.addEventListener('blur', ...)` передают `{ capture: true }`, и почему для `radio` и `checkbox` нужен отдельный слушатель `change`?**
+**1. Почему слушатель `blur` ниже не сработает на полях формы, и зачем для `radio` / `checkbox` вешают ещё и `change`?**
+
+```js
+document.addEventListener('blur', (event) => {
+  if (event.target.required) validateField(event.target);
+});
+```
 
 <details>
 <summary>Показать ответ</summary>
@@ -185,23 +216,28 @@ new FormsValidation(); /* автозапуск компонента валида
 
 **Задача 1. Валидация поля по `ValidityState` и поиск ошибки через `aria-errormessage`**
 
-Напиши функцию `validateField(fieldElement)`:
-1) Проверь флаги объекта `fieldElement.validity` по словарю сообщений (`valueMissing`, `typeMismatch`, `tooShort` с `minLength`, `patternMismatch` с `title`).
-2) Найди блок вывода ошибки **не через `parentElement`**, а по ID из атрибута `aria-errormessage` (через `document.getElementById`).
-3. Выведи собранные ошибки через `.textContent` (объединив через `', '`), обнови `fieldElement.ariaInvalid = String(!isValid)` (или `setAttribute('aria-invalid', String(!isValid))`) и верни `isValid` (`boolean`).
+При глубокой вложенности поиск `<span>` ошибки через `parentElement` ломается, поэтому надёжнее связывать его по ID из `aria-errormessage`. Напиши функцию `validateField(fieldElement)`:
+
+1. Проверь флаги объекта `fieldElement.validity` по словарю сообщений (`valueMissing`, `typeMismatch`, `tooShort` с `minLength`, `patternMismatch` с `title`).
+2. Найди блок вывода ошибки **не через `parentElement`**, а по ID из атрибута `aria-errormessage` (через `document.getElementById`).
+3. Выведи собранные ошибки через `.textContent` (объединив через `', '`), обнови `fieldElement.ariaInvalid = String(!isValid)` и верни `isValid` (`boolean`).
+
+```html
+<div class="field">
+  <div class="field__control-wrap">
+    <input
+      type="email"
+      required
+      minlength="5"
+      aria-errormessage="email-err"
+    />
+  </div>
+  <span id="email-err" class="field__error"></span>
+</div>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML поля:
-  <div class="field">
-    <div class="field__control-wrap">
-      <input type="email" required minlength="5" aria-errormessage="email-err" />
-    </div>
-    <span id="email-err" class="field__error"></span>
-  </div>
-*/
 
 /* Твоё решение: */
 function validateField(fieldElement) {
@@ -221,9 +257,10 @@ console.log(validateField(emailInputElement));
 const ERROR_MESSAGES = {
   valueMissing: () => 'Пожалуйста, заполните это поле',
   typeMismatch: () => 'Введите корректный формат (например, email)',
-  /* В JS-свойстве пишем camelCase minLength, хотя в HTML было minlength */
+  /* В JS-свойстве camelCase minLength, хотя в HTML было minlength */
   tooShort: ({ minLength }) => `Минимум символов — ${minLength}`,
-  patternMismatch: ({ title }) => title || 'Данные не соответствуют формату',
+  patternMismatch: ({ title }) =>
+    title || 'Данные не соответствуют формату',
 };
 
 function validateField(fieldElement) {
@@ -238,7 +275,7 @@ function validateField(fieldElement) {
     }
   });
 
-  /* Поиск по ID из aria-errormessage работает при любой глубине HTML-обёрток */
+  /* Поиск по ID из aria-errormessage работает при любой вложенности */
   const errorId = fieldElement.getAttribute('aria-errormessage');
   const errorElement = errorId ? document.getElementById(errorId) : null;
   if (errorElement) {
@@ -259,9 +296,10 @@ console.log(validateField(emailInputElement));
 
 **Задача 2. Защита от одних пробелов и сверка паролей через `setCustomValidity`**
 
-Напиши функцию `initPasswordConfirmValidation(passwordElement, confirmElement)`:
-1) На событии `'input'` у `passwordElement`: если в поле введены только пробелы (`value.length > 0 && value.trim() === ''`), поставь ошибку `'Пароль не может состоять из одних пробелов'` через `.setCustomValidity(...)`; иначе обязательно сбрось пустой строкой `''`.
-2) На событии `'input'` **обоих** полей пересчитывай совпадение: если `confirmElement.value !== passwordElement.value`, ставь на `confirmElement` ошибку `'Пароли не совпадают'`, иначе сбрасывай `''`. Выводи `confirmElement.validity.valid` в консоль.
+Нативный `required` пропускает пробелы, а совпадение двух паролей нужно проверять вручную. Напиши функцию `initPasswordConfirmValidation(passwordElement, confirmElement)`:
+
+1. На `'input'` у `passwordElement`: если в поле введены только пробелы (`value.length > 0 && value.trim() === ''`), поставь ошибку `'Пароль не может состоять из одних пробелов'` через `.setCustomValidity(...)`; иначе сбрось пустой строкой `''`.
+2. На `'input'` **обоих** полей пересчитывай совпадение: если `confirmElement.value !== passwordElement.value`, ставь на `confirmElement` ошибку `'Пароли не совпадают'`, иначе сбрасывай `''`. Выводи `confirmElement.validity.valid` в консоль.
 
 ```js
 'use strict';
@@ -289,9 +327,11 @@ function initPasswordConfirmValidation(passwordElement, confirmElement) {
     const isMatch = confirmElement.value === passwordElement.value;
     /*
       Обязательно сбрасываем customError пустой строкой '' при совпадении,
-      иначе поле навсегда останется невалидным (validity.valid === false)
+      иначе поле останется невалидным (validity.valid === false)
     */
-    confirmElement.setCustomValidity(isMatch ? '' : 'Пароли не совпадают');
+    confirmElement.setCustomValidity(
+      isMatch ? '' : 'Пароли не совпадают'
+    );
     console.log('Подтверждение валидно:', confirmElement.validity.valid);
   };
 
@@ -302,7 +342,7 @@ function initPasswordConfirmValidation(passwordElement, confirmElement) {
     passwordElement.setCustomValidity(
       isOnlySpaces ? 'Пароль не может состоять из одних пробелов' : ''
     );
-    /* Перепроверяем совпадение даже если пользователь правит первый пароль */
+    /* Перепроверяем совпадение, даже если правят первый пароль */
     validateMatch();
   });
 
@@ -318,22 +358,22 @@ initPasswordConfirmValidation(passwordInput, confirmInput);
 
 **Задача 3. Проверка формы при `submit`, `noValidate` и автофокус на первую ошибку**
 
-Напиши функцию `initSubmitValidation(formElement)`:
-1) Программно отключи стандартные тултипы (`formElement.noValidate = true`).
-2) При событии `'submit'`: перебери все поля формы с атрибутом `name`, проверь каждое через `.checkValidity()`, переключи класс `'is-invalid'` (`classList.toggle('is-invalid', !isValid)`) и запомни первое невалидное поле.
-3) Если форма невалидна — отмени отправку (`event.preventDefault()`) и поставь фокус (`.focus()`) в первое поле с ошибкой; если всё валидно — выведи `'Форма готова к отправке'`.
+Нужно заменить системные тултипы формы на собственную подсветку ошибок и фокусировать первое невалидное поле. Напиши функцию `initSubmitValidation(formElement)`:
+
+1. Программно отключи стандартные тултипы (`formElement.noValidate = true`).
+2. При `'submit'`: перебери все поля формы с атрибутом `name`, проверь каждое через `.checkValidity()`, переключи класс `'is-invalid'` (`classList.toggle('is-invalid', !isValid)`) и запомни первое невалидное поле.
+3. Если форма невалидна — отмени отправку (`event.preventDefault()`) и поставь фокус (`.focus()`) в первое поле с ошибкой; если всё валидно — выведи `'Форма готова к отправке'`.
+
+```html
+<form data-js-signup>
+  <input name="login" required minlength="3">
+  <input name="email" type="email" required>
+  <button type="submit">Создать аккаунт</button>
+</form>
+```
 
 ```js
 'use strict';
-
-/*
-  HTML формы:
-  <form data-js-signup>
-    <input name="login" required minlength="3">
-    <input name="email" type="email" required>
-    <button type="submit">Создать аккаунт</button>
-  </form>
-*/
 
 /* Твоё решение: */
 function initSubmitValidation(formElement) {
@@ -353,7 +393,7 @@ initSubmitValidation(signupFormElement);
 function initSubmitValidation(formElement) {
   if (!formElement) return;
 
-  /* Отключаем системные тултипы браузера, сохраняя работу API checkValidity() */
+  /* Отключаем системные тултипы, сохраняя работу API checkValidity() */
   formElement.noValidate = true;
 
   formElement.addEventListener('submit', (event) => {
@@ -362,7 +402,7 @@ function initSubmitValidation(formElement) {
     for (const element of formElement.elements) {
       if (!element.name) continue;
 
-      /* checkValidity() тихо проверяет все HTML-ограничения и customError */
+      /* checkValidity() тихо проверяет HTML-правила и customError */
       const isFieldValid = element.checkValidity();
       element.classList.toggle('is-invalid', !isFieldValid);
 
@@ -372,7 +412,7 @@ function initSubmitValidation(formElement) {
     }
 
     if (firstInvalidElement) {
-      /* Блокируем отправку и переводим курсор в первое проблемное поле */
+      /* Блокируем отправку и переводим фокус в первое проблемное поле */
       event.preventDefault();
       firstInvalidElement.focus();
       return;
