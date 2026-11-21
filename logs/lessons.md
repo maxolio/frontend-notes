@@ -1,5 +1,10 @@
 # Worklog — Уроки JS (site/data/js)
 
+## 2026-11-22 — Правила оформления JS, IDEAS.md и handoff для Практики 1
+- **Сделано:** Зафиксированы правила оформления JS-уроков и Правило 7 в `AGENTS.md`, создан чек-лист будущего урока-шпаргалки `IDEAS.md` и собран `HANDOFF-решаем задачи и улучшаем проект сайта.md`.
+- **Файлы:** `AGENTS.md`, `IDEAS.md`, `HANDOFF-решаем задачи и улучшаем проект сайта.md`.
+- **Дальше:** Открыть новый чат с `@HANDOFF-решаем задачи и улучшаем проект сайта.md продолжай` и перейти к системной Практике 1 (Уроки 01–14, `site/data/js/practice-01.md`).
+
 ## 2026-11-21 — Финал рефакторинга всех 45 уроков JS, бандлы и validate-lessons.mjs
 - **Сделано:** Завершены Пачка 6 (`lesson-30`..`36`) и Пачка 7 (`lesson-37`..`42`), добавлены кодовые сниппеты в вопросы (`34, 35, 39, 41, 42`), проверены `pointercancel`, `window blur`, `String(!isValid)` и `startUrl.searchParams.set('tab', initialTab)`. Убраны 6 двойных бэктиков (`06, 12, 19, 22`), перенесён валидатор в `scripts/validate-lessons.mjs` (`0 issues` по всем 45 файлам), удалены временные валидаторы из `scratch/`, пересобраны `all-lessons.md` и `all-questions-and-tasks.md`.
 - **Файлы:** `site/data/js/lesson-06.md`, `12`, `19`, `22`, `30..42`, `site/data/js/all-lessons.md`, `site/data/js/all-questions-and-tasks.md`, `scripts/validate-lessons.mjs`, `logs/lessons.md`.
