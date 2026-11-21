@@ -1,6 +1,9 @@
 # Урок 34. События мыши и указателя (Pointer Events), Drag and Drop
 
-Суть урока: Для наведения чаще берут mouseenter/mouseleave (без лишних срабатываний на детях), клик состоит из mousedown + mouseup, а для поддержки и мыши, и тачскрина используют Pointer Events (pointerdown, pointermove, pointerup).
+Суть урока:
+
+- **Наведение и клик:** для наведения чаще берут `mouseenter`/`mouseleave` (не срабатывают лишний раз на детях); клик состоит из `mousedown` + `mouseup`.
+- **Универсальный ввод:** для поддержки и мыши, и тачскрина используют Pointer Events (`pointerdown`, `pointermove`, `pointerup`).
 
 ## 1. Движение и наведение: mousemove, mouseover/out vs enter/leave (00:45–07:50)
 

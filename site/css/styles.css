@@ -821,8 +821,20 @@ pre {
   box-shadow: var(--shadow);
 }
 
-.callout p:last-child {
+.callout p:last-child,
+.callout ul:last-child,
+.callout ol:last-child {
   margin-bottom: 0;
+}
+
+.callout ul,
+.callout ol {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.callout li + li {
+  margin-top: 0.25rem;
 }
 
 .callout-badge {
@@ -937,8 +949,39 @@ pre {
   background: var(--surface-alt);
 }
 
-.lesson-accordion[open] .lesson-accordion-chevron {
+.lesson-accordion[open] > .lesson-accordion-summary .lesson-accordion-chevron {
   transform: rotate(180deg);
+}
+
+.practice-group-accordion {
+  border-color: color-mix(in srgb, var(--done-color, #16a34a) 35%, var(--border));
+}
+
+.practice-group-accordion > .lesson-accordion-summary {
+  background: color-mix(in srgb, var(--done-color, #16a34a) 10%, var(--surface));
+  border-left: 4px solid var(--done-color, #16a34a);
+}
+
+.practice-group-accordion[open] > .lesson-accordion-summary {
+  background: color-mix(in srgb, var(--done-color, #16a34a) 16%, var(--surface));
+  border-bottom-color: color-mix(in srgb, var(--done-color, #16a34a) 30%, var(--border));
+}
+
+.practice-group-accordion > .lesson-accordion-body {
+  background: var(--bg);
+}
+
+.practice-group-accordion > .lesson-accordion-body > .lesson-accordion:first-child,
+.practice-level-accordion > .lesson-accordion-body > .lesson-accordion:first-child {
+  margin-top: 0;
+}
+
+.practice-level-accordion > .lesson-accordion-summary {
+  background: var(--surface-alt);
+}
+
+.practice-level-accordion > .lesson-accordion-body {
+  background: var(--bg);
 }
 
 .lesson-accordion-body {
@@ -958,7 +1001,7 @@ pre {
   font-size: 0.9rem;
 }
 
-.lesson-accordion-body details {
+.lesson-accordion-body details:not(.lesson-accordion) {
   margin: 0.5rem 0 1rem;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius-md);
@@ -966,14 +1009,14 @@ pre {
   background: var(--bg);
 }
 
-.lesson-accordion-body details summary {
+.lesson-accordion-body details:not(.lesson-accordion) summary {
   cursor: pointer;
   font-size: 0.875rem;
   font-weight: 600;
   color: var(--accent);
 }
 
-.lesson-accordion-body details[open] summary {
+.lesson-accordion-body details:not(.lesson-accordion)[open] summary {
   margin-bottom: 0.45rem;
 }
 

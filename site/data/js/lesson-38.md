@@ -1,6 +1,9 @@
 # Урок 38. Формы в JS: событие submit и сбор данных через FormData
 
-Суть урока: Отправку формы перехватывают через событие submit и event.preventDefault(), а данные со всех полей собирают одной строкой через new FormData(formElement) — эта коллекция устроена как Map и читается через forEach или Object.fromEntries(formData).
+Суть урока:
+
+- **Перехват отправки:** форму перехватывают на событии `submit` с помощью `event.preventDefault()`.
+- **Сбор данных:** `new FormData(formElement)` собирает все поля одной строкой (читается через `forEach` или `Object.fromEntries(formData)`).
 
 ## 1. Событие submit и отмена стандартной отправки (01:08–02:23)
 

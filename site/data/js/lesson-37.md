@@ -1,6 +1,9 @@
 # Урок 37. Формы в JS: доступ к полям, чтение/запись и атрибут form
 
-Суть урока: Доступ к формам и полям берут через document.forms и form.elements (по name), внешние поля привязывают к форме атрибутом form="id", а значения читают через .value (input, textarea, select, radio), .checked (checkbox) и .selectedOptions.
+Суть урока:
+
+- **Доступ к формам:** формы и поля берут через `document.forms` и `form.elements` (по `name`); внешние поля привязывают атрибутом `form="id"`.
+- **Чтение значений:** используют `.value` (`input`, `textarea`, `select`, `radio`), `.checked` (`checkbox`) и `.selectedOptions`.
 
 ## 1. Навигация: document.forms, form.elements и доступ по name (00:49–03:57)
 

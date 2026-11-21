@@ -1,6 +1,9 @@
 # Урок 31. Манипуляции с DOM: создание, вставка, удаление, клонирование
 
-Суть урока: Текст меняют через textContent, HTML-разметку — через innerHTML или insertAdjacentHTML, а новые теги создают через createElement() и вставляют в DOM методами append / prepend / before / after / replaceWith.
+Суть урока:
+
+- **Текст и HTML:** текст меняют через `textContent`, разметку — через `innerHTML` или `insertAdjacentHTML`.
+- **Создание и вставка:** новые теги создают через `createElement()` и вставляют методами `append` / `prepend` / `before` / `after` / `replaceWith`.
 
 ## 1. Содержимое элементов: textContent, innerHTML, outerHTML (00:31–05:31)
 

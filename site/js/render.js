@@ -25,7 +25,21 @@ function transformCallouts(container) {
     badge.className = 'callout-badge';
     badge.textContent = match.badge;
 
-    card.append(badge, p.cloneNode(true));
+    const nextEl = p.nextElementSibling;
+    const isFollowUpList = nextEl && (nextEl.tagName === 'UL' || nextEl.tagName === 'OL');
+    const hasParagraphText = p.textContent.trim().length > 0;
+
+    if (!hasParagraphText && isFollowUpList) {
+      card.append(badge, nextEl.cloneNode(true));
+      nextEl.remove();
+    } else {
+      card.append(badge, p.cloneNode(true));
+      if (hasParagraphText && isFollowUpList) {
+        card.append(nextEl.cloneNode(true));
+        nextEl.remove();
+      }
+    }
+
     p.replaceWith(card);
   }
 }
@@ -55,6 +69,13 @@ const PRACTICE_SECTIONS = [
     title: 'Задачи',
     icon: '🧩',
     emptyText: 'Задачи для этого урока ещё не добавлены. Их можно дописать в конце .md файла под заголовком ## Задачи.',
+  },
+  {
+    key: 'recap',
+    match: 'всё, что прошли',
+    title: 'Всё, что прошли',
+    icon: '📌',
+    optional: true,
   },
 ];
 
@@ -87,6 +108,7 @@ function wrapPracticeAccordions(container) {
   for (const spec of PRACTICE_SECTIONS) {
     const headings = [...container.querySelectorAll('h2')];
     const heading = headings.find((h) => h.textContent.toLowerCase().includes(spec.match));
+    if (!heading && spec.optional) continue;
 
     const details = document.createElement('details');
     details.className = 'lesson-accordion';
@@ -126,35 +148,55 @@ function wrapPracticeAccordions(container) {
   }
 }
 
-/** Оформляет верхнеуровневые задачи в практических блоках как широкие кнопки-аккордеоны. */
+/** Превращает элемент <details> в кнопку-аккордеон и переносит контент в .lesson-accordion-body. */
+function buildAccordion(details, role = 'task') {
+  const summary = details.querySelector(':scope > summary');
+  if (!summary) return null;
+
+  details.classList.add('lesson-accordion');
+  if (role === 'group') {
+    details.classList.add('practice-group-accordion');
+  } else if (role === 'level') {
+    details.classList.add('practice-level-accordion');
+  }
+  summary.classList.add('lesson-accordion-summary');
+
+  const titleText = summary.textContent.trim();
+  summary.textContent = '';
+
+  const titleSpan = document.createElement('span');
+  titleSpan.className = 'lesson-accordion-title';
+  titleSpan.textContent = titleText;
+
+  const chevron = document.createElement('span');
+  chevron.className = 'lesson-accordion-chevron';
+  chevron.setAttribute('aria-hidden', 'true');
+  chevron.textContent = '▾';
+
+  summary.append(titleSpan, chevron);
+
+  const body = document.createElement('div');
+  body.className = 'lesson-accordion-body';
+  const contentNodes = [...details.childNodes].filter((node) => node !== summary);
+  body.append(...contentNodes);
+  details.append(body);
+
+  return body;
+}
+
+/** Оформляет разделы, уровни сложности и задачи в практических блоках как кнопки-аккордеоны. */
 function enhancePracticeTasks(container) {
   const topDetails = [...container.children].filter((el) => el.tagName === 'DETAILS');
   for (const details of topDetails) {
     const summary = details.querySelector(':scope > summary');
     if (!summary) continue;
 
-    details.classList.add('lesson-accordion');
-    summary.classList.add('lesson-accordion-summary');
+    const text = summary.textContent.trim();
+    const role = text.startsWith('🧩') ? 'task' : text.startsWith('📦') ? 'group' : 'level';
+    const body = buildAccordion(details, role);
+    if (!body || role === 'task') continue;
 
-    const titleText = summary.textContent.trim();
-    summary.textContent = '';
-
-    const titleSpan = document.createElement('span');
-    titleSpan.className = 'lesson-accordion-title';
-    titleSpan.textContent = titleText;
-
-    const chevron = document.createElement('span');
-    chevron.className = 'lesson-accordion-chevron';
-    chevron.setAttribute('aria-hidden', 'true');
-    chevron.textContent = '▾';
-
-    summary.append(titleSpan, chevron);
-
-    const body = document.createElement('div');
-    body.className = 'lesson-accordion-body';
-    const contentNodes = [...details.childNodes].filter((node) => node !== summary);
-    body.append(...contentNodes);
-    details.append(body);
+    enhancePracticeTasks(body);
   }
 }
 

@@ -1,6 +1,9 @@
 # Урок 30. Размеры окна и страницы, скролл: scroll, scrollBy, scrollIntoView
 
-Суть урока: Размеры доступного окна берут из documentElement.clientWidth/Height, точную высоту всей страницы — через Math.max, а прокручивают страницу к точке (scroll), на сдвиг (scrollBy) или прямо к элементу (scrollIntoView).
+Суть урока:
+
+- **Размеры окна и страницы:** доступное окно берут из `documentElement.clientWidth/Height`, точную высоту всей страницы — через `Math.max`.
+- **Прокрутка:** скроллят страницу к точке (`scroll`), на сдвиг (`scrollBy`) или прямо к элементу (`scrollIntoView`).
 
 ## 1. Размеры окна (viewport): documentElement vs window (00:26–02:45)
 

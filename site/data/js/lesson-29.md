@@ -1,6 +1,9 @@
 # Урок 29. Размеры и координаты DOM-элементов
 
-Суть урока: Размеры элемента в JS читают готовыми числовыми свойствами (offset*, client*, scroll*) вместо getComputedStyle, а точные координаты получают через getBoundingClientRect() (+ window.scrollX/scrollY для всей страницы).
+Суть урока:
+
+- **Метрики элемента:** размеры читают готовыми числовыми свойствами (`offset*`, `client*`, `scroll*`) вместо `getComputedStyle`.
+- **Координаты:** точное положение на экране даёт `getBoundingClientRect()` (плюс `window.scrollX/scrollY` для всей страницы).
 
 ## 1. Полные размеры: offsetWidth / offsetHeight и рамка clientLeft / Top (00:46–04:39)
 

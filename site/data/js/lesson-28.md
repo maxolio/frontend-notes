@@ -1,6 +1,10 @@
 # Урок 28. Стили и CSS-классы в DOM: style, getComputedStyle, classList
 
-Суть урока: Оптимальнее управлять внешним видом через CSS-классы с помощью elem.classList; инлайновые стили задают через elem.style (и CSS-переменные через setProperty), а реальные стили из CSS-файлов читают через getComputedStyle(elem).
+Суть урока:
+
+- **Классы:** управлять внешним видом оптимальнее через CSS-классы и `elem.classList`.
+- **Инлайн-стили:** задают через `elem.style` (а CSS-переменные — через `setProperty()`).
+- **Итоговые стили:** реальные стили из CSS-файлов читают через `getComputedStyle(elem)`.
 
 ## 1. Инлайновые стили: elem.style и style.cssText (00:21–03:04)
 

@@ -1,33 +1,32 @@
-const courierName = 'Максим';
-const daysWorked = 7;
-const baseRate = null;
+/*a
+aa
+aa
+aa
+aa*/
 
-const finalRate = baseRate ?? 1000;
+/*Из-за неверного порядка условий заказ на 5500 получает скидку 5% вместо 15%, а нулевая или отрицательная сумма вообще не отлавливается. Перестрой цепочку так, чтобы при некорректной сумме (!orderTotal || orderTotal < 0) выводилось 'Ошибка суммы', от 5000 — 'Скидка 15%', от 1000 — 'Скидка 5%', иначе — 'Без скидки'.*/
+'use strict';
 
-function calcSalary(daysCount, dailyRate = 1000) {
-  if (daysCount <= 0) {
-    return 0;
-  }
-
-  let totalSalary = 0;
-
-  for (let day = 1; day <= daysCount; day++) {
-    if (day % 7 === 0) {
-      continue;
-    }
-
-    if (day % 2 === 0) {
-      totalSalary += dailyRate + 500;
-    } else {
-      totalSalary += dailyRate;
-    }
-  }
-
-  return totalSalary;
+const orderTotal = 5500;
+/*
+  Сначала отсекаем некорректные суммы: !orderTotal поймает 0 и NaN,
+  а orderTotal < 0 — отрицательные числа.
+  На вырост: в реальных проектах числа проверяют через !Number.isFinite(orderTotal) || orderTotal <= 0,
+  чтобы дополнительно отсечь Infinity и строки вроде 'abc'
+*/
+if (!orderTotal || orderTotal < 0) {
+  console.log('Ошибка суммы');
+} else if (orderTotal >= 5000) {
+  /*
+    Более строгий порог >= 5000 обязан идти раньше >= 1000,
+    иначе любая сумма от 1000 перехватится первой веткой
+  */
+  console.log('Скидка 15%');
+} else if (orderTotal >= 1000) {
+  console.log('Скидка 5%');
+} else {
+  console.log('Без скидки');
 }
 
-const salary = calcSalary(daysWorked, finalRate);
-
-console.log(`Курьер ${courierName} заработал за ${daysWorked} дн.: ${salary} руб.`);
 
 

@@ -1,6 +1,10 @@
 # Урок 42. Location API, History API и работа с URLSearchParams
 
-Суть урока: window.location читает части URL и управляет переходами (reload, assign, replace), window.history листает историю вкладки и меняет URL без перезагрузки страницы (pushState, replaceState), а класс URLSearchParams удобно собирает и парсит GET-параметры.
+Суть урока:
+
+- **`window.location`:** читает части URL и управляет переходами (`reload`, `assign`, `replace`).
+- **`window.history`:** листает историю вкладки и меняет URL без перезагрузки страницы (`pushState`, `replaceState`).
+- **`URLSearchParams`:** удобно собирает и парсит GET-параметры.
 
 ## 1. window.location: структура URL и методы перехода (00:28–08:02)
 

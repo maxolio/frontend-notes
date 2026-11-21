@@ -1,6 +1,9 @@
 # Урок 39. Валидация форм: свойство validity и компонент FormsValidation
 
-Суть урока: Нативные правила задают в HTML (required, minlength, maxlength, pattern, title), стандартные тултипы отключают атрибутом novalidate и проверяют поля в JS через field.validity (объект ValidityState) на событиях blur (с capture: true), change и submit.
+Суть урока:
+
+- **HTML-правила:** ограничения задают атрибутами (`required`, `minlength`, `maxlength`, `pattern`, `title`), а нативные тултипы отключают через `novalidate`.
+- **Проверка в JS:** состояние поля читают через `field.validity` (`ValidityState`) на событиях `blur` (`capture: true`), `change` и `submit`.
 
 ## 1. Нативная валидация HTML и разметка под кастомные ошибки (00:36–06:35)
 

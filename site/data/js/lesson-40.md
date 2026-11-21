@@ -1,6 +1,9 @@
 # Урок 40. Запросы fetch: клиент-сервер, статусы, GET/POST, JSON Server и Network
 
-Суть урока: Функция fetch(url, options) отправляет сетевой запрос и возвращает Promise; статус проверяют через response.ok / response.status, тело читают через return response.json(), а для POST, заголовков и кук передают method, body, headers и credentials.
+Суть урока:
+
+- **Запрос и ответ:** `fetch(url, options)` отправляет сетевой запрос и возвращает `Promise`; статус проверяют через `response.ok` / `response.status`, тело читают через `return response.json()`.
+- **Настройки:** для POST, заголовков и кук передают `method`, `body`, `headers` и `credentials`.
 
 ## 1. Клиент-сервер, API, первый fetch и статусы ответа (00:30–06:32)
 
