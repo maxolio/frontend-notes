@@ -6,3 +6,5 @@ __pycache__/
 Thumbs.db
 ~$*.docx
 scratch/
+_task-bank/*
+!_task-bank/INDEX.md
