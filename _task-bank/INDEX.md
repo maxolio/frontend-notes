@@ -17,8 +17,8 @@
 | [ ] | 04 | 🟢 | Постфиксная и префиксная формы | `ru-js-info/1-js/02-first-steps/08-operators/1-increment-order/task.md` |
 | [ ] | 04 | 🟢 | Результат присваивания | `ru-js-info/1-js/02-first-steps/08-operators/2-assignment-result/task.md` |
 | [ ] | 04 | 🟡 | Преобразование типов | `ru-js-info/1-js/02-first-steps/08-operators/3-primitive-conversions-questions/task.md` |
-| [ ] | 04 | 🟡 | Исправьте сложение (`prompt`) | `ru-js-info/1-js/02-first-steps/08-operators/4-fix-prompt/task.md` |
-| [ ] | 04 | 🟢 | Операторы сравнения | `ru-js-info/1-js/02-first-steps/09-comparison/1-comparison-questions/task.md` |
+| [x] | 04 | 🟡 | Исправьте сложение (`prompt`) | `ru-js-info/1-js/02-first-steps/08-operators/4-fix-prompt/task.md` |
+| [x] | 04 | 🟢 | Операторы сравнения | `ru-js-info/1-js/02-first-steps/09-comparison/1-comparison-questions/task.md` |
 
 ### Уроки 05–06 (`if/else`, логические операторы, `??`, модалки, `switch`)
 | Статус | Урок | Уровень | Задача | Путь |
@@ -35,14 +35,14 @@
 | [ ] | 05 | 🟡 | Результат ИЛИ И ИЛИ | `ru-js-info/1-js/02-first-steps/11-logical-operators/5-alert-and-or/task.md` |
 | [ ] | 05 | 🟡 | Приоритет И, ИЛИ и `=` | `ru-js-info/1-js/02-first-steps/11-logical-operators/6-alert-or-assignment-and-assignment/task.md` |
 | [ ] | 05 | 🟢 | Проверка значения из диапазона | `ru-js-info/1-js/02-first-steps/11-logical-operators/7-check-if-in-range/task.md` |
-| [ ] | 05 | 🟢 | Проверка значения вне диапазона | `ru-js-info/1-js/02-first-steps/11-logical-operators/8-check-if-out-range/task.md` |
+| [x] | 05 | 🟢 | Проверка значения вне диапазона | `ru-js-info/1-js/02-first-steps/11-logical-operators/8-check-if-out-range/task.md` |
 | [ ] | 05 | 🟡 | Вопрос об `if` | `ru-js-info/1-js/02-first-steps/11-logical-operators/9-if-question/task.md` |
 | [ ] | 05 | 🟡 | Проверка логина | `ru-js-info/1-js/02-first-steps/11-logical-operators/10-check-login/task.md` |
 | [ ] | 05 | 🟢 | Операторы `??` и `||` (значения) | `ru-js-info/1-js/02-first-steps/12-nullish-operators/1-values/task.md` |
 | [ ] | 05 | 🟢 | Города (`??`) | `ru-js-info/1-js/02-first-steps/12-nullish-operators/2-cities/task.md` |
-| [ ] | 05 | 🟡 | Перепишите `if` на `??` | `ru-js-info/1-js/02-first-steps/12-nullish-operators/3-rewrite/task.md` |
+| [x] | 05 | 🟡 | Перепишите `if` на `??` | `ru-js-info/1-js/02-first-steps/12-nullish-operators/3-rewrite/task.md` |
 | [ ] | 06 | 🟢 | Простая страница (`prompt`) | `ru-js-info/1-js/02-first-steps/06-alert-prompt-confirm/1-simple-page/task.md` |
-| [ ] | 06 | 🟢 | Перепишите `switch` в `if` | `ru-js-info/1-js/02-first-steps/14-switch/1-rewrite-switch-if-else/task.md` |
+| [x] | 06 | 🟢 | Перепишите `switch` в `if` | `ru-js-info/1-js/02-first-steps/14-switch/1-rewrite-switch-if-else/task.md` |
 | [ ] | 06 | 🟢 | Перепишите `if` в `switch` | `ru-js-info/1-js/02-first-steps/14-switch/2-rewrite-if-switch/task.md` |
 
 ## Блок 2. Циклы и функции (Уроки 07–09)
