@@ -644,6 +644,9 @@ export function renderSidebar(navElement, subjectId, lessons, activeId, statuses
       if (lesson.type === 'practice') {
         link.classList.add('is-practice');
       }
+      if (lesson.type === 'cheatsheet') {
+        link.classList.add('is-cheatsheet');
+      }
       link.dataset.lessonId = lesson.id;
       if (lesson.id === activeId) {
         link.classList.add('active');

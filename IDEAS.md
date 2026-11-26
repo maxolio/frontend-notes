@@ -30,3 +30,14 @@
 - **Группировка и управление весом (дополнено):**
   - `&:is(...)` — сокращает длинные списки селекторов (берёт вес самого тяжёлого из списка).
   - `&:where(...)` — то же самое, но с **нулевой специфичностью** (`0-0-0`), чтобы стили легко переопределялись.
+
+## 3. Практика каскада и специфичности CSS: тренажёры и формат задач
+- **Как встраиваем в уроки (`lesson-02.md` и далее):**
+  - **Вопросы:** мини-дуэли из 2–3 правил на предсказание результата («какой цвет победит и почему?»).
+  - **Задачи:** формат `cascade-fix` (готовый конфликтующий CSS с запретом удалять правила и ставить `!important` / `#id`).
+  - **Проверка:** подсказка навести курсор на селектор в DevTools (`Styles`), чтобы увидеть вес `(A, B, C)`, и сверить с вкладкой `Computed` (`Inherited from ...`).
+- **Полезные тренажёры и калькуляторы:**
+  - **CSS Diner** (`flukeout.github.io`) и **Guess CSS** (`guess-css.app`) — 10–15 минут на отработку селекторов.
+  - **Polypane Calculator** (`polypane.app/css-specificity-calculator`) и **Specificity Calculator** (`specificity.keegan.st`) — сравнение веса двух селекторов рядом.
+  - **Квизы на скорость:** **ID-CLASS-TYPE** (Estelle Weyl), **SpeciFISHity** (`specifishity.com`), **Lucid Software Specificity Quiz**.
+  - **Задачи и теория:** **The Odin Project** (`cascade-fix`), **MDN** («Test your skills: The Cascade»), **Дока** (`doka.guide/css/cascade`), **web.dev — Learn CSS**, **HTML Academy** («Анатомия CSS-каскада»).

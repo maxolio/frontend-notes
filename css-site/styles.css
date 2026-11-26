@@ -1,0 +1,50 @@
+html {
+  min-height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  padding: 24px;
+  background: #4688c5;
+  width: 100%;
+}
+
+
+
+.panel {
+  margin-inline: auto;
+  max-width: 30rem;
+  padding: 20px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+
+.hint {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  visibility: hidden;
+}
+
+.panel > h2 {
+  color: navy;
+}
+
+a[href^="https://"] {
+color: green;
+}
+
+a[href$="pdf" i] {
+  background-color: gold;
+}
+
+.field.is-invalid + .hint{
+  visibility: visible;
+  color: crimson;
+}
+

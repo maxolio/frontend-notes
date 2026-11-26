@@ -37,5 +37,12 @@
     "title": "Свой SPA с нуля",
     "indexFile": "data/spa/lessons.json",
     "basePath": "data/spa"
+  },
+  {
+    "id": "web",
+    "badge": "WEB",
+    "title": "Архитектура веба",
+    "indexFile": "data/web/lessons.json",
+    "basePath": "data/web"
   }
 ]

@@ -1,5 +1,15 @@
 # Worklog — Уроки JS (site/data/js)
 
+## 2026-11-26 — Оптимизация Урока 09 и 2 шпаргалки в «Шпаргалки и справочники»
+- **Сделано:** Оптимизирован `lesson-09.md` (таблицы видов функций и префиксов, `На вырост` для `this` и объектов); добавлены `cheatsheet-checks.md` и `cheatsheet-functions.md` (HtDF + CQS + 3 этажа) в `lessons.json`; `validate-lessons.mjs` (`42` файла, `0` ошибок) и пересобран `all-lessons.md` (`47` уроков).
+- **Файлы:** `site/data/js/lesson-09.md`, `site/data/js/cheatsheet-checks.md`, `site/data/js/cheatsheet-functions.md`, `site/data/js/lessons.json`, `site/data/js/all-lessons.md`.
+- **Дальше:** Оптимизировать `lesson-10.md` и далее (старт нового чата через `@HANDOFF-lessons-js.md продолжай`).
+
+## 2026-11-24 — Точечная оптимизация Уроков 07 и 08
+- **Сделано:** Оптимизированы `lesson-07.md` (ловушки `const i` и `while` + `continue`, таблица сравнения циклов, форматирование) и `lesson-08.md` (исправлен баг с `NaN` в `getAgeType`, уточнены дефолтные параметры, добавлена таблица `return`); прогнан `validate-lessons.mjs` (`0 issues`) и пересобран `all-lessons.md`.
+- **Файлы:** `site/data/js/lesson-07.md`, `site/data/js/lesson-08.md`, `site/data/js/all-lessons.md`.
+- **Дальше:** Оптимизировать следующие уроки JS (`lesson-09.md`+) или перейти к системной Практике 1 (`site/data/js/practice-01.md`).
+
 ## 2026-11-22 — Правила оформления JS, IDEAS.md и handoff для Практики 1
 - **Сделано:** Зафиксированы правила оформления JS-уроков и Правило 7 в `AGENTS.md`, создан чек-лист будущего урока-шпаргалки `IDEAS.md` и собран `HANDOFF-решаем задачи и улучшаем проект сайта.md`.
 - **Файлы:** `AGENTS.md`, `IDEAS.md`, `HANDOFF-решаем задачи и улучшаем проект сайта.md`.
