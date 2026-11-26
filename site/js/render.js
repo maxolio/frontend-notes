@@ -57,6 +57,13 @@ function stripPrefixFromFirstTextNode(element, prefix) {
 
 const PRACTICE_SECTIONS = [
   {
+    key: 'cheatsheet',
+    match: 'краткая шпаргалка',
+    title: 'Краткая шпаргалка',
+    icon: '📋',
+    optional: true,
+  },
+  {
     key: 'questions',
     match: 'вопросы для закрепления',
     title: 'Вопросы для закрепления',
