@@ -136,3 +136,50 @@ a[href$=".pdf" i] {
 </details>
 
 </details>
+
+<details>
+<summary>Задача 3. Специфичность, соседний комбинатор (+) и атрибуты</summary>
+
+Есть карточка `#promo` с конфликтующим правилом `#promo .text { color: gray; }` (вес `1-1-0`). Перебей его без `!important` и стилизуй элементы точечно.
+
+1. Покрась `.text.lead` в `crimson` так, чтобы перебить `#promo .text` (без `!important`).
+2. Второму `<p>` (сразу после `.lead`) задай `font-size: 14px;` через комбинатор `+`.
+3. Кнопке `.btn` с атрибутом `disabled` задай `background-color: #94a3b8;` и `cursor: not-allowed;`.
+
+```html
+<section id="promo" class="card">
+  <h2 class="title">Акция дня</h2>
+  <p class="text lead">Обычное описание товара</p>
+  <p class="text">Дополнительная строка</p>
+
+  <div class="actions">
+    <button class="btn" type="button">Подробнее</button>
+    <button class="btn" type="button" disabled>Нет в наличии</button>
+  </div>
+</section>
+```
+
+<details>
+<summary>Подсказка и решение</summary>
+
+```css
+/* Вес 1-2-0 (1 ID + 2 класса) гарантированно перебивает 1-1-0 */
+#promo .text.lead {
+  color: crimson;
+}
+
+/* Выбирает p, идущий сразу после .lead внутри #promo */
+#promo .lead + p {
+  font-size: 14px;
+}
+
+/* Вес 0-2-0 (класс + атрибут) перебивает .btn (0-1-0) */
+.btn[disabled] {
+  background-color: #94a3b8;
+  cursor: not-allowed;
+}
+```
+
+</details>
+
+</details>
