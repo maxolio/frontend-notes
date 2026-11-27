@@ -883,12 +883,251 @@ function countEven(n) {
 
 </details>
 
+<details>
+<summary>🧩 Задача 3. Повторяй ввод, пока число не больше 100</summary>
+
+**Темы для повторения:** Урок 07 (`do..while`, `while`, `break`), Урок 08–09 (`HtDF + CQS`, ранний `return`).  
+**Сложность:** 🟢 Лёгкая
+
+### Что нужно сделать
+**Суть задачи:**  
+Форме на сайте нужно получить от пользователя число строго больше `100`. Программа должна переспрашивать ввод в цикле (`do..while` или `while`), пока пользователь не введёт подходящее число или не отменит ввод.
+
+**Сценарий работы:**
+
+**1. Запусти цикл и на каждом шаге спрашивай:** `prompt('Введите число больше 100', '')`
+- Если нажали `Cancel` (`null`) или оставили пустую строку (`''` / пробелы) -> **сразу выходи из цикла** и выведи `'Ввод отменён'`.
+- Если ввели число **`<= 100`** (например, `50` или `100`) -> **повтори запрос снова**.
+- Если ввели число **строго больше `100`** (например, `101`) -> **выходи из цикла** и выведи `'Принято: <число>'`.
+
+**Проверь себя на 3 сценариях:**
+- Ввели `50`, потом `100`, потом `101` -> спросит 3 раза, выведет `'Принято: 101'`
+- Сразу нажали `Cancel` -> цикл остановится сразу, выведет `'Ввод отменён'`
+- Ввели `20`, потом оставили поле пустым `''` -> цикл остановится, выведет `'Ввод отменён'`
+
+### Шаблон для копирования
+```js
+'use strict';
+
+let input;
+
+/* Твоё решение: */
+```
+
+<details>
+<summary>Раскрыть решение</summary>
+
+### Вариант 1 (короткий цикл `do..while`, только Урок 07)
+```js
+'use strict';
+
+let input;
+
+do {
+  input = prompt('Введите число больше 100', '');
+} while (input !== null && input.trim() !== '' && Number(input) <= 100);
+
+if (input === null || input.trim() === '') {
+  console.log('Ввод отменён');
+} else {
+  console.log(`Принято: ${input}`);
+}
+
+/*
+  Разбор по пунктам:
+  1. do..while запускает prompt минимум 1 раз, даже без начального значения input.
+  2. Проверка input !== null идёт ПЕРВОЙ: иначе при Cancel вызов .trim() упадёт
+     с TypeError, а null <= 100 дало бы true и зациклило программу.
+  3. Цикл крутится, пока ввод не пустой И число <= 100.
+*/
+```
+
+### Вариант 2 (через функции: HtDF + CQS + 3 этажа)
+```js
+'use strict';
+
+function askNumberGreaterThan(min = 100) {
+  if (!Number.isFinite(min)) return null;
+
+  while (true) {
+    const raw = prompt(`Введите число больше ${min}`, '');
+
+    if (raw === null || raw.trim() === '') return null;
+
+    const num = Number(raw);
+
+    if (Number.isFinite(num) && num > min) return num;
+  }
+}
+
+function showInputResult(value) {
+  if (value === null) {
+    console.log('Ввод отменён');
+    return;
+  }
+
+  console.log(`Принято: ${value}`);
+}
+
+const userNumber = askNumberGreaterThan();
+showInputResult(userNumber);
+
+/*
+  Разбор по 4 шагам (HtDF + CQS):
+  1. Контракт:
+     - askNumberGreaterThan(number?) -> number | null (Запрос: только добывает число).
+     - showInputResult(number | null) -> undefined (Команда: только выводит итог).
+  2. Примеры: ввод 50 -> повтор; 101 -> return 101; Cancel или '' -> return null.
+  3. Имя и параметры: ask... для запроса ввода, show... для вывода; min = 100 в конце.
+  4. 3 этажа:
+     - Защита: проверка min через Number.isFinite; внутри цикла null проверяется
+       ДО .trim() и ДО Number(raw) (иначе null и '' превратятся в 0).
+     - Логика: бесконечный while (true) крутит prompt до валидного числа или отмены.
+     - Выход: return num сразу завершает и цикл, и всю функцию.
+*/
+```
+
+</details>
+
+</details>
+
 </details>
 
 <details>
 <summary>🟡 Средние задачи</summary>
 
-*Задачи скоро добавим.*
+<details>
+<summary>🧩 Задача 1. Счётчик чисел по условию (колбэк + цикл)</summary>
+
+**Темы для повторения:** Урок 07 (`for`), Урок 08–09 (`HtDF + CQS`, колбэки и стрелочные функции).  
+**Сложность:** 🟡 Средняя
+
+### Что нужно сделать
+**Суть задачи:**  
+Нужна универсальная функция-**Запрос** `countByRule(from, to, checkFn)`, которая проходит по числам от `from` до `to` включительно и считает, сколько из них подходят под правило, переданное через колбэк `checkFn`.
+
+**Сценарий работы:**
+
+**1. Спроектируй Запрос `countByRule(from, to, checkFn)` по 4 шагам (HtDF + CQS):**
+- **Защита входа:** если `from` или `to` не целые конечные числа (`!Number.isInteger(...)`), либо `from > to`, либо `checkFn` не функция (`typeof checkFn !== 'function'`) -> верни `null`.
+- **Логика:** в цикле `for` от `from` до `to` включительно вызывай `checkFn(i)`. Если колбэк вернул `true` -> увеличивай счётчик.
+- **Выход:** верни итоговое количество (`number`).
+
+**2. Вызови `countByRule` двумя стрелочными колбэками:**
+- сколько чётных чисел от `1` до `10`;
+- сколько чисел от `1` до `20` делятся и на `3`, и на `5`.
+
+**Проверь себя на 4 сценариях:**
+- `countByRule(1, 10, (n) => n % 2 === 0)` -> `5`
+- `countByRule(1, 20, (n) => n % 3 === 0 && n % 5 === 0)` -> `1` (число `15`)
+- `countByRule(10, 1, (n) => n > 0)` -> `null` (`from > to`)
+- `countByRule(1, 5, 'не функция')` -> `null`
+
+### Шаблон для копирования
+```js
+'use strict';
+
+function countByRule(from, to, checkFn) {
+  /* Твоё решение по 3 этажам: */
+}
+
+console.log(countByRule(1, 10, (n) => n % 2 === 0));
+console.log(countByRule(1, 20, (n) => n % 3 === 0 && n % 5 === 0));
+console.log(countByRule(10, 1, (n) => n > 0));
+console.log(countByRule(1, 5, 'не функция'));
+```
+
+<details>
+<summary>Раскрыть решение</summary>
+
+### Вариант 1 (с именованными стрелочными предикатами)
+```js
+'use strict';
+
+function countByRule(from, to, checkFn) {
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from > to ||
+    typeof checkFn !== 'function'
+  ) {
+    return null;
+  }
+
+  let count = 0;
+
+  for (let i = from; i <= to; i++) {
+    if (checkFn(i) === true) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+const isEven = (n) => n % 2 === 0;
+const isDivisibleBy3And5 = (n) => n % 3 === 0 && n % 5 === 0;
+const isPositive = (n) => n > 0;
+
+console.log(countByRule(1, 10, isEven));              /* 5 */
+console.log(countByRule(1, 20, isDivisibleBy3And5));  /* 1 */
+console.log(countByRule(10, 1, isPositive));          /* null */
+console.log(countByRule(1, 5, 'не функция'));         /* null */
+
+/*
+  Разбор по 4 шагам (HtDF + CQS):
+  1. Контракт: countByRule(number, number, function) -> number | null.
+     Запрос возвращает строго число или null (без форматирования в строку),
+     чтобы результат можно было использовать в дальнейших расчётах.
+  2. Примеры: (1, 10, isEven) -> 5; (10, 1, isPositive) -> null.
+  3. Имя и параметры: countByRule — Запрос; обязательные числа и колбэк checkFn.
+     Предикаты isEven / isDivisibleBy3And5 переданы без (), иначе вызвались бы сразу.
+  4. 3 этажа:
+     - Защита: Number.isInteger сам отсекает NaN, Infinity, строки и дробные;
+       typeof checkFn !== 'function' страхует от падения на вызове checkFn(i).
+     - Логика: цикл for проверяет каждое число через checkFn(i) === true.
+     - Выход: return count отдаёт итоговый счётчик.
+*/
+```
+
+### Вариант 2 (с короткими анонимными стрелками на месте)
+```js
+'use strict';
+
+function countByRule(from, to, checkFn) {
+  if (
+    !Number.isInteger(from) ||
+    !Number.isInteger(to) ||
+    from > to ||
+    typeof checkFn !== 'function'
+  ) {
+    return null;
+  }
+
+  let count = 0;
+
+  for (let i = from; i <= to; i++) {
+    if (checkFn(i) === true) {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+console.log(countByRule(1, 10, (n) => n % 2 === 0));                  /* 5 */
+console.log(countByRule(1, 20, (n) => n % 3 === 0 && n % 5 === 0));   /* 1 */
+
+/*
+  Разбор:
+  Если правило одноразовое и короткое, его можно передать стрелочной функцией
+  прямо в аргумент — без создания отдельной переменной.
+*/
+```
+
+</details>
+
+</details>
 
 </details>
 

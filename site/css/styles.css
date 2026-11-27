@@ -1460,3 +1460,32 @@ pre {
     width: 19rem;
   }
 }
+
+/* === Цветная подсветка ключевых терминов (Запрос, Команда, Контракт и др.) === */
+.kw-concept {
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  font-weight: 700;
+}
+
+.kw-query,
+.kw-output {
+  color: var(--tip-border);
+  background: var(--tip-bg);
+}
+
+.kw-command {
+  color: var(--warn-border);
+  background: var(--warn-bg);
+}
+
+.kw-contract,
+.kw-logic {
+  color: var(--tldr-border);
+  background: var(--tldr-bg);
+}
+
+.kw-guard {
+  color: var(--traps-border);
+  background: var(--traps-bg);
+}

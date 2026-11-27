@@ -607,6 +607,70 @@ function enhanceCodeBlocks(container, meta) {
   }
 }
 
+const CONCEPT_KEYWORDS = [
+  { pattern: /(^|[^а-яёА-ЯЁ])(Запрос(?:а|у|ом|е|ы)?)(?=[^а-яёА-ЯЁ]|$)/gi, cls: 'kw-query' },
+  { pattern: /(^|[^а-яёА-ЯЁ])(Команд(?:а|ы|е|у|ой)?)(?=[^а-яёА-ЯЁ]|$)/gi, cls: 'kw-command' },
+  { pattern: /(^|[^а-яёА-ЯЁ])(Контракт(?:а|у|ом|е)?)(?=[^а-яёА-ЯЁ]|$)/gi, cls: 'kw-contract' },
+  { pattern: /(^|[^а-яёА-ЯЁ])(Защита)(?=[^а-яёА-ЯЁ]|$)/g, cls: 'kw-guard' },
+  { pattern: /(^|[^а-яёА-ЯЁ])(Логика)(?=[^а-яёА-ЯЁ]|$)/g, cls: 'kw-logic' },
+  { pattern: /(^|[^а-яёА-ЯЁ])(Выход)(?=[^а-яёА-ЯЁ]|$)/g, cls: 'kw-output' },
+];
+
+/** Подсвечивает цветом ключевые термины методики внутри жирного текста. */
+function highlightConceptKeywords(container) {
+  const strongNodes = container.querySelectorAll('strong');
+
+  for (const strong of strongNodes) {
+    if (strong.closest('pre, code, a, h1, h2, h3, h4, summary')) continue;
+
+    const walker = document.createTreeWalker(strong, NodeFilter.SHOW_TEXT);
+    const textNodes = [];
+    let current;
+    while ((current = walker.nextNode())) {
+      textNodes.push(current);
+    }
+
+    for (const node of textNodes) {
+      const text = node.nodeValue;
+      const matches = [];
+
+      for (const { pattern, cls } of CONCEPT_KEYWORDS) {
+        pattern.lastIndex = 0;
+        let m;
+        while ((m = pattern.exec(text)) !== null) {
+          const start = m.index + m[1].length;
+          const word = m[2];
+          matches.push({ start, end: start + word.length, word, cls });
+        }
+      }
+
+      if (!matches.length) continue;
+      matches.sort((a, b) => a.start - b.start);
+
+      const frag = document.createDocumentFragment();
+      let cursor = 0;
+
+      for (const item of matches) {
+        if (item.start < cursor) continue;
+        if (item.start > cursor) {
+          frag.append(document.createTextNode(text.slice(cursor, item.start)));
+        }
+        const span = document.createElement('span');
+        span.className = `kw-concept ${item.cls}`;
+        span.textContent = item.word;
+        frag.append(span);
+        cursor = item.end;
+      }
+
+      if (cursor < text.length) {
+        frag.append(document.createTextNode(text.slice(cursor)));
+      }
+
+      node.replaceWith(frag);
+    }
+  }
+}
+
 export function renderMarkdownLesson(container, markdownText, meta = {}) {
   if (!window.marked) {
     container.textContent = markdownText;
@@ -617,10 +681,18 @@ export function renderMarkdownLesson(container, markdownText, meta = {}) {
   transformCallouts(container);
   wrapTrapsSection(container);
   if (meta.isPractice) {
-    enhancePracticeTasks(container);
+    const hasPracticeHeadings = [...container.querySelectorAll('h2')].some((h) =>
+      PRACTICE_SECTIONS.some((spec) => !spec.optional && h.textContent.toLowerCase().includes(spec.match))
+    );
+    if (hasPracticeHeadings) {
+      wrapPracticeAccordions(container);
+    } else {
+      enhancePracticeTasks(container);
+    }
   } else {
     wrapPracticeAccordions(container);
   }
+  highlightConceptKeywords(container);
   enhanceCodeBlocks(container, meta);
 }
 
